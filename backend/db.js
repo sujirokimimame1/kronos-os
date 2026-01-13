@@ -1,22 +1,11 @@
 const sqlite3 = require('sqlite3').verbose();
-const path = require('path');
-const fs = require('fs');
 
-// ✅ CONFIGURAÇÃO PARA FLY.IO
-const dbPath = process.env.DB_PATH || path.join(__dirname, 'kronos.db');
-const dbDir = path.dirname(dbPath);
-
-// Garantir que o diretório existe
-if (!fs.existsSync(dbDir)) {
-  fs.mkdirSync(dbDir, { recursive: true });
-  console.log('✅ Pasta do banco criada:', dbDir);
-}
-
-const db = new sqlite3.Database(dbPath, (err) => {
+// ✅ CONFIGURAÇÃO PARA RENDER (SQLite em memória)
+const db = new sqlite3.Database(':memory:', (err) => {
   if (err) {
-    console.error('❌ Falha ao abrir/criar o banco de dados:', err.message);
+    console.error('❌ Falha ao conectar ao banco em memória:', err.message);
   } else {
-    console.log('✅ Banco de dados conectado:', dbPath);
+    console.log('✅ Conectado ao SQLite em memória');
     criarTabelas();
   }
 });
@@ -106,8 +95,8 @@ function criarTabelas() {
 // ✅ FUNÇÃO PARA VERIFICAR E CRIAR CAMPOS FALTANTES
 function verificarECriarCampos() {
   return new Promise((resolve) => {
-    // Verificar se campo data_fechamento existe
-    db.get("PRAGMA table_info(ordens_servico)", (err, rows) => {
+    // Verificar se campo data_fechamento existe - CORRIGIDO: db.all em vez de db.get
+    db.all("PRAGMA table_info(ordens_servico)", (err, rows) => {
       if (err) {
         console.error('❌ Erro ao verificar estrutura da tabela:', err);
         resolve();

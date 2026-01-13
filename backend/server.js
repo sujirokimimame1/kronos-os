@@ -278,7 +278,7 @@ app.get('/api/debug/db', (req, res) => {
     const result = { 
       success: true,
       tables: [],
-      database: dbPath
+      database: 'SQLite em memória' // CORRIGIDO: Removida referência a dbPath
     };
     
     // Para cada tabela, contar registros e mostrar estrutura
@@ -421,7 +421,7 @@ app.listen(PORT, '0.0.0.0', () => {
 🚀 Servidor rodando na porta: ${PORT}
 📊 Ambiente: ${process.env.NODE_ENV || 'development'}
 🌐 Timezone: ${process.env.TZ || 'UTC'}
-🗄️  Banco: ${dbPath}
+🗄️  Banco: SQLite em memória // CORRIGIDO: Removida referência a dbPath
 
 ✨ NOVAS FUNCIONALIDADES:
    • ✅ Status "Aguardando Peças" para técnicos
