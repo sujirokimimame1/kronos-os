@@ -1,0 +1,198 @@
+cd "C:\Users\andre\OneDrive\Desktop\kronos-os\backend"
+
+# Crie server.js correto para Render
+@"
+const express = require('express');
+const cors = require('cors');
+const path = require('path');
+
+// Tratamento global de erros
+process.on('uncaughtException', (err) => {
+  console.error('❌ Erro não tratado:', err);
+});
+
+process.on('unhandledRejection', (reason) => {
+  console.error('❌ Promessa rejeitada:', reason);
+});
+
+const app = express();
+const PORT = process.env.PORT || 3000;
+
+// ✅ CONFIGURAÇÃO CORS PARA RENDER - SIMPLIFICADA
+app.use(cors({
+  origin: [
+    'https://kronos-os.onrender.com',      // Seu backend no Render
+    'http://localhost:3000',               // Localhost
+    'http://localhost:8080',               // Frontend local
+    'http://127.0.0.1:3000',               // Localhost alternativo
+    'http://127.0.0.1:8080'                // Frontend local alternativo
+    // ADICIONE AQUI A URL DO SEU FRONTEND quando hospedar
+  ],
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'Accept', 'X-Requested-With']
+}));
+
+// Middleware para headers CORS
+app.use((req, res, next) => {
+  const origin = req.headers.origin;
+  
+  // Permite qualquer origem em desenvolvimento
+  if (process.env.NODE_ENV !== 'production') {
+    res.header('Access-Control-Allow-Origin', origin || '*');
+  } else {
+    // Em produção, permite apenas origens específicas
+    const allowedOrigins = [
+      'https://kronos-os.onrender.com',
+      'http://localhost:3000',
+      'http://localhost:8080'
+    ];
+    
+    if (allowedOrigins.includes(origin)) {
+      res.header('Access-Control-Allow-Origin', origin);
+    }
+  }
+  
+  res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS, PATCH');
+  res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization, Accept, X-Requested-With');
+  res.header('Access-Control-Allow-Credentials', 'true');
+  
+  if (req.method === 'OPTIONS') {
+    return res.status(200).end();
+  }
+  
+  next();
+});
+
+// ✅ Aumentar limite para uploads
+app.use(express.json({ limit: '10mb' }));
+app.use(express.urlencoded({ extended: true, limit: '10mb' }));
+
+// Servir arquivos estáticos do frontend
+app.use(express.static(path.join(__dirname, '../frontend')));
+
+// ✅ Health check para Render
+app.get('/health', (req, res) => {
+  const { db } = require('./db');
+  
+  db.get('SELECT 1 as ok', (err) => {
+    res.json({ 
+      status: 'OK',
+      timestamp: new Date().toISOString(),
+      environment: process.env.NODE_ENV || 'development',
+      database: err ? 'ERROR' : 'HEALTHY',
+      cors: 'Configurado para Render',
+      url: 'https://kronos-os.onrender.com'
+    });
+  });
+});
+
+// ✅ Rota de status
+app.get('/api/status', (req, res) => {
+  res.json({
+    success: true,
+    system: {
+      status: 'operational',
+      timestamp: new Date().toISOString(),
+      version: '1.0.0',
+      deployed_on: 'Render',
+      cors_configured: true
+    }
+  });
+});
+
+// ✅ IMPORTAR ROTAS QUE REALMENTE EXISTEM
+try {
+  // Verifique quais rotas existem
+  const fs = require('fs');
+  const routesPath = path.join(__dirname, 'routes');
+  
+  const rotasExistentes = {};
+  
+  // Carregar rotas que existem
+  if (fs.existsSync(path.join(routesPath, 'usuarios.js'))) {
+    rotasExistentes.usuarios = require('./routes/usuarios');
+    app.use('/api/usuarios', rotasExistentes.usuarios);
+    console.log('✅ Rota /api/usuarios carregada');
+  }
+  
+  if (fs.existsSync(path.join(routesPath, 'os.js'))) {
+    rotasExistentes.os = require('./routes/os');
+    app.use('/api/os', rotasExistentes.os);
+    console.log('✅ Rota /api/os carregada');
+  }
+  
+  if (fs.existsSync(path.join(routesPath, 'relatorios.js'))) {
+    rotasExistentes.relatorios = require('./routes/relatorios');
+    app.use('/api/relatorios', rotasExistentes.relatorios);
+    console.log('✅ Rota /api/relatorios carregada');
+  }
+  
+  console.log('📋 Rotas carregadas:', Object.keys(rotasExistentes));
+
+} catch (error) {
+  console.error('❌ ERRO ao carregar rotas:', error.message);
+}
+
+// ✅ Rotas para páginas HTML
+app.get('/', (req, res) => {
+  res.sendFile(path.join(__dirname, '../frontend/index.html'));
+});
+
+app.get('/login', (req, res) => {
+  res.sendFile(path.join(__dirname, '../frontend/index.html'));
+});
+
+app.get('/solicitante-dashboard', (req, res) => {
+  res.sendFile(path.join(__dirname, '../frontend/solicitante-dashboard.html'));
+});
+
+app.get('/tecnico-dashboard', (req, res) => {
+  res.sendFile(path.join(__dirname, '../frontend/tecnico-dashboard.html'));
+});
+
+app.get('/relatorios', (req, res) => {
+  res.sendFile(path.join(__dirname, '../frontend/relatorios.html'));
+});
+
+// ✅ Fallback para SPA
+app.get('*', (req, res) => {
+  res.sendFile(path.join(__dirname, '../frontend/index.html'));
+});
+
+// ✅ Middleware de erro
+app.use((err, req, res, next) => {
+  console.error('💥 Erro:', err.message);
+  
+  if (err.message === 'Não permitido por CORS') {
+    return res.status(403).json({ 
+      success: false, 
+      message: 'Origem não permitida. Configure o CORS corretamente.',
+      allowed_origins: [
+        'https://kronos-os.onrender.com',
+        'http://localhost:3000',
+        'http://localhost:8080'
+      ]
+    });
+  }
+  
+  res.status(500).json({ 
+    success: false, 
+    message: 'Erro interno do servidor'
+  });
+});
+
+// ✅ Inicializar servidor
+app.listen(PORT, '0.0.0.0', () => {
+  console.log(\`
+🎉 KRONOS OS - CONFIGURADO PARA RENDER
+
+🚀 Servidor rodando na porta: \${PORT}
+📊 Ambiente: \${process.env.NODE_ENV || 'development'}
+🌐 URL: https://kronos-os.onrender.com
+🔧 CORS: Configurado para Render
+
+✅ Sistema pronto para receber requisições!
+  \`);
+});
+"@ | Out-File -FilePath server.js -Encoding UTF8

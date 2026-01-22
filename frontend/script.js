@@ -1,4 +1,4 @@
-// ✅ CORREÇÃO: Sistema de autenticação e utilitários corrigidos
+﻿// ✅ CORREÇÃO: Sistema de autenticação e utilitários corrigidos
 const API_BASE_URL = window.location.origin;
 
 // Sistema de autenticação
