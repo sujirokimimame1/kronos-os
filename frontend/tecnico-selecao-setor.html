@@ -1,0 +1,592 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Kronos - Seleção de Setor Técnico</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        :root {
+            /* Mesma paleta suave do index.html */
+            --primary: #4FC3F7;          /* Azul céu suave */
+            --primary-dark: #29B6F6;     /* Azul ciano mais intenso */
+            --primary-light: #81D4FA;    /* Azul claro */
+            --primary-glow: rgba(79, 195, 247, 0.35);
+            --secondary: #BA68C8;        /* Roxo suave */
+            --secondary-glow: rgba(186, 104, 200, 0.25);
+            
+            --black: #0F172A;            /* Cinza-azulado escuro */
+            --black-light: #1E293B;      /* Cinza-azulado médio */
+            --black-lighter: #334155;    /* Cinza-azulado claro */
+            --light: #FFFFFF;
+            --gray: #94A3B8;
+            --card-bg: rgba(15, 23, 42, 0.65);
+            --card-border: rgba(79, 195, 247, 0.2);
+            --shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+            --glow: 0 0 12px var(--primary-glow), 0 0 20px var(--primary-glow);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+        }
+
+        body {
+            background: linear-gradient(135deg, var(--black) 0%, var(--black-light) 50%, var(--black-lighter) 100%);
+            color: var(--light);
+            min-height: 100vh;
+            line-height: 1.6;
+            overflow-x: hidden;
+            position: relative;
+        }
+
+        body::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: 
+                radial-gradient(circle at 15% 85%, var(--primary-glow) 0%, transparent 60%),
+                radial-gradient(circle at 85% 15%, var(--secondary-glow) 0%, transparent 60%),
+                radial-gradient(circle at 50% 40%, rgba(186, 104, 200, 0.08) 0%, transparent 70%);
+            z-index: -1;
+            pointer-events: none;
+        }
+
+        .selection-container {
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 2rem 1.5rem;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+        }
+
+        /* Header Styles */
+        .header {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            margin-bottom: 2rem;
+            padding: 1.5rem;
+            background: var(--card-bg);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border-radius: 24px;
+            border: 1px solid var(--card-border);
+            box-shadow: var(--shadow);
+            transition: transform 0.4s ease, box-shadow 0.4s ease;
+        }
+
+        .header:hover {
+            transform: translateY(-4px);
+            box-shadow: var(--shadow), 0 0 20px var(--primary-glow);
+        }
+
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .logo-icon {
+            width: 60px;
+            height: 60px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+        }
+
+        .cross-container {
+            width: 100%;
+            height: 100%;
+            position: relative;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .cross-circle {
+            width: 55px;
+            height: 55px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, var(--primary), var(--primary-dark));
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+            box-shadow: 0 0 20px var(--primary-glow);
+            animation: neonPulse 3s infinite;
+        }
+
+        .cross {
+            position: relative;
+            width: 30px;
+            height: 30px;
+        }
+
+        .cross::before,
+        .cross::after {
+            content: '';
+            position: absolute;
+            background: var(--black);
+            border-radius: 2px;
+        }
+
+        .cross::before {
+            width: 30px;
+            height: 6px;
+            top: 12px;
+            left: 0;
+        }
+
+        .cross::after {
+            width: 6px;
+            height: 30px;
+            top: 0;
+            left: 12px;
+        }
+
+        .logo-text h1 {
+            font-size: 2rem;
+            font-weight: 700;
+            background: linear-gradient(135deg, var(--primary), var(--primary-light));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            text-shadow: 0 0 10px var(--primary-glow);
+        }
+
+        .logo-text p {
+            color: var(--gray);
+            font-size: 1.1rem;
+            margin-top: 0.5rem;
+        }
+
+        /* User Info */
+        .user-info {
+            background: var(--card-bg);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border: 1px solid var(--card-border);
+            border-radius: 20px;
+            padding: 1.5rem;
+            margin-bottom: 2rem;
+            box-shadow: var(--shadow);
+            border-left: 4px solid var(--primary);
+            animation: fadeInUp 0.6s ease;
+        }
+
+        .user-info h3 {
+            color: var(--primary);
+            margin-bottom: 0.5rem;
+            font-size: 1.3rem;
+            text-shadow: 0 0 5px var(--primary-glow);
+        }
+
+        .user-info p {
+            color: var(--gray);
+        }
+
+        /* Setor Options */
+        .setor-options {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 1.5rem;
+            margin: 2rem 0;
+        }
+
+        .setor-card {
+            background: var(--card-bg);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border: 1px solid var(--card-border);
+            border-radius: 24px;
+            padding: 2.5rem 2rem;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            position: relative;
+            overflow: hidden;
+            box-shadow: var(--shadow);
+            animation: fadeIn 0.6s ease;
+        }
+
+        .setor-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 4px;
+            background: linear-gradient(90deg, var(--primary), var(--primary-light));
+            transform: scaleX(0);
+            transition: transform 0.4s ease;
+        }
+
+        .setor-card:hover {
+            transform: translateY(-10px);
+            box-shadow: var(--shadow), 0 0 20px var(--primary-glow);
+            border-color: var(--primary);
+        }
+
+        .setor-card:hover::before {
+            transform: scaleX(1);
+        }
+
+        .card-icon {
+            font-size: 4rem;
+            margin-bottom: 1.5rem;
+            display: block;
+            filter: drop-shadow(0 0 10px var(--primary-glow));
+        }
+
+        .ti .card-icon {
+            color: var(--primary);
+        }
+
+        .manutencao .card-icon {
+            color: var(--primary-light);
+        }
+
+        .setor-card h3 {
+            color: var(--primary);
+            margin-bottom: 1rem;
+            font-size: 1.5rem;
+            font-weight: 600;
+            text-shadow: 0 0 6px var(--primary-glow);
+        }
+
+        .setor-card p {
+            color: var(--gray);
+            line-height: 1.6;
+        }
+
+        .features-list {
+            text-align: left;
+            margin-top: 1.5rem;
+            padding-top: 1.5rem;
+            border-top: 1px solid rgba(79, 195, 247, 0.2);
+        }
+
+        .feature-item {
+            display: flex;
+            align-items: center;
+            margin-bottom: 0.75rem;
+            font-size: 0.9rem;
+            color: rgba(255, 255, 255, 0.85);
+        }
+
+        .feature-item::before {
+            content: "✓";
+            color: var(--primary);
+            margin-right: 0.75rem;
+            font-weight: bold;
+            font-size: 1.1rem;
+            text-shadow: 0 0 5px var(--primary-glow);
+        }
+
+        /* Loading State */
+        .loading {
+            display: none;
+            text-align: center;
+            padding: 2rem;
+            color: var(--primary);
+            background: var(--card-bg);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border: 1px solid var(--card-border);
+            border-radius: 20px;
+            margin: 1rem 0;
+            box-shadow: var(--shadow);
+        }
+
+        .loading i {
+            font-size: 2rem;
+            margin-bottom: 1rem;
+            animation: spin 1s linear infinite;
+        }
+
+        /* Footer Actions */
+        .footer-actions {
+            text-align: center;
+            margin-top: 3rem;
+            padding-top: 2rem;
+            border-top: 1px solid rgba(79, 195, 247, 0.2);
+        }
+
+        .btn {
+            padding: 0.75rem 1.5rem;
+            border: none;
+            border-radius: 14px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .btn-secondary {
+            background: transparent;
+            color: var(--primary);
+            border: 1px solid var(--card-border);
+        }
+
+        .btn-secondary::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(79, 195, 247, 0.1);
+            border-radius: 14px;
+            z-index: -1;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+
+        .btn-secondary:hover::before {
+            opacity: 1;
+        }
+
+        .btn-secondary:hover {
+            border-color: var(--primary);
+            transform: translateY(-2px);
+            box-shadow: 0 0 10px var(--primary-glow);
+        }
+
+        /* Animations */
+        @keyframes neonPulse {
+            0%, 100% { box-shadow: 0 0 20px var(--primary-glow); }
+            50% { box-shadow: 0 0 28px var(--primary-glow), 0 0 35px var(--primary-glow); }
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+
+        @keyframes fadeInUp {
+            from { 
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to { 
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .fade-in {
+            animation: fadeIn 0.5s ease;
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .selection-container {
+                padding: 1rem;
+            }
+            
+            .header {
+                flex-direction: column;
+                text-align: center;
+                gap: 1rem;
+            }
+            
+            .logo-text h1 {
+                font-size: 1.6rem;
+            }
+            
+            .setor-options {
+                grid-template-columns: 1fr;
+            }
+            
+            .setor-card {
+                padding: 2rem 1.5rem;
+            }
+            
+            .card-icon {
+                font-size: 3rem;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .logo-text h1 {
+                font-size: 1.4rem;
+            }
+            
+            .setor-card {
+                padding: 1.5rem 1rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="selection-container">
+        <!-- Header -->
+        <div class="header fade-in">
+            <div class="logo">
+                <div class="logo-icon">
+                    <div class="cross-container">
+                        <div class="cross-circle">
+                            <div class="cross"></div>
+                        </div>
+                    </div>
+                </div>
+                <div class="logo-text">
+                    <h1>Kronos OS - Área Técnica</h1>
+                    <p>Selecione o setor que você atenderá hoje</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- User Info -->
+        <div class="user-info fade-in">
+            <h3 id="userWelcome">Carregando...</h3>
+            <p>Escolha abaixo o setor para visualizar e atender os chamados</p>
+        </div>
+        
+        <!-- Setor Options -->
+        <div class="setor-options fade-in">
+            <!-- TI Card -->
+            <div class="setor-card ti" onclick="selecionarSetor('TI')">
+                <div class="card-icon"><i class="fas fa-desktop"></i></div>
+                <h3>TI - Tecnologia</h3>
+                <p>Atendimento técnico de informática, redes e sistemas</p>
+                <div class="features-list">
+                    <div class="feature-item">Suporte a computadores e notebooks</div>
+                    <div class="feature-item">Configuração de redes e internet</div>
+                    <div class="feature-item">Manutenção de sistemas hospitalares</div>
+                    <div class="feature-item">Suporte a impressoras e periféricos</div>
+                </div>
+            </div>
+            
+            <!-- Manutenção Card -->
+            <div class="setor-card manutencao" onclick="selecionarSetor('Manutenção')">
+                <div class="card-icon"><i class="fas fa-tools"></i></div>
+                <h3>Manutenção</h3>
+                <p>Manutenção predial, elétrica, hidráulica e equipamentos</p>
+                <div class="features-list">
+                    <div class="feature-item">Manutenção elétrica e hidráulica</div>
+                    <div class="feature-item">Reparos em equipamentos médicos</div>
+                    <div class="feature-item">Manutenção predial e mobiliário</div>
+                    <div class="feature-item">Sistemas de refrigeração e ar condicionado</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Loading State -->
+        <div class="loading" id="loadingSetor">
+            <i class="fas fa-spinner"></i>
+            <p>Redirecionando para área do técnico...</p>
+        </div>
+
+        <!-- Footer Actions -->
+        <div class="footer-actions fade-in">
+            <button class="btn btn-secondary" onclick="logout()">
+                <i class="fas fa-sign-out-alt"></i> Sair do Sistema
+            </button>
+        </div>
+    </div>
+
+    <script>
+        // 🔒 Verificar autenticação
+        function verificarAutenticacao() {
+            const user = localStorage.getItem('kronos_user');
+            const token = localStorage.getItem('kronos_token');
+            
+            if (!user || !token) {
+                alert('Acesso não autorizado. Faça login primeiro.');
+                window.location.href = 'index.html';
+                return false;
+            }
+            
+            try {
+                const userData = JSON.parse(user);
+                
+                // Verificar se é técnico
+                if (userData.setor !== 'TI' && userData.setor !== 'Manutenção') {
+                    alert('Acesso permitido apenas para técnicos.');
+                    window.location.href = 'solicitante-dashboard.html';
+                    return false;
+                }
+                
+                document.getElementById('userWelcome').textContent = 
+                    `Bem-vindo, ${userData.nome}!`;
+                    
+                return true;
+            } catch (e) {
+                console.error('Erro:', e);
+                window.location.href = 'index.html';
+                return false;
+            }
+        }
+
+        // ✅ Selecionar setor
+        function selecionarSetor(setor) {
+            const loadingElement = document.getElementById('loadingSetor');
+            const user = JSON.parse(localStorage.getItem('kronos_user'));
+
+            // Mostrar loading
+            loadingElement.style.display = 'block';
+
+            // Salvar o setor selecionado
+            localStorage.setItem('tecnico_setor_selecionado', setor);
+            
+            console.log(`✅ Técnico ${user.nome} selecionou setor: ${setor}`);
+            
+            // Redireciona para o dashboard do técnico
+            setTimeout(() => {
+                window.location.href = 'tecnico-dashboard.html';
+            }, 1000);
+        }
+
+        // Logout
+        function logout() {
+            if (confirm('Deseja sair do sistema?')) {
+                localStorage.removeItem('kronos_user');
+                localStorage.removeItem('kronos_token');
+                localStorage.removeItem('tecnico_setor_selecionado');
+                window.location.href = 'index.html';
+            }
+        }
+
+        // Verificar se já tem um setor selecionado
+        function verificarSetorSelecionado() {
+            const setorSalvo = localStorage.getItem('tecnico_setor_selecionado');
+            
+            if (setorSalvo) {
+                console.log('Setor já selecionado anteriormente, redirecionando...');
+                setTimeout(() => {
+                    window.location.href = 'tecnico-dashboard.html';
+                }, 500);
+            }
+        }
+
+        // Inicializar
+        document.addEventListener('DOMContentLoaded', function() {
+            if (verificarAutenticacao()) {
+                verificarSetorSelecionado();
+            }
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,923 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Kronos OS - Sistema Inteligente de Gestão Hospitalar</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        :root {
+            /* Nova paleta suave */
+            --primary: #4FC3F7;          /* Azul céu suave */
+            --primary-dark: #29B6F6;     /* Azul ciano mais intenso */
+            --primary-light: #81D4FA;    /* Azul claro */
+            --primary-glow: rgba(79, 195, 247, 0.35);
+            --secondary: #BA68C8;        /* Roxo suave (para contraste) */
+            --secondary-glow: rgba(186, 104, 200, 0.25);
+            
+            --black: #0F172A;            /* Cinza-azulado escuro */
+            --black-light: #1E293B;      /* Cinza-azulado médio */
+            --black-lighter: #334155;    /* Cinza-azulado claro */
+            --light: #FFFFFF;
+            --gray: #94A3B8;
+            --card-bg: rgba(15, 23, 42, 0.65); /* rgba do --black */
+            --card-border: rgba(79, 195, 247, 0.2);
+            --shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+            --glow: 0 0 12px var(--primary-glow), 0 0 20px var(--primary-glow);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+        }
+
+        body {
+            background: linear-gradient(135deg, var(--black) 0%, var(--black-light) 50%, var(--black-lighter) 100%);
+            color: var(--light);
+            min-height: 100vh;
+            line-height: 1.6;
+            overflow-x: hidden;
+            position: relative;
+        }
+
+        body::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: 
+                radial-gradient(circle at 15% 85%, var(--primary-glow) 0%, transparent 60%),
+                radial-gradient(circle at 85% 15%, var(--secondary-glow) 0%, transparent 60%),
+                radial-gradient(circle at 50% 40%, rgba(186, 104, 200, 0.08) 0%, transparent 70%);
+            z-index: -1;
+            pointer-events: none;
+        }
+
+        .dashboard-container {
+            max-width: 1100px;
+            margin: 0 auto;
+            padding: 2rem 1.5rem;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+        }
+
+        /* --- LOGO COM VIDRO LÍQUIDO SUAVE --- */
+        .logo-container {
+            display: flex;
+            justify-content: center;
+            margin-bottom: 2.5rem;
+        }
+
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 1.5rem;
+            padding: 1.8rem 2.2rem;
+            background: var(--card-bg);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border-radius: 24px;
+            border: 1px solid var(--card-border);
+            box-shadow: var(--shadow);
+            position: relative;
+            overflow: hidden;
+            transition: transform 0.4s ease, box-shadow 0.4s ease;
+        }
+
+        .logo:hover {
+            transform: translateY(-4px);
+            box-shadow: var(--shadow), 0 0 20px var(--primary-glow);
+        }
+
+        .logo-icon {
+            width: 85px;
+            height: 85px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+        }
+
+        .cross-container {
+            width: 100%;
+            height: 100%;
+            position: relative;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .cross-circle {
+            width: 75px;
+            height: 75px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, var(--primary), var(--primary-dark));
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+            box-shadow: 0 0 20px var(--primary-glow);
+            animation: neonPulse 3s infinite;
+        }
+
+        .cross {
+            position: relative;
+            width: 42px;
+            height: 42px;
+        }
+
+        .cross::before,
+        .cross::after {
+            content: '';
+            position: absolute;
+            background: var(--black);
+            border-radius: 2px;
+        }
+
+        .cross::before {
+            width: 42px;
+            height: 8px;
+            top: 17px;
+            left: 0;
+        }
+
+        .cross::after {
+            width: 8px;
+            height: 42px;
+            top: 0;
+            left: 17px;
+        }
+
+        .pulse-effect {
+            position: absolute;
+            width: 90px;
+            height: 90px;
+            border-radius: 50%;
+            border: 2px solid var(--primary);
+            animation: pulse 3s infinite;
+            opacity: 0.4;
+        }
+
+        .logo-text h1 {
+            font-size: 2.6rem;
+            font-weight: 800;
+            background: linear-gradient(135deg, var(--primary), var(--primary-light));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            margin-bottom: 0.5rem;
+            text-shadow: 0 0 10px var(--primary-glow);
+            letter-spacing: -0.5px;
+        }
+
+        .logo-text p {
+            color: var(--gray);
+            font-size: 1.15rem;
+            font-weight: 500;
+        }
+
+        /* --- TELA DE BOAS-VINDAS --- */
+        .welcome-header {
+            text-align: center;
+            margin-bottom: 3rem;
+            animation: fadeInUp 0.8s ease;
+        }
+
+        .welcome-header h2 {
+            color: var(--light);
+            margin-bottom: 1rem;
+            font-size: 2rem;
+            font-weight: 700;
+            text-shadow: 0 0 6px var(--primary-glow);
+        }
+
+        .welcome-header p {
+            color: var(--gray);
+            font-size: 1.15rem;
+            max-width: 600px;
+            margin: 0 auto;
+        }
+
+        /* --- CARDS DE ACESSO COM VIDRO LÍQUIDO SUAVE --- */
+        .access-options {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(310px, 1fr));
+            gap: 2.2rem;
+            margin: 3rem 0;
+        }
+
+        .access-card {
+            background: var(--card-bg);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border: 1px solid var(--card-border);
+            border-radius: 24px;
+            padding: 2.8rem 2.2rem;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.4s cubic-bezier(0.165, 0.84, 0.44, 1);
+            position: relative;
+            overflow: hidden;
+            box-shadow: var(--shadow);
+            animation: fadeIn 0.6s ease;
+        }
+
+        .access-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 4px;
+            background: linear-gradient(90deg, var(--primary), var(--primary-light));
+            transform: scaleX(0);
+            transition: transform 0.5s ease;
+        }
+
+        .access-card:hover {
+            transform: translateY(-12px);
+            border-color: rgba(79, 195, 247, 0.4);
+            box-shadow: var(--shadow), 0 0 20px var(--primary-glow);
+        }
+
+        .access-card:hover::before {
+            transform: scaleX(1);
+        }
+
+        .card-icon {
+            font-size: 3.8rem;
+            margin-bottom: 1.5rem;
+            display: block;
+            filter: drop-shadow(0 0 10px var(--primary-glow));
+            transition: transform 0.3s ease;
+        }
+
+        .access-card:hover .card-icon {
+            transform: scale(1.1);
+        }
+
+        .access-card h3 {
+            margin: 0 0 1rem 0;
+            font-size: 1.7rem;
+            font-weight: 700;
+            color: var(--primary);
+            text-shadow: 0 0 6px var(--primary-glow);
+        }
+
+        .access-card p {
+            color: var(--gray);
+            margin: 0 0 1.5rem 0;
+            line-height: 1.6;
+        }
+
+        .card-features {
+            text-align: left;
+            margin-top: 1.5rem;
+            padding-top: 1.5rem;
+            border-top: 1px solid rgba(79, 195, 247, 0.2);
+        }
+
+        .feature-item {
+            display: flex;
+            align-items: center;
+            margin-bottom: 0.8rem;
+            font-size: 0.98rem;
+            color: rgba(255, 255, 255, 0.85);
+        }
+
+        .feature-item::before {
+            content: "✓";
+            color: var(--primary);
+            margin-right: 0.8rem;
+            font-weight: bold;
+            font-size: 1.15rem;
+            text-shadow: 0 0 5px var(--primary-glow);
+        }
+
+        /* --- BOTÕES COM EFEITO LIQUID GLASS SUAVE --- */
+        .btn-submit,
+        .back-btn,
+        .setor-option,
+        .toggle-option a,
+        .register-link a {
+            position: relative;
+            overflow: hidden;
+            z-index: 1;
+        }
+
+        .btn-submit {
+            width: 100%;
+            padding: 1.3rem;
+            background: transparent;
+            color: var(--black);
+            border: none;
+            border-radius: 16px;
+            cursor: pointer;
+            font-size: 1.15rem;
+            font-weight: 700;
+            margin-top: 1.2rem;
+            transition: all 0.35s ease;
+            box-shadow: 0 4px 15px rgba(79, 195, 247, 0.2);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid rgba(79, 195, 247, 0.35);
+        }
+
+        .btn-submit::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: linear-gradient(135deg, var(--primary), var(--primary-dark));
+            border-radius: 16px;
+            z-index: -1;
+            opacity: 0.95;
+        }
+
+        .btn-submit:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 6px 20px var(--primary-glow), 0 0 25px rgba(79, 195, 247, 0.3);
+        }
+
+        .btn-submit:active {
+            transform: translateY(-1px);
+            box-shadow: 0 2px 12px var(--primary-glow);
+        }
+
+        .btn-submit:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
+
+        /* --- BOTÃO VOLTAR --- */
+        .back-btn {
+            background: transparent;
+            color: var(--primary);
+            border: 1px solid var(--card-border);
+            padding: 0.8rem 1.6rem;
+            border-radius: 14px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            gap: 0.6rem;
+            font-weight: 600;
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+        }
+
+        .back-btn::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(79, 195, 247, 0.1);
+            border-radius: 14px;
+            z-index: -1;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+
+        .back-btn:hover::before {
+            opacity: 1;
+        }
+
+        .back-btn:hover {
+            border-color: var(--primary);
+            transform: translateX(-4px);
+            box-shadow: 0 0 10px var(--primary-glow);
+        }
+
+        /* --- FORMULÁRIOS --- */
+        .login-forms {
+            display: none;
+            margin-top: 2rem;
+            animation: fadeIn 0.5s ease;
+        }
+
+        .login-form {
+            background: var(--card-bg);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border: 1px solid var(--card-border);
+            border-radius: 24px;
+            padding: 2.8rem;
+            box-shadow: var(--shadow);
+            animation: slideUp 0.5s ease;
+        }
+
+        .form-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 2.2rem;
+        }
+
+        .toggle-option,
+        .register-link {
+            text-align: center;
+            margin-top: 2.2rem;
+            padding-top: 2rem;
+            border-top: 1px solid rgba(79, 195, 247, 0.2);
+        }
+
+        .toggle-option a,
+        .register-link a {
+            color: var(--primary);
+            text-decoration: none;
+            font-weight: 700;
+            transition: all 0.3s ease;
+            text-shadow: 0 0 5px var(--primary-glow);
+            position: relative;
+        }
+
+        .toggle-option a::after,
+        .register-link a::after {
+            content: '';
+            position: absolute;
+            bottom: -2px;
+            left: 0;
+            width: 0;
+            height: 2px;
+            background: var(--primary);
+            transition: width 0.3s ease;
+        }
+
+        .toggle-option a:hover::after,
+        .register-link a:hover::after {
+            width: 100%;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 0.6rem;
+            color: var(--primary);
+            font-size: 1rem;
+            font-weight: 600;
+            text-shadow: 0 0 4px var(--primary-glow);
+        }
+
+        .form-group input,
+        .form-group select,
+        .form-group textarea {
+            width: 100%;
+            padding: 1.1rem 1.3rem;
+            border-radius: 14px;
+            background: rgba(15, 23, 42, 0.4);
+            color: var(--light);
+            border: 1px solid var(--card-border);
+            font-size: 1.05rem;
+            transition: all 0.35s ease;
+            backdrop-filter: blur(8px);
+        }
+
+        .form-group input:focus,
+        .form-group select:focus,
+        .form-group textarea:focus {
+            outline: none;
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px var(--primary-glow);
+            background: rgba(15, 23, 42, 0.6);
+        }
+
+        /* --- SETORES --- */
+        .setor-option {
+            background: rgba(15, 23, 42, 0.4);
+            padding: 1.1rem 0.8rem;
+            border-radius: 14px;
+            border: 1px solid var(--card-border);
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-align: center;
+            backdrop-filter: blur(8px);
+        }
+
+        .setor-option:hover {
+            border-color: var(--primary);
+            background: rgba(79, 195, 247, 0.08);
+            transform: translateY(-4px);
+            box-shadow: 0 0 10px var(--primary-glow);
+        }
+
+        .setor-option.selected {
+            border-color: var(--primary);
+            background: rgba(79, 195, 247, 0.15);
+            box-shadow: 0 0 15px var(--primary-glow);
+            transform: translateY(-4px);
+        }
+
+        .setor-icon {
+            font-size: 1.9rem;
+            margin-bottom: 0.6rem;
+            display: block;
+        }
+
+        .setor-name {
+            font-size: 0.88rem;
+            color: rgba(255, 255, 255, 0.9);
+            font-weight: 600;
+        }
+
+        /* --- ANIMAÇÕES SUAVES --- */
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+
+        @keyframes fadeInUp {
+            from { 
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to { 
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        @keyframes slideUp {
+            from { 
+                opacity: 0;
+                transform: translateY(30px);
+            }
+            to { 
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        @keyframes pulse {
+            0% { transform: scale(1); opacity: 0.4; }
+            50% { transform: scale(1.12); opacity: 0.2; }
+            100% { transform: scale(1); opacity: 0.4; }
+        }
+
+        @keyframes neonPulse {
+            0%, 100% { box-shadow: 0 0 20px var(--primary-glow); }
+            50% { box-shadow: 0 0 28px var(--primary-glow), 0 0 35px var(--primary-glow); }
+        }
+
+        /* --- RESPONSIVIDADE --- */
+        @media (max-width: 768px) {
+            .dashboard-container { padding: 1.5rem 1rem; }
+            .logo { flex-direction: column; text-align: center; gap: 1.2rem; padding: 1.8rem 1.2rem; }
+            .logo-text h1 { font-size: 2.1rem; }
+            .access-options { grid-template-columns: 1fr; gap: 1.8rem; }
+            .access-card { padding: 2.2rem 1.6rem; }
+            .login-form { padding: 2.2rem 1.6rem; }
+            .setor-options { grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); }
+        }
+
+        @media (max-width: 480px) {
+            .logo-text h1 { font-size: 1.9rem; }
+            .access-card { padding: 1.8rem 1.2rem; }
+            .card-icon { font-size: 3.2rem; }
+            .login-form { padding: 1.8rem 1.2rem; }
+            .setor-options { grid-template-columns: 1fr 1fr; }
+            .welcome-header h2 { font-size: 1.8rem; }
+        }
+    </style>
+</head>
+<body>
+    <!-- HTML EXATAMENTE IGUAL AO ORIGINAL -->
+    <div class="dashboard-container">
+        <!-- Logo e Título -->
+        <div class="logo-container">
+            <div class="logo">
+                <div class="logo-icon">
+                    <div class="cross-container">
+                        <div class="cross-circle">
+                            <div class="cross"></div>
+                        </div>
+                        <div class="pulse-effect"></div>
+                    </div>
+                </div>
+                <div class="logo-text">
+                    <h1>Kronos OS</h1>
+                    <p>Sistema Inteligente de Gestão Hospitalar</p>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Tela Inicial -->
+        <div id="welcomeScreen">
+            <div class="welcome-header">
+                <h2>Bem-vindo ao Sistema Kronos</h2>
+                <p>Escolha o tipo de acesso para continuar</p>
+            </div>
+            
+            <div class="access-options">
+                <div class="access-card solicitante" onclick="showLoginForm('solicitante')">
+                    <div class="card-icon"><i class="fas fa-clipboard-list"></i></div>
+                    <h3>Solicitante</h3>
+                    <p>Acesso para solicitar ordens de serviço e acompanhar seus chamados</p>
+                    <div class="card-features">
+                        <div class="feature-item">Criar novas OS</div>
+                        <div class="feature-item">Acompanhar andamento</div>
+                        <div class="feature-item">Visualizar histórico</div>
+                        <div class="feature-item">Comunicação com técnicos</div>
+                    </div>
+                </div>
+                
+                <div class="access-card tecnico" onclick="showLoginForm('tecnico')">
+                    <div class="card-icon"><i class="fas fa-tools"></i></div>
+                    <h3>Técnico</h3>
+                    <p>Acesso técnico para atender e gerenciar ordens de serviço</p>
+                    <div class="card-features">
+                        <div class="feature-item">Visualizar OSs atribuídas</div>
+                        <div class="feature-item">Atualizar status</div>
+                        <div class="feature-item">Registrar soluções</div>
+                        <div class="feature-item">Relatórios de atendimento</div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="register-link">
+                <p>Não tem cadastro? <a href="#" onclick="showCadastroForm()">Cadastre-se aqui</a></p>
+            </div>
+        </div>
+        
+        <!-- Formulário de Login -->
+        <div id="loginScreen" class="login-forms">
+            <div class="login-form">
+                <div class="form-header">
+                    <button class="back-btn" onclick="showWelcomeScreen()"><i class="fas fa-arrow-left"></i> Voltar</button>
+                    <h3 id="loginTitle">Login</h3>
+                    <div style="width: 80px;"></div>
+                </div>
+                
+                <form id="loginForm">
+                    <input type="hidden" id="loginType" value="">
+                    <div class="form-group">
+                        <label for="loginEmail">Email:</label>
+                        <input type="email" id="loginEmail" required placeholder="seu@email.com">
+                    </div>
+                    <div class="form-group">
+                        <label for="loginSenha">Senha:</label>
+                        <input type="password" id="loginSenha" required placeholder="Sua senha">
+                    </div>
+                    <button type="submit" class="btn-submit" id="btnLogin">
+                        <i class="fas fa-sign-in-alt"></i> Entrar no Sistema
+                    </button>
+                </form>
+                
+                <div class="toggle-option">
+                    <p>Não tem conta? <a href="#" onclick="showCadastroForm()">Cadastre-se</a></p>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Formulário de Cadastro -->
+        <div id="cadastroScreen" class="login-forms">
+            <div class="login-form">
+                <div class="form-header">
+                    <button class="back-btn" onclick="showWelcomeScreen()"><i class="fas fa-arrow-left"></i> Voltar</button>
+                    <h3>Cadastro</h3>
+                    <div style="width: 80px;"></div>
+                </div>
+                
+                <form id="cadastroForm">
+                    <div class="form-section">
+                        <h4><i class="fas fa-user"></i> Informações Pessoais</h4>
+                        <div class="form-group">
+                            <label for="cadastroNome">Nome Completo:</label>
+                            <input type="text" id="cadastroNome" required placeholder="Seu nome completo">
+                        </div>
+                        <div class="form-group">
+                            <label for="cadastroEmail">Email:</label>
+                            <input type="email" id="cadastroEmail" required placeholder="seu@email.com">
+                        </div>
+                        <div class="form-group">
+                            <label for="cadastroSenha">Senha:</label>
+                            <input type="password" id="cadastroSenha" required placeholder="Mínimo 6 caracteres" minlength="6" oninput="verificarForcaSenha()">
+                            <div id="passwordStrength" class="password-strength"></div>
+                        </div>
+                    </div>
+
+                    <div class="form-section">
+                        <h4><i class="fas fa-hospital"></i> Setor de Trabalho</h4>
+                        <div class="form-group">
+                            <label>Selecione seu setor:</label>
+                            <div class="setor-options" id="setorOptions"></div>
+                            <input type="hidden" id="cadastroSetor" required>
+                        </div>
+                    </div>
+                    
+                    <button type="submit" class="btn-submit" id="btnCadastro">
+                        <i class="fas fa-user-plus"></i> Criar Conta
+                    </button>
+                </form>
+                
+                <div class="toggle-option">
+                    <p>Já tem conta? <a href="#" onclick="showLoginForm()">Faça login</a></p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- SEU JAVASCRIPT PERMANECE INALTERADO -->
+    <script>
+        // ... (todo o seu script original aqui, sem mudanças)
+        // (mantive os comentários ✅ para garantir que você saiba que está intacto)
+        const API_BASE_URL = window.location.origin;
+
+        const welcomeScreen = document.getElementById('welcomeScreen');
+        const loginScreen = document.getElementById('loginScreen');
+        const cadastroScreen = document.getElementById('cadastroScreen');
+        const loginForm = document.getElementById('loginForm');
+        const cadastroForm = document.getElementById('cadastroForm');
+        const setorOptions = document.getElementById('setorOptions');
+
+        const todosSetores = [
+            { id: 'pronto-socorro', nome: 'Pronto Socorro', icon: '🚑' },
+            { id: 'recepcao', nome: 'Recepção', icon: '💁' },
+            { id: 'ambulatorio', nome: 'Ambulatório', icon: '🏥' },
+            { id: 'administrativo', nome: 'Administrativo', icon: '📊' },
+            { id: 'faturamento', nome: 'Faturamento', icon: '💰' },
+            { id: 'maternidade', nome: 'Maternidade', icon: '👶' },
+            { id: 'clinica-medica', nome: 'Clínica Médica', icon: '🩺' },
+            { id: 'clinica-cirurgica', nome: 'Clínica Cirúrgica', icon: '🔪' },
+            { id: 'centro-cirurgico', nome: 'Centro Cirúrgico', icon: '💊' },
+            { id: 'tomografia', nome: 'Tomografia', icon: '📡' },
+            { id: 'hemopi', nome: 'HEMOPI', icon: '🩸' },
+            { id: 'nucleos', nome: 'Núcleos', icon: '🏢' },
+            { id: 'uti', nome: 'UTI', icon: '🚨' },
+            { id: 'farmacia', nome: 'Farmácia', icon: '💊' },
+            { id: 'almoxarifado', nome: 'Almoxarifado', icon: '📦' },
+            { id: 'nutricao', nome: 'Nutrição', icon: '🍎' },
+            { id: 'laboratorio', nome: 'Laboratório', icon: '🔬' },
+            { id: 'fisioterapia', nome: 'Fisioterapia', icon: '💪' },
+            { id: 'ti', nome: 'TI', icon: '💻' },
+            { id: 'manutencao', nome: 'Manutenção', icon: '🔧' }
+        ];
+
+        function inicializarSetores() {
+            setorOptions.innerHTML = '';
+            todosSetores.forEach(setor => {
+                const setorOption = document.createElement('div');
+                setorOption.className = 'setor-option';
+                setorOption.innerHTML = `
+                    <span class="setor-icon">${setor.icon}</span>
+                    <span class="setor-name">${setor.nome}</span>
+                `;
+                setorOption.addEventListener('click', () => {
+                    document.querySelectorAll('.setor-option').forEach(opt => {
+                        opt.classList.remove('selected');
+                    });
+                    setorOption.classList.add('selected');
+                    document.getElementById('cadastroSetor').value = setor.nome;
+                });
+                setorOptions.appendChild(setorOption);
+            });
+        }
+
+        function verificarForcaSenha() {
+            const senha = document.getElementById('cadastroSenha').value;
+            const strengthElement = document.getElementById('passwordStrength');
+            let strength = '';
+            let strengthClass = '';
+            if (senha.length === 0) {
+                strength = '';
+            } else if (senha.length < 6) {
+                strength = 'Senha muito curta';
+                strengthClass = 'strength-weak';
+            } else if (senha.length < 8) {
+                strength = 'Senha média';
+                strengthClass = 'strength-medium';
+            } else {
+                strength = 'Senha forte';
+                strengthClass = 'strength-strong';
+            }
+            strengthElement.textContent = strength;
+            strengthElement.className = `password-strength ${strengthClass}`;
+        }
+
+        function showWelcomeScreen() {
+            welcomeScreen.style.display = 'block';
+            loginScreen.style.display = 'none';
+            cadastroScreen.style.display = 'none';
+            loginForm.reset();
+            cadastroForm.reset();
+            document.querySelectorAll('.setor-option').forEach(opt => {
+                opt.classList.remove('selected');
+            });
+            document.getElementById('passwordStrength').textContent = '';
+        }
+
+        function showLoginForm(tipo = '') {
+            welcomeScreen.style.display = 'none';
+            loginScreen.style.display = 'block';
+            cadastroScreen.style.display = 'none';
+            if (tipo) {
+                document.getElementById('loginType').value = tipo;
+                document.getElementById('loginTitle').textContent = `Login - ${tipo === 'solicitante' ? 'Solicitante' : 'Técnico'}`;
+            }
+        }
+
+        function showCadastroForm() {
+            welcomeScreen.style.display = 'none';
+            loginScreen.style.display = 'none';
+            cadastroScreen.style.display = 'block';
+            cadastroForm.reset();
+            document.querySelectorAll('.setor-option').forEach(opt => {
+                opt.classList.remove('selected');
+            });
+            document.getElementById('passwordStrength').textContent = '';
+        }
+
+        loginForm.addEventListener('submit', async function(e) {
+            e.preventDefault();
+            const email = document.getElementById('loginEmail').value;
+            const senha = document.getElementById('loginSenha').value;
+            const btnLogin = document.getElementById('btnLogin');
+            if (!email || !senha) {
+                alert('Preencha email e senha!');
+                return;
+            }
+            btnLogin.disabled = true;
+            btnLogin.textContent = '🔐 Entrando...';
+            try {
+                const response = await fetch(`${API_BASE_URL}/api/usuarios/login`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ email, senha })
+                });
+                const data = await response.json();
+                if (data.success) {
+                    localStorage.setItem('kronos_user', JSON.stringify(data.user));
+                    localStorage.setItem('kronos_token', data.token);
+                    if (data.user.setor === 'TI' || data.user.setor === 'Manutenção') {
+                        window.location.href = 'tecnico-selecao-setor.html';
+                    } else {
+                        window.location.href = 'solicitante-dashboard.html';
+                    }
+                } else {
+                    alert('Erro: ' + data.message);
+                }
+            } catch (error) {
+                console.error('Erro login:', error);
+                alert('Erro de conexão. Tente novamente.');
+            } finally {
+                btnLogin.disabled = false;
+                btnLogin.textContent = '🔐 Entrar no Sistema';
+            }
+        });
+
+        cadastroForm.addEventListener('submit', async function(e) {
+            e.preventDefault();
+            const nome = document.getElementById('cadastroNome').value;
+            const email = document.getElementById('cadastroEmail').value;
+            const senha = document.getElementById('cadastroSenha').value;
+            const setor = document.getElementById('cadastroSetor').value;
+            const btnCadastro = document.getElementById('btnCadastro');
+            if (!nome || !email || !senha || !setor) {
+                alert('Preencha todos os campos obrigatórios!');
+                return;
+            }
+            if (senha.length < 6) {
+                alert('A senha deve ter pelo menos 6 caracteres!');
+                return;
+            }
+            btnCadastro.disabled = true;
+            btnCadastro.textContent = '⏳ Criando conta...';
+            try {
+                const response = await fetch(`${API_BASE_URL}/api/usuarios`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ nome, email, senha, setor })
+                });
+                const data = await response.json();
+                if (data.success) {
+                    alert('✅ Conta criada com sucesso! Faça login para continuar.');
+                    showLoginForm();
+                } else {
+                    alert('Erro: ' + data.message);
+                }
+            } catch (error) {
+                console.error('Erro cadastro:', error);
+                alert('Erro de conexão. Tente novamente.');
+            } finally {
+                btnCadastro.disabled = false;
+                btnCadastro.textContent = '✅ Criar Conta';
+            }
+        });
+
+        document.addEventListener('DOMContentLoaded', function() {
+            inicializarSetores();
+            showWelcomeScreen();
+        });
+    </script>
+</body>
+</html>

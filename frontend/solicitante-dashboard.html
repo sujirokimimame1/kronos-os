@@ -1,0 +1,2595 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Kronos - Área do Solicitante</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        :root {
+            --primary: #4FC3F7;
+            --primary-dark: #29B6F6;
+            --primary-light: #81D4FA;
+            --primary-glow: rgba(79, 195, 247, 0.35);
+            --secondary: #BA68C8;
+            --secondary-glow: rgba(186, 104, 200, 0.25);
+            
+            --black: #0F172A;
+            --black-light: #1E293B;
+            --black-lighter: #334155;
+            --light: #FFFFFF;
+            --gray: #94A3B8;
+            --card-bg: rgba(15, 23, 42, 0.65);
+            --card-border: rgba(79, 195, 247, 0.2);
+            --shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+            --glow: 0 0 12px var(--primary-glow), 0 0 20px var(--primary-glow);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+        }
+
+        body {
+            background: linear-gradient(135deg, var(--black) 0%, var(--black-light) 50%, var(--black-lighter) 100%);
+            color: var(--light);
+            min-height: 100vh;
+            line-height: 1.6;
+            overflow-x: hidden;
+            position: relative;
+        }
+
+        body::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: 
+                radial-gradient(circle at 15% 85%, var(--primary-glow) 0%, transparent 60%),
+                radial-gradient(circle at 85% 15%, var(--secondary-glow) 0%, transparent 60%),
+                radial-gradient(circle at 50% 40%, rgba(186, 104, 200, 0.08) 0%, transparent 70%);
+            z-index: -1;
+            pointer-events: none;
+        }
+
+        .dashboard-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 2rem 1.5rem;
+            min-height: 100vh;
+        }
+
+        /* Header Styles */
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 2rem;
+            padding: 1.5rem;
+            background: var(--card-bg);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border-radius: 24px;
+            border: 1px solid var(--card-border);
+            box-shadow: var(--shadow);
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+
+        .header:hover {
+            transform: translateY(-4px);
+            box-shadow: var(--shadow), 0 0 20px var(--primary-glow);
+        }
+
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .logo-icon {
+            width: 50px;
+            height: 50px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+        }
+
+        .cross-container {
+            width: 100%;
+            height: 100%;
+            position: relative;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .cross-circle {
+            width: 45px;
+            height: 45px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, var(--primary), var(--primary-dark));
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+            box-shadow: 0 0 20px var(--primary-glow);
+            animation: neonPulse 3s infinite;
+        }
+
+        .cross {
+            position: relative;
+            width: 25px;
+            height: 25px;
+        }
+
+        .cross::before,
+        .cross::after {
+            content: '';
+            position: absolute;
+            background: var(--black);
+            border-radius: 2px;
+        }
+
+        .cross::before {
+            width: 25px;
+            height: 5px;
+            top: 10px;
+            left: 0;
+        }
+
+        .cross::after {
+            width: 5px;
+            height: 25px;
+            top: 0;
+            left: 10px;
+        }
+
+        .logo-text h1 {
+            font-size: 1.8rem;
+            font-weight: 700;
+            background: linear-gradient(135deg, var(--primary), var(--primary-light));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            text-shadow: 0 0 10px var(--primary-glow);
+        }
+
+        .header-actions {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .btn {
+            padding: 0.75rem 1.5rem;
+            border: none;
+            border-radius: 14px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .btn-primary {
+            color: var(--black);
+            border: 1px solid rgba(79, 195, 247, 0.35);
+            box-shadow: 0 4px 15px rgba(79, 195, 247, 0.2);
+        }
+
+        .btn-primary::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: linear-gradient(135deg, var(--primary), var(--primary-dark));
+            z-index: -1;
+            opacity: 0.95;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 6px 20px var(--primary-glow), 0 0 25px rgba(79, 195, 247, 0.3);
+        }
+
+        .btn-secondary {
+            background: transparent;
+            color: var(--primary);
+            border: 1px solid var(--card-border);
+        }
+
+        .btn-secondary:hover {
+            border-color: var(--primary);
+            background: rgba(79, 195, 247, 0.1);
+            box-shadow: 0 0 10px var(--primary-glow);
+        }
+
+        /* ✅ ESTILOS PARA NOTIFICAÇÕES */
+        .notification-badge {
+            background: #FF6B6B;
+            color: white;
+            border-radius: 50%;
+            width: 20px;
+            height: 20px;
+            font-size: 0.7rem;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            position: absolute;
+            top: -5px;
+            right: -5px;
+            animation: pulse 1.5s infinite;
+        }
+
+        .btn-notification {
+            position: relative;
+        }
+
+        @keyframes pulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.1); }
+            100% { transform: scale(1); }
+        }
+
+        /* Welcome Section */
+        .user-welcome {
+            background: var(--card-bg);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border: 1px solid var(--card-border);
+            border-radius: 24px;
+            padding: 2rem;
+            margin-bottom: 2rem;
+            box-shadow: var(--shadow);
+            border-left: 4px solid var(--primary);
+            animation: fadeInUp 0.6s ease;
+        }
+
+        .user-welcome h3 {
+            color: var(--primary);
+            margin-bottom: 0.5rem;
+            font-size: 1.5rem;
+            text-shadow: 0 0 5px var(--primary-glow);
+        }
+
+        .user-welcome p {
+            color: var(--gray);
+        }
+
+        /* ✅ NOVOS ESTILOS PARA FILTROS (IGUAL AO TÉCNICO) */
+        .filters-container {
+            background: var(--card-bg);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border: 1px solid var(--card-border);
+            border-radius: 20px;
+            padding: 1.5rem;
+            margin-bottom: 2rem;
+            box-shadow: var(--shadow);
+        }
+
+        .filters-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1.5rem;
+        }
+
+        .filters-header h3 {
+            color: var(--primary);
+            font-size: 1.3rem;
+            text-shadow: 0 0 5px var(--primary-glow);
+        }
+
+        .filter-controls {
+            display: flex;
+            gap: 1rem;
+            flex-wrap: wrap;
+        }
+
+        .filter-group {
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+        }
+
+        .filter-group label {
+            color: var(--primary);
+            font-size: 0.9rem;
+            font-weight: 600;
+        }
+
+        .filter-select {
+            padding: 0.75rem 1rem;
+            border-radius: 12px;
+            background: rgba(15, 23, 42, 0.4);
+            color: var(--light);
+            border: 1px solid var(--card-border);
+            font-size: 0.9rem;
+            min-width: 150px;
+            backdrop-filter: blur(8px);
+            transition: all 0.3s ease;
+        }
+
+        .filter-select:focus {
+            outline: none;
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px var(--primary-glow);
+        }
+
+        .quick-filters {
+            display: flex;
+            gap: 0.5rem;
+            flex-wrap: wrap;
+            margin-top: 1rem;
+        }
+
+        .quick-filter-btn {
+            padding: 0.5rem 1rem;
+            border: 1px solid var(--card-border);
+            background: transparent;
+            color: var(--gray);
+            border-radius: 10px;
+            cursor: pointer;
+            font-size: 0.85rem;
+            transition: all 0.3s ease;
+        }
+
+        .quick-filter-btn:hover,
+        .quick-filter-btn.active {
+            background: var(--primary);
+            color: var(--black);
+            border-color: var(--primary);
+        }
+
+        /* ✅ NOVOS ESTILOS PARA ABAS DE STATUS (IGUAL AO TÉCNICO) */
+        .status-tabs {
+            display: flex;
+            gap: 0.5rem;
+            margin-bottom: 2rem;
+            flex-wrap: wrap;
+            background: var(--card-bg);
+            backdrop-filter: blur(20px);
+            padding: 1rem;
+            border-radius: 16px;
+            border: 1px solid var(--card-border);
+        }
+
+        .status-tab {
+            padding: 0.75rem 1.5rem;
+            border: 1px solid var(--card-border);
+            background: transparent;
+            color: var(--gray);
+            border-radius: 12px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            flex: 1;
+            min-width: 200px;
+            justify-content: center;
+        }
+
+        .status-tab:hover {
+            border-color: var(--primary);
+            background: rgba(79, 195, 247, 0.1);
+        }
+
+        .status-tab.active {
+            background: var(--primary);
+            color: var(--black);
+            border-color: var(--primary);
+            box-shadow: 0 0 15px var(--primary-glow);
+        }
+
+        .status-tab-badge {
+            background: rgba(255, 255, 255, 0.2);
+            color: white;
+            border-radius: 20px;
+            padding: 0.25rem 0.75rem;
+            font-size: 0.8rem;
+            font-weight: bold;
+        }
+
+        /* Quick Stats */
+        .contadores-rapidos {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1.5rem;
+            margin-bottom: 2rem;
+        }
+
+        .contador-item {
+            background: var(--card-bg);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border: 1px solid var(--card-border);
+            border-radius: 20px;
+            padding: 1.5rem;
+            text-align: center;
+            box-shadow: var(--shadow);
+            transition: all 0.3s ease;
+            animation: fadeIn 0.5s ease;
+            cursor: pointer;
+        }
+
+        .contador-item:hover {
+            transform: translateY(-5px);
+            box-shadow: var(--shadow), 0 0 20px var(--primary-glow);
+        }
+
+        .contador-item.active {
+            border-color: var(--primary);
+            box-shadow: var(--shadow), 0 0 20px var(--primary-glow);
+        }
+
+        .contador-numero {
+            font-size: 2.2rem;
+            font-weight: bold;
+            margin-bottom: 0.5rem;
+            text-shadow: 0 0 10px var(--primary-glow);
+        }
+
+        .contador-total { color: var(--primary); }
+        .contador-abertas { color: #FF6B6B; }
+        .contador-andamento { color: #FFD93D; }
+        .contador-aguardando { color: #9b59b6; }
+        .contador-finalizadas { color: var(--primary); }
+
+        .contador-label {
+            font-size: 0.9rem;
+            color: var(--gray);
+            font-weight: 500;
+        }
+
+        /* OS Sections */
+        .os-sections {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 2rem;
+            margin-bottom: 2rem;
+        }
+
+        @media (max-width: 768px) {
+            .os-sections {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .os-section {
+            background: var(--card-bg);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border: 1px solid var(--card-border);
+            border-radius: 24px;
+            padding: 1.5rem;
+            box-shadow: var(--shadow);
+            animation: fadeIn 0.6s ease;
+        }
+
+        .section-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1.5rem;
+            padding-bottom: 1rem;
+            border-bottom: 1px solid rgba(79, 195, 247, 0.2);
+        }
+
+        .section-header h3 {
+            color: var(--primary);
+            font-size: 1.3rem;
+            text-shadow: 0 0 5px var(--primary-glow);
+        }
+
+        .section-count {
+            background: rgba(79, 195, 247, 0.15);
+            color: var(--primary);
+            padding: 0.25rem 0.75rem;
+            border-radius: 20px;
+            font-size: 0.9rem;
+            font-weight: 600;
+        }
+
+        .os-list {
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+        }
+
+        .os-item {
+            background: rgba(15, 23, 42, 0.4);
+            border: 1px solid var(--card-border);
+            border-radius: 16px;
+            padding: 1.25rem;
+            transition: all 0.3s ease;
+        }
+
+        .os-item:hover {
+            border-color: var(--primary);
+            box-shadow: 0 0 15px var(--primary-glow);
+            transform: translateY(-2px);
+        }
+
+        .os-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 1rem;
+        }
+
+        .os-info h4 {
+            color: var(--light);
+            margin-bottom: 0.25rem;
+            font-size: 1.1rem;
+        }
+
+        .os-meta {
+            color: var(--gray);
+            font-size: 0.85rem;
+        }
+
+        .status {
+            padding: 0.4rem 0.8rem;
+            border-radius: 20px;
+            font-size: 0.75rem;
+            font-weight: bold;
+            text-transform: uppercase;
+        }
+
+        .status.aberto { 
+            background: rgba(255, 107, 107, 0.2); 
+            color: #FF6B6B;
+            border: 1px solid rgba(255, 107, 107, 0.3);
+        }
+        .status.emandamento { 
+            background: rgba(255, 217, 61, 0.2); 
+            color: #FFD93D;
+            border: 1px solid rgba(255, 217, 61, 0.3);
+        }
+        .status.aguardandopecas {
+            background: rgba(155, 89, 182, 0.2); 
+            color: #9b59b6;
+            border: 1px solid rgba(155, 89, 182, 0.3);
+        }
+        .status.finalizado { 
+            background: rgba(79, 195, 247, 0.2); 
+            color: var(--primary);
+            border: 1px solid rgba(79, 195, 247, 0.3);
+        }
+
+        .os-details {
+            color: var(--gray);
+            font-size: 0.9rem;
+        }
+
+        .os-details p {
+            margin-bottom: 0.5rem;
+        }
+
+        .os-details strong {
+            color: var(--light);
+        }
+
+        /* ✅ DESTAQUE PARA OS AGUARDANDO PEÇAS */
+        .os-item.aguardando-pecas {
+            border-left: 4px solid #9b59b6;
+            background: rgba(155, 89, 182, 0.05);
+        }
+
+        .os-item.aguardando-pecas .os-header h4::after {
+            content: " ⏳ Aguardando Peças";
+            color: #9b59b6;
+            font-size: 0.8rem;
+            font-weight: normal;
+            margin-left: 0.5rem;
+        }
+
+        /* ✅ ESTILOS PARA BOTÕES VER MAIS */
+        .ver-mais-container {
+            text-align: center;
+            margin-top: 1.5rem;
+            padding-top: 1.5rem;
+            border-top: 1px solid rgba(79, 195, 247, 0.2);
+        }
+
+        .btn-ver-mais {
+            background: transparent;
+            color: var(--primary);
+            border: 1px solid var(--card-border);
+            padding: 0.75rem 1.5rem;
+            border-radius: 12px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            backdrop-filter: blur(12px);
+        }
+
+        .btn-ver-mais:hover {
+            border-color: var(--primary);
+            background: rgba(79, 195, 247, 0.1);
+            box-shadow: 0 0 10px var(--primary-glow);
+            transform: translateY(-2px);
+        }
+
+        .btn-ver-mais:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        /* ✅ Indicador de carregamento */
+        .loading-more {
+            text-align: center;
+            padding: 1rem;
+            color: var(--gray);
+        }
+
+        .loading-more i {
+            margin-right: 0.5rem;
+        }
+
+        /* Empty States */
+        .empty-state {
+            text-align: center;
+            padding: 3rem 2rem;
+            color: var(--gray);
+        }
+
+        .empty-state i {
+            font-size: 3rem;
+            margin-bottom: 1rem;
+            opacity: 0.5;
+        }
+
+        .empty-state h4 {
+            color: var(--light);
+            margin-bottom: 0.5rem;
+        }
+
+        /* Loading and Error States */
+        .loading {
+            text-align: center;
+            padding: 3rem;
+            color: var(--gray);
+        }
+
+        .error {
+            text-align: center;
+            padding: 2rem;
+            color: #FF6B6B;
+            background: rgba(255, 107, 107, 0.1);
+            border-radius: 16px;
+            border: 1px solid rgba(255, 107, 107, 0.3);
+            margin: 1rem 0;
+        }
+
+        /* Toast Notifications */
+        .toast {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            padding: 1rem 1.5rem;
+            border-radius: 12px;
+            color: white;
+            font-weight: 600;
+            z-index: 1001;
+            transform: translateX(400px);
+            transition: transform 0.3s ease;
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+        }
+
+        .toast.show {
+            transform: translateX(0);
+        }
+
+        .toast.success {
+            background: rgba(46, 204, 113, 0.95);
+            border: 1px solid rgba(46, 204, 113, 0.5);
+        }
+
+        .toast.error {
+            background: rgba(231, 76, 60, 0.95);
+            border: 1px solid rgba(231, 76, 60, 0.5);
+        }
+
+        .toast.warning {
+            background: rgba(241, 196, 15, 0.95);
+            border: 1px solid rgba(241, 196, 15, 0.5);
+        }
+
+        .toast.info {
+            background: rgba(52, 152, 219, 0.95);
+            border: 1px solid rgba(52, 152, 219, 0.5);
+        }
+
+        .toast.celebration {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border: 1px solid rgba(102, 126, 234, 0.5);
+            animation: pulse 1s infinite;
+        }
+
+        .toast.aguardando {
+            background: rgba(155, 89, 182, 0.95);
+            border: 1px solid rgba(155, 89, 182, 0.5);
+        }
+
+        .toast.urgent {
+            background: rgba(231, 76, 60, 0.95);
+            border: 2px solid #FFD93D;
+            animation: pulse 1s infinite;
+        }
+
+        /* ✅ NOVOS ESTILOS PARA CONTROLE DE SOM */
+        .sound-controls {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            z-index: 1000;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+        
+        .sound-btn {
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            border: none;
+            background: var(--card-bg);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            color: var(--primary);
+            font-size: 1.2rem;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: var(--shadow);
+            border: 1px solid var(--card-border);
+            transition: all 0.3s ease;
+        }
+        
+        .sound-btn:hover {
+            transform: scale(1.1);
+            box-shadow: 0 0 15px var(--primary-glow);
+        }
+        
+        .sound-btn.active {
+            background: var(--primary);
+            color: var(--black);
+        }
+        
+        .sound-btn.testing {
+            animation: pulse 0.5s infinite;
+        }
+        
+        .sound-status {
+            position: fixed;
+            bottom: 80px;
+            right: 20px;
+            background: var(--card-bg);
+            backdrop-filter: blur(20px);
+            padding: 0.5rem 1rem;
+            border-radius: 10px;
+            border: 1px solid var(--card-border);
+            font-size: 0.8rem;
+            color: var(--gray);
+            max-width: 200px;
+            text-align: center;
+            display: none;
+        }
+
+        /* ✅ ESTILOS PARA MODAL DE DESTRAVAMENTO DE ÁUDIO */
+        .audio-unlock-modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.8);
+            z-index: 9999;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .audio-unlock-content {
+            background: var(--card-bg);
+            backdrop-filter: blur(20px);
+            padding: 2rem;
+            border-radius: 20px;
+            text-align: center;
+            max-width: 400px;
+            margin: 1rem;
+            border: 1px solid var(--card-border);
+            box-shadow: var(--shadow), var(--glow);
+        }
+
+        .audio-unlock-content h3 {
+            color: var(--primary);
+            margin-bottom: 1rem;
+        }
+
+        .audio-unlock-content p {
+            color: var(--gray);
+            margin-bottom: 1.5rem;
+        }
+
+        .audio-unlock-btn {
+            background: var(--primary);
+            color: var(--black);
+            border: none;
+            padding: 1rem 2rem;
+            border-radius: 12px;
+            font-weight: bold;
+            cursor: pointer;
+            font-size: 1.1rem;
+            transition: all 0.3s ease;
+        }
+
+        .audio-unlock-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px var(--primary-glow);
+        }
+
+        /* Modal Styles */
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.7);
+            overflow-y: auto;
+        }
+
+        .modal-content {
+            background: var(--card-bg);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            margin: 5% auto;
+            padding: 2rem;
+            border-radius: 24px;
+            width: 90%;
+            max-width: 500px;
+            border: 1px solid var(--card-border);
+            box-shadow: var(--shadow), var(--glow);
+            position: relative;
+        }
+
+        .close {
+            color: var(--gray);
+            float: right;
+            font-size: 28px;
+            font-weight: bold;
+            cursor: pointer;
+            position: absolute;
+            right: 1rem;
+            top: 1rem;
+            z-index: 10;
+            transition: color 0.3s ease;
+        }
+
+        .close:hover {
+            color: var(--primary);
+        }
+
+        .form-group {
+            margin-bottom: 1.5rem;
+            text-align: left;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 0.5rem;
+            color: var(--primary);
+            font-size: 0.95rem;
+            font-weight: 600;
+            text-shadow: 0 0 4px var(--primary-glow);
+        }
+
+        .form-group input,
+        .form-group select,
+        .form-group textarea {
+            width: 100%;
+            padding: 1rem;
+            border-radius: 14px;
+            background: rgba(15, 23, 42, 0.4);
+            color: var(--light);
+            border: 1px solid var(--card-border);
+            font-size: 1rem;
+            transition: all 0.35s ease;
+            backdrop-filter: blur(8px);
+        }
+
+        .form-group input:focus,
+        .form-group select:focus,
+        .form-group textarea:focus {
+            outline: none;
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px var(--primary-glow);
+            background: rgba(15, 23, 42, 0.6);
+        }
+
+        .form-group textarea {
+            resize: vertical;
+            min-height: 100px;
+            font-family: inherit;
+        }
+
+        .btn-submit {
+            width: 100%;
+            padding: 1.25rem;
+            background: transparent;
+            color: var(--black);
+            border: none;
+            border-radius: 16px;
+            cursor: pointer;
+            font-size: 1.1rem;
+            font-weight: 700;
+            margin-top: 1rem;
+            transition: all 0.35s ease;
+            box-shadow: 0 4px 15px rgba(79, 195, 247, 0.2);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid rgba(79, 195, 247, 0.35);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .btn-submit::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: linear-gradient(135deg, var(--primary), var(--primary-dark));
+            border-radius: 16px;
+            z-index: -1;
+            opacity: 0.95;
+        }
+
+        .btn-submit:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 6px 20px var(--primary-glow), 0 0 25px rgba(79, 195, 247, 0.3);
+        }
+
+        .btn-submit:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
+
+        /* Animations */
+        @keyframes neonPulse {
+            0%, 100% { box-shadow: 0 0 20px var(--primary-glow); }
+            50% { box-shadow: 0 0 28px var(--primary-glow), 0 0 35px var(--primary-glow); }
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+
+        @keyframes fadeInUp {
+            from { 
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to { 
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .fade-in {
+            animation: fadeIn 0.5s ease;
+        }
+
+        /* Mobile-specific styles */
+        @media (max-width: 768px) {
+            .dashboard-container {
+                padding: 1rem;
+            }
+            
+            .header {
+                flex-direction: column;
+                gap: 1rem;
+                text-align: center;
+            }
+            
+            .header-actions {
+                flex-wrap: wrap;
+                justify-content: center;
+            }
+            
+            .contadores-rapidos {
+                grid-template-columns: repeat(2, 1fr);
+                gap: 1rem;
+            }
+            
+            .status-tabs {
+                flex-direction: column;
+            }
+            
+            .status-tab {
+                min-width: auto;
+            }
+            
+            .filter-controls {
+                flex-direction: column;
+            }
+            
+            .filter-select {
+                min-width: auto;
+            }
+            
+            .modal-content {
+                margin: 10% auto;
+                padding: 1.5rem;
+                width: 95%;
+            }
+
+            .toast {
+                left: 10px;
+                right: 10px;
+                top: 10px;
+                transform: translateY(-100px);
+            }
+
+            .toast.show {
+                transform: translateY(0);
+            }
+
+            /* Mobile touch improvements */
+            .btn {
+                min-height: 44px;
+                min-width: 44px;
+            }
+
+            .os-item {
+                padding: 1rem;
+            }
+
+            .section-header {
+                flex-direction: column;
+                gap: 0.5rem;
+                align-items: flex-start;
+            }
+
+            .section-count {
+                align-self: flex-end;
+            }
+            
+            /* Ajustes para controles de som no mobile */
+            .sound-controls {
+                bottom: 10px;
+                right: 10px;
+            }
+            
+            .sound-btn {
+                width: 45px;
+                height: 45px;
+                font-size: 1rem;
+            }
+            
+            .sound-status {
+                bottom: 70px;
+                right: 10px;
+                font-size: 0.7rem;
+            }
+
+            .audio-unlock-content {
+                margin: 1rem;
+                padding: 1.5rem;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .contadores-rapidos {
+                grid-template-columns: 1fr;
+            }
+            
+            .logo-text h1 {
+                font-size: 1.5rem;
+            }
+
+            .header-actions {
+                gap: 0.5rem;
+            }
+
+            .btn {
+                padding: 0.6rem 1rem;
+                font-size: 0.9rem;
+            }
+
+            .os-sections {
+                gap: 1rem;
+            }
+        }
+
+        /* Prevent zoom on input focus for mobile */
+        @media (max-width: 768px) {
+            input, select, textarea {
+                font-size: 16px !important;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Toast Notifications -->
+    <div id="toastContainer"></div>
+
+    <!-- ✅ MODAL PARA DESTRAVAMENTO DE ÁUDIO -->
+    <div id="audioUnlockModal" class="audio-unlock-modal">
+        <div class="audio-unlock-content">
+            <h3>🔊 Ativar Som</h3>
+            <p>Para receber notificações sonoras de suas OS, clique no botão abaixo para ativar o áudio.</p>
+            <p style="font-size: 0.9rem; color: var(--primary-light); margin-bottom: 1rem;">
+                <i class="fas fa-info-circle"></i> Necessário devido às políticas dos navegadores
+            </p>
+            <button class="audio-unlock-btn" onclick="destravarAudioInterativo()">
+                <i class="fas fa-volume-up"></i> Ativar Som
+            </button>
+        </div>
+    </div>
+    
+    <!-- ✅ CONTROLES DE SOM FIXOS -->
+    <div class="sound-controls">
+        <button class="sound-btn" id="btnToggleSound" title="Ativar/Desativar Som">
+            <i class="fas fa-volume-mute"></i>
+        </button>
+        <button class="sound-btn" id="btnTestSound" title="Testar Som">
+            <i class="fas fa-music"></i>
+        </button>
+    </div>
+    
+    <div class="sound-status" id="soundStatus"></div>
+
+    <div class="dashboard-container">
+        <!-- Header -->
+        <header class="header">
+            <div class="logo">
+                <div class="logo-icon">
+                    <div class="cross-container">
+                        <div class="cross-circle">
+                            <div class="cross"></div>
+                        </div>
+                    </div>
+                </div>
+                <div class="logo-text">
+                    <h1>Kronos OS - Solicitante</h1>
+                </div>
+            </div>
+            <div class="header-actions">
+                <span id="userInfo" style="color: var(--gray);"></span>
+                
+                <!-- ✅ BOTÃO DE NOTIFICAÇÕES -->
+                <button class="btn btn-info btn-notification" id="btnNotificacoes" onclick="alternarNotificacoes()">
+                    <i class="fas fa-bell"></i> Notificações
+                    <span class="notification-badge" id="contadorAtualizacoes">0</span>
+                </button>
+                
+                <button class="btn btn-primary" id="btnNovaOS">
+                    <i class="fas fa-plus"></i> Nova OS
+                </button>
+                <button class="btn btn-secondary" onclick="logout()">
+                    <i class="fas fa-sign-out-alt"></i> Sair
+                </button>
+            </div>
+        </header>
+
+        <!-- Welcome Message -->
+        <div class="user-welcome fade-in">
+            <h3 id="welcomeMessage">Bem-vindo de volta!</h3>
+            <p>Acompanhe suas ordens de serviço e crie novas solicitações</p>
+        </div>
+
+        <!-- ✅ NOVO: FILTROS AVANÇADOS (IGUAL AO TÉCNICO) -->
+        <div class="filters-container fade-in">
+            <div class="filters-header">
+                <h3><i class="fas fa-filter"></i> Filtros e Pesquisa</h3>
+                <button class="btn btn-secondary" onclick="limparFiltros()">
+                    <i class="fas fa-times"></i> Limpar Filtros
+                </button>
+            </div>
+            
+            <div class="filter-controls">
+                <div class="filter-group">
+                    <label><i class="fas fa-calendar"></i> Período:</label>
+                    <select class="filter-select" id="filtroPeriodo" onchange="aplicarFiltros()">
+                        <option value="todos">Todos os períodos</option>
+                        <option value="hoje">Hoje</option>
+                        <option value="ontem">Ontem</option>
+                        <option value="7dias">Últimos 7 dias</option>
+                        <option value="15dias">Últimos 15 dias</option>
+                        <option value="30dias">Últimos 30 dias</option>
+                        <option value="personalizado">Personalizado</option>
+                    </select>
+                </div>
+                
+                <div class="filter-group">
+                    <label><i class="fas fa-sort"></i> Ordenar por:</label>
+                    <select class="filter-select" id="filtroOrdenacao" onchange="aplicarFiltros()">
+                        <option value="data_recente">Data mais recente</option>
+                        <option value="data_antiga">Data mais antiga</option>
+                        <option value="prioridade">Prioridade (Alta → Baixa)</option>
+                        <option value="numero">Número da OS</option>
+                    </select>
+                </div>
+                
+                <div class="filter-group">
+                    <label><i class="fas fa-search"></i> Pesquisar:</label>
+                    <input type="text" class="filter-select" id="filtroPesquisa" placeholder="Nº OS, setor, descrição..." oninput="aplicarFiltros()">
+                </div>
+            </div>
+            
+            <div class="quick-filters">
+                <button class="quick-filter-btn active" onclick="filtrarPorPrioridade('todas')">Todas</button>
+                <button class="quick-filter-btn" onclick="filtrarPorPrioridade('critica')">🔴 Crítica</button>
+                <button class="quick-filter-btn" onclick="filtrarPorPrioridade('alta')">🟠 Alta</button>
+                <button class="quick-filter-btn" onclick="filtrarPorPrioridade('media')">🟡 Média</button>
+                <button class="quick-filter-btn" onclick="filtrarPorPrioridade('baixa')">🟢 Baixa</button>
+            </div>
+        </div>
+
+        <!-- Loading State -->
+        <div id="loadingState" class="loading">
+            <p><i class="fas fa-spinner fa-spin"></i> Carregando suas ordens de serviço...</p>
+        </div>
+
+        <!-- Error State -->
+        <div id="errorState" class="error" style="display: none;">
+            <p id="errorMessage"><i class="fas fa-exclamation-triangle"></i> Erro ao carregar ordens de serviço</p>
+            <button class="btn btn-secondary" onclick="carregarMinhasOS()" style="margin-top: 10px;">
+                <i class="fas fa-redo"></i> Tentar Novamente
+            </button>
+        </div>
+
+        <!-- Main Content -->
+        <div id="contentArea" style="display: none;">
+            <!-- Quick Stats -->
+            <div class="contadores-rapidos fade-in">
+                <div class="contador-item active" onclick="filtrarPorStatus('todos')">
+                    <div class="contador-numero contador-total" id="total-minhas-os">0</div>
+                    <div class="contador-label">Total de OS</div>
+                </div>
+                <div class="contador-item" onclick="filtrarPorStatus('aberto')">
+                    <div class="contador-numero contador-abertas" id="abertas-minhas-os">0</div>
+                    <div class="contador-label">Abertas</div>
+                </div>
+                <div class="contador-item" onclick="filtrarPorStatus('andamento')">
+                    <div class="contador-numero contador-andamento" id="andamento-minhas-os">0</div>
+                    <div class="contador-label">Em Andamento</div>
+                </div>
+                <div class="contador-item" onclick="filtrarPorStatus('aguardando')">
+                    <div class="contador-numero contador-aguardando" id="aguardando-minhas-os">0</div>
+                    <div class="contador-label">Aguardando Peças</div>
+                </div>
+                <div class="contador-item" onclick="filtrarPorStatus('finalizado')">
+                    <div class="contador-numero contador-finalizadas" id="finalizadas-minhas-os">0</div>
+                    <div class="contador-label">Finalizadas</div>
+                </div>
+            </div>
+
+            <!-- ✅ NOVO: ABAS DE STATUS (IGUAL AO TÉCNICO) -->
+            <div class="status-tabs fade-in">
+                <button class="status-tab active" onclick="mudarAba('todos')">
+                    <i class="fas fa-layer-group"></i> Todas as OS
+                    <span class="status-tab-badge" id="badge-todos">0</span>
+                </button>
+                <button class="status-tab" onclick="mudarAba('aberto')">
+                    <i class="fas fa-clock"></i> Em Aberto
+                    <span class="status-tab-badge" id="badge-aberto">0</span>
+                </button>
+                <button class="status-tab" onclick="mudarAba('andamento')">
+                    <i class="fas fa-play-circle"></i> Em Andamento
+                    <span class="status-tab-badge" id="badge-andamento">0</span>
+                </button>
+                <button class="status-tab" onclick="mudarAba('aguardando')">
+                    <i class="fas fa-pause-circle"></i> Aguardando Peças
+                    <span class="status-tab-badge" id="badge-aguardando">0</span>
+                </button>
+                <button class="status-tab" onclick="mudarAba('finalizado')">
+                    <i class="fas fa-check-circle"></i> Finalizadas
+                    <span class="status-tab-badge" id="badge-finalizado">0</span>
+                </button>
+            </div>
+
+            <!-- OS Sections -->
+            <div class="os-sections fade-in">
+                <!-- ✅ AGORA APENAS UMA SEÇÃO DINÂMICA (IGUAL AO TÉCNICO) -->
+                <div class="os-section">
+                    <div class="section-header">
+                        <h3 id="sectionTitle"><i class="fas fa-list"></i> Todas as suas Ordens de Serviço</h3>
+                        <span class="section-count" id="count-exibidas">0</span>
+                    </div>
+                    <div class="os-list" id="listaOS">
+                        <!-- Todas as OS serão inseridas aqui dinamicamente -->
+                    </div>
+                    <!-- ✅ BOTÃO VER MAIS -->
+                    <div class="ver-mais-container" id="verMaisContainer" style="display: none;">
+                        <button class="btn btn-secondary" onclick="carregarMaisOS()" id="btnVerMais">
+                            <i class="fas fa-chevron-down"></i> Ver Mais OS
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal: Nova Ordem -->
+    <div id="modalNovaOS" class="modal">
+        <div class="modal-content">
+            <span class="close">&times;</span>
+            <h2 style="margin-bottom: 25px; color: var(--primary); text-align: center;">
+                <i class="fas fa-plus-circle"></i> Nova Ordem de Serviço
+            </h2>
+            <form id="formNovaOS">
+                <div class="form-group">
+                    <label for="setor_origem"><i class="fas fa-building"></i> Setor de Origem:</label>
+                    <select id="setor_origem" required>
+                        <option value="">Selecione seu setor</option>
+                        <option value="Pronto Socorro">Pronto Socorro</option>
+                        <option value="Recepção">Recepção</option>
+                        <option value="Ambulatório">Ambulatório</option>
+                        <option value="Administrativo">Administrativo</option>
+                        <option value="Faturamento">Faturamento</option>
+                        <option value="Maternidade">Maternidade</option>
+                        <option value="Clínica Médica">Clínica Médica</option>
+                        <option value="Clínica Cirúrgica">Clínica Cirúrgica</option>
+                        <option value="Centro Cirúrgico">Centro Cirúrgico</option>
+                        <option value="Tomografia">Tomografia</option>
+                        <option value="Mamografia">Mamografia</option>
+                        <option value="HEMOPI">HEMOPI</option>
+                        <option value="Núcleos">Núcleos</option>
+                        <option value="UTI">UTI</option>
+                        <option value="Farmácia">Farmácia</option>
+                        <option value="Almoxarifado">Almoxarifado</option>
+                        <option value="Nutrição">Nutrição</option>
+                        <option value="Laboratório">Laboratório</option>
+                        <option value="Fisioterapia">Fisioterapia</option>
+                    </select>
+                </div>
+                
+                <div class="form-group">
+                    <label for="setor_destino"><i class="fas fa-cogs"></i> Setor Destino:</label>
+                    <select id="setor_destino" required>
+                        <option value="">Para qual setor?</option>
+                        <option value="TI">TI</option>
+                        <option value="Manutenção">Manutenção</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label for="categoria"><i class="fas fa-tag"></i> Categoria:</label>
+                    <select id="categoria" required>
+                        <option value="">Selecione uma categoria</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label for="cliente"><i class="fas fa-user"></i> Cliente/Solicitante:</label>
+                    <input type="text" id="cliente" placeholder="Ex: Dr. Silva, Enf. Maria" required>
+                </div>
+
+                <div class="form-group">
+                    <label for="descricao"><i class="fas fa-file-alt"></i> Descrição do Problema:</label>
+                    <textarea id="descricao" placeholder="Descreva detalhadamente o problema ou solicitação..." required rows="4"></textarea>
+                </div>
+                
+                <div class="form-group">
+                    <label for="prioridade"><i class="fas fa-exclamation-triangle"></i> Prioridade:</label>
+                    <select id="prioridade" required>
+                        <option value="">Selecione a prioridade</option>
+                        <option value="Baixa">Baixa</option>
+                        <option value="Média">Média</option>
+                        <option value="Alta">Alta</option>
+                        <option value="Crítica">Crítica</option>
+                    </select>
+                </div>
+                
+                <button type="submit" class="btn-submit" id="btnSubmitOS">
+                    <i class="fas fa-check-circle"></i> Criar Ordem de Serviço
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        const API_BASE_URL = window.location.origin;
+
+        // ✅ VARIÁVEIS GLOBAIS PARA FILTROS (IGUAL AO TÉCNICO)
+        let todasOS = [];
+        let osFiltradas = [];
+        let osVisiveis = 10;
+        let filtroAtual = {
+            status: 'todos',
+            periodo: 'todos',
+            ordenacao: 'data_recente',
+            pesquisa: '',
+            prioridade: 'todas'
+        };
+
+        // ✅ SISTEMA DE SOM MODERNO - COMPATÍVEL COM O TÉCNICO
+        let audioContext = null;
+        let audioEnabled = localStorage.getItem('kronos_audio_solicitante') !== 'false';
+        let audioUnlocked = false;
+        let audioTested = false;
+        let isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+        
+        // ✅ SISTEMA DE NOTIFICAÇÃO
+        let notificationEnabled = localStorage.getItem('kronos_notifications_solicitante') !== 'false';
+        let todasOSAnteriores = [];
+        
+        // ✅ SISTEMA DE ATUALIZAÇÃO EM TEMPO REAL
+        let pollingInterval = null;
+
+        // ✅ SISTEMA DE ÁUDIO MODERNO - COMPATÍVEL COM O TÉCNICO
+        class SistemaAudioSolicitante {
+            constructor() {
+                this.context = null;
+                this.unlocked = false;
+                this.enabled = audioEnabled;
+                this.initialized = false;
+                this.isMobile = isMobile;
+            }
+
+            // ✅ INICIALIZAR SISTEMA DE ÁUDIO - CORRIGIDO PARA MOBILE
+            async inicializar() {
+                if (this.initialized) return true;
+
+                try {
+                    const AudioContext = window.AudioContext || window.webkitAudioContext;
+                    if (!AudioContext) {
+                        console.warn('❌ Web Audio API não suportada');
+                        return false;
+                    }
+
+                    this.context = new AudioContext();
+                    
+                    // ✅ ESTRATÉGIA MELHOR PARA MOBILE - Aguardar interação
+                    if (this.isMobile) {
+                        console.log('📱 Modo mobile detectado - Áudio aguardando interação');
+                        this.context.suspend();
+                    }
+
+                    this.initialized = true;
+                    console.log('✅ Sistema de áudio solicitante inicializado');
+                    return true;
+                } catch (error) {
+                    console.error('❌ Erro ao inicializar áudio:', error);
+                    return false;
+                }
+            }
+
+            // ✅ DESTRAVAR ÁUDIO INTERATIVAMENTE - CORRIGIDO PARA MOBILE
+            async destravar() {
+                if (!this.context) return false;
+
+                try {
+                    await this.context.resume();
+                    await this.tocarSomTeste();
+                    
+                    this.unlocked = true;
+                    console.log('🔊 Áudio solicitante destravado com sucesso');
+                    return true;
+                } catch (error) {
+                    console.error('❌ Erro ao destravar áudio:', error);
+                    return false;
+                }
+            }
+
+            // ✅ TOCAR SOM DE TESTE SIMPLES
+            async tocarSomTeste() {
+                if (!this.context || !this.enabled) return;
+
+                try {
+                    const oscillator = this.context.createOscillator();
+                    const gainNode = this.context.createGain();
+                    
+                    oscillator.connect(gainNode);
+                    gainNode.connect(this.context.destination);
+                    
+                    oscillator.frequency.value = 440;
+                    gainNode.gain.value = 0.001;
+                    
+                    oscillator.start();
+                    oscillator.stop(this.context.currentTime + 0.1);
+                    
+                } catch (error) {
+                    console.log('⚠️ Som de teste não pôde ser reproduzido');
+                }
+            }
+
+            // ✅ VERIFICAR SE PODE TOCAR SOM
+            podeTocar() {
+                return this.context && this.enabled && this.unlocked && this.initialized;
+            }
+
+            // ✅ SOM PARA CRIAÇÃO DE OS (COMPATÍVEL)
+            tocarSomCriacaoOS() {
+                if (!this.podeTocar()) return;
+
+                try {
+                    const now = this.context.currentTime;
+                    const oscillator = this.context.createOscillator();
+                    const gainNode = this.context.createGain();
+                    
+                    oscillator.connect(gainNode);
+                    gainNode.connect(this.context.destination);
+
+                    oscillator.type = 'sine';
+                    
+                    oscillator.frequency.setValueAtTime(600, now);
+                    oscillator.frequency.setValueAtTime(800, now + 0.1);
+                    oscillator.frequency.setValueAtTime(1000, now + 0.2);
+                    oscillator.frequency.setValueAtTime(1200, now + 0.3);
+                    
+                    gainNode.gain.setValueAtTime(0, now);
+                    gainNode.gain.linearRampToValueAtTime(0.8, now + 0.1);
+                    gainNode.gain.exponentialRampToValueAtTime(0.5, now + 0.2);
+                    gainNode.gain.linearRampToValueAtTime(0.8, now + 0.3);
+                    gainNode.gain.exponentialRampToValueAtTime(0.01, now + 0.5);
+
+                    oscillator.start(now);
+                    oscillator.stop(now + 0.55);
+
+                    console.log('🔊 SOM SOLICITANTE - OS criada com sucesso');
+
+                } catch (error) {
+                    console.error('❌ Erro ao tocar som de criação OS:', error);
+                }
+            }
+
+            // ✅ SOM PARA ATUALIZAÇÃO DE OS (COMPATÍVEL)
+            tocarSomAtualizacao() {
+                if (!this.podeTocar()) return;
+
+                try {
+                    const now = this.context.currentTime;
+                    const oscillator = this.context.createOscillator();
+                    const gainNode = this.context.createGain();
+                    
+                    oscillator.connect(gainNode);
+                    gainNode.connect(this.context.destination);
+
+                    oscillator.type = 'sine';
+                    
+                    oscillator.frequency.setValueAtTime(600, now);
+                    oscillator.frequency.setValueAtTime(800, now + 0.1);
+                    oscillator.type = 'sine';
+                    
+                    gainNode.gain.setValueAtTime(0, now);
+                    gainNode.gain.linearRampToValueAtTime(0.5, now + 0.08);
+                    gainNode.gain.exponentialRampToValueAtTime(0.01, now + 0.25);
+
+                    oscillator.start(now);
+                    oscillator.stop(now + 0.3);
+
+                    console.log('🔊 SOM SOLICITANTE - Atualização recebida');
+
+                } catch (error) {
+                    console.error('❌ Erro ao tocar som de atualização:', error);
+                }
+            }
+
+            // ✅ SOM PARA FINALIZAÇÃO (COMPATÍVEL)
+            tocarSomFinalizacao() {
+                if (!this.podeTocar()) return;
+
+                try {
+                    const now = this.context.currentTime;
+                    const oscillator = this.context.createOscillator();
+                    const gainNode = this.context.createGain();
+                    
+                    oscillator.connect(gainNode);
+                    gainNode.connect(this.context.destination);
+
+                    oscillator.type = 'sine';
+                    
+                    oscillator.frequency.setValueAtTime(500, now);
+                    oscillator.frequency.setValueAtTime(700, now + 0.1);
+                    oscillator.frequency.setValueAtTime(900, now + 0.2);
+                    
+                    gainNode.gain.setValueAtTime(0, now);
+                    gainNode.gain.linearRampToValueAtTime(0.7, now + 0.15);
+                    gainNode.gain.exponentialRampToValueAtTime(0.01, now + 0.4);
+
+                    oscillator.start(now);
+                    oscillator.stop(now + 0.45);
+
+                    console.log('🔊 SOM SOLICITANTE - OS finalizada!');
+
+                } catch (error) {
+                    console.error('❌ Erro ao tocar som de finalização:', error);
+                }
+            }
+
+            // ✅ SOM PARA AGUARDANDO PEÇAS (COMPATÍVEL)
+            tocarSomAguardandoPecas() {
+                if (!this.podeTocar()) return;
+
+                try {
+                    const now = this.context.currentTime;
+                    const oscillator = this.context.createOscillator();
+                    const gainNode = this.context.createGain();
+                    
+                    oscillator.connect(gainNode);
+                    gainNode.connect(this.context.destination);
+
+                    oscillator.type = 'sine';
+                    
+                    oscillator.frequency.setValueAtTime(600, now);
+                    oscillator.frequency.setValueAtTime(400, now + 0.2);
+                    oscillator.frequency.setValueAtTime(300, now + 0.4);
+                    
+                    gainNode.gain.setValueAtTime(0, now);
+                    gainNode.gain.linearRampToValueAtTime(0.4, now + 0.1);
+                    gainNode.gain.exponentialRampToValueAtTime(0.2, now + 0.3);
+                    gainNode.gain.linearRampToValueAtTime(0.4, now + 0.5);
+                    gainNode.gain.exponentialRampToValueAtTime(0.01, now + 0.7);
+
+                    oscillator.start(now);
+                    oscillator.stop(now + 0.75);
+
+                    console.log('🔊 SOM SOLICITANTE - Aguardando peças');
+
+                } catch (error) {
+                    console.error('❌ Erro ao tocar som de aguardando:', error);
+                }
+            }
+
+            // ✅ TESTE DE SOM COMPLETO
+            tocarTesteCompleto() {
+                if (!this.podeTocar()) return;
+
+                this.tocarSomCriacaoOS();
+                
+                setTimeout(() => {
+                    this.tocarSomAtualizacao();
+                }, 600);
+                
+                setTimeout(() => {
+                    this.tocarSomAguardandoPecas();
+                }, 1200);
+                
+                setTimeout(() => {
+                    this.tocarSomFinalizacao();
+                }, 2000);
+            }
+
+            // ✅ ALTERNAR ESTADO DO SOM
+            alternar() {
+                this.enabled = !this.enabled;
+                audioEnabled = this.enabled;
+                localStorage.setItem('kronos_audio_solicitante', this.enabled.toString());
+                return this.enabled;
+            }
+        }
+
+        // ✅ INSTÂNCIA GLOBAL DO SISTEMA DE ÁUDIO
+        const sistemaAudio = new SistemaAudioSolicitante();
+
+        // ✅ SISTEMA DE ATUALIZAÇÃO EM TEMPO REAL
+        function iniciarAtualizacaoTempoReal() {
+            // Polling a cada 30 segundos para verificar atualizações
+            setInterval(() => {
+                if (document.visibilityState === 'visible') {
+                    verificarAtualizacoes();
+                }
+            }, 30000);
+
+            // Também verificar quando a página fica visível
+            document.addEventListener('visibilitychange', function() {
+                if (document.visibilityState === 'visible') {
+                    verificarAtualizacoes();
+                }
+            });
+        }
+
+        // ✅ VERIFICAR ATUALIZAÇÕES NO SERVIDOR
+        async function verificarAtualizacoes() {
+            try {
+                const token = localStorage.getItem('kronos_token');
+                if (!token) return;
+
+                const response = await fetch(`${API_BASE_URL}/api/os/minhas`, {
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json'
+                    }
+                });
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    let ordensAtuais = [];
+                    
+                    if (data.success && data.data) {
+                        ordensAtuais = data.data;
+                    } else if (Array.isArray(data)) {
+                        ordensAtuais = data;
+                    }
+                    
+                    // Ordenar por data
+                    ordensAtuais = ordensAtuais.sort((a, b) => new Date(b.data_abertura) - new Date(a.data_abertura));
+                    
+                    // Verificar se houve mudanças
+                    verificarMudancasOS(ordensAtuais);
+                }
+            } catch (error) {
+                console.log('⚠️ Erro ao verificar atualizações:', error);
+            }
+        }
+
+        // ✅ VERIFICAR MUDANÇAS NAS OS
+        function verificarMudancasOS(ordensAtuais) {
+            if (todasOS.length === 0) {
+                todasOS = ordensAtuais;
+                aplicarFiltros();
+                atualizarContadores(todasOS);
+                atualizarContadoresAbas();
+                return;
+            }
+
+            // Verificar se há mudanças
+            const mudancas = [];
+            
+            ordensAtuais.forEach(osAtual => {
+                const osAntiga = todasOS.find(os => os.id === osAtual.id);
+                
+                if (!osAntiga) {
+                    // Nova OS
+                    mudancas.push({ tipo: 'nova', os: osAtual });
+                } else if (osAntiga.status !== osAtual.status) {
+                    // Status alterado
+                    mudancas.push({ 
+                        tipo: 'status', 
+                        os: osAtual, 
+                        statusAnterior: osAntiga.status,
+                        statusNovo: osAtual.status 
+                    });
+                } else if (osAntiga.relato_tecnico !== osAtual.relato_tecnico && osAtual.relato_tecnico) {
+                    // Relatório técnico adicionado/alterado
+                    mudancas.push({ 
+                        tipo: 'relatorio', 
+                        os: osAtual 
+                    });
+                }
+            });
+
+            // Verificar OS removidas (improvável, mas possível)
+            todasOS.forEach(osAntiga => {
+                if (!ordensAtuais.find(os => os.id === osAntiga.id)) {
+                    mudancas.push({ tipo: 'removida', os: osAntiga });
+                }
+            });
+
+            // Se houve mudanças, atualizar a interface
+            if (mudancas.length > 0) {
+                console.log(`🔄 ${mudancas.length} mudança(s) detectada(s)`);
+                processarMudancas(mudancas);
+                todasOS = ordensAtuais;
+                aplicarFiltros();
+                atualizarContadores(todasOS);
+                atualizarContadoresAbas();
+            }
+        }
+
+        // ✅ PROCESSAR MUDANÇAS E NOTIFICAR
+        function processarMudancas(mudancas) {
+            mudancas.forEach(mudanca => {
+                switch(mudanca.tipo) {
+                    case 'nova':
+                        showToast(`🆕 Nova OS #${mudanca.os.id} criada`, 'info');
+                        break;
+                        
+                    case 'status':
+                        notificarMudancaStatus(mudanca.os, mudanca.statusAnterior, mudanca.statusNovo);
+                        break;
+                        
+                    case 'relatorio':
+                        showToast(`📝 OS #${mudanca.os.id} atualizada com relatório técnico`, 'info');
+                        break;
+                        
+                    case 'removida':
+                        showToast(`🗑️ OS #${mudanca.os.id} foi removida`, 'warning');
+                        break;
+                }
+            });
+        }
+
+        // ✅ NOTIFICAR MUDANÇA DE STATUS COM SONS
+        function notificarMudancaStatus(os, statusAnterior, statusNovo) {
+            if (!notificationEnabled) return;
+            
+            console.log(`🔔 OS #${os.id}: ${statusAnterior} → ${statusNovo}`);
+            
+            // Tocar sons baseados no novo status
+            if (sistemaAudio.podeTocar()) {
+                switch(statusNovo) {
+                    case 'Em Andamento':
+                        sistemaAudio.tocarSomAtualizacao();
+                        showToast(`▶️ OS #${os.id} iniciou atendimento`, 'info');
+                        break;
+                        
+                    case 'Aguardando Peças':
+                        sistemaAudio.tocarSomAguardandoPecas();
+                        showToast(`⏳ OS #${os.id} aguardando peças`, 'aguardando');
+                        break;
+                        
+                    case 'Finalizado':
+                        sistemaAudio.tocarSomFinalizacao();
+                        showToast(`🎉 OS #${os.id} finalizada!`, 'celebration');
+                        break;
+                        
+                    default:
+                        sistemaAudio.tocarSomAtualizacao();
+                        showToast(`📋 OS #${os.id} atualizada: ${statusAnterior} → ${statusNovo}`, 'info');
+                }
+            } else {
+                // Notificação sem som
+                switch(statusNovo) {
+                    case 'Em Andamento':
+                        showToast(`▶️ OS #${os.id} iniciou atendimento`, 'info');
+                        break;
+                    case 'Aguardando Peças':
+                        showToast(`⏳ OS #${os.id} aguardando peças`, 'aguardando');
+                        break;
+                    case 'Finalizado':
+                        showToast(`🎉 OS #${os.id} finalizada!`, 'celebration');
+                        break;
+                    default:
+                        showToast(`📋 OS #${os.id} atualizada: ${statusAnterior} → ${statusNovo}`, 'info');
+                }
+            }
+            
+            atualizarContadorAtualizacoes(1);
+        }
+
+        // ✅ FUNÇÕES DE FILTRO E ORGANIZAÇÃO (IGUAL AO TÉCNICO)
+        function aplicarFiltros() {
+            filtroAtual.periodo = document.getElementById('filtroPeriodo').value;
+            filtroAtual.ordenacao = document.getElementById('filtroOrdenacao').value;
+            filtroAtual.pesquisa = document.getElementById('filtroPesquisa').value.toLowerCase();
+            
+            osFiltradas = todasOS.filter(os => {
+                if (filtroAtual.status !== 'todos') {
+                    const statusMap = {
+                        'aberto': 'Aberto',
+                        'andamento': 'Em Andamento', 
+                        'aguardando': 'Aguardando Peças',
+                        'finalizado': 'Finalizado'
+                    };
+                    if (os.status !== statusMap[filtroAtual.status]) {
+                        return false;
+                    }
+                }
+                
+                if (filtroAtual.periodo !== 'todos') {
+                    const dataOS = new Date(os.data_abertura);
+                    const hoje = new Date();
+                    const diffTime = hoje - dataOS;
+                    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+                    
+                    switch(filtroAtual.periodo) {
+                        case 'hoje':
+                            if (diffDays > 1) return false;
+                            break;
+                        case 'ontem':
+                            if (diffDays !== 1) return false;
+                            break;
+                        case '7dias':
+                            if (diffDays > 7) return false;
+                            break;
+                        case '15dias':
+                            if (diffDays > 15) return false;
+                            break;
+                        case '30dias':
+                            if (diffDays > 30) return false;
+                            break;
+                    }
+                }
+                
+                if (filtroAtual.prioridade !== 'todas') {
+                    const prioridadeMap = {
+                        'critica': 'Crítica',
+                        'alta': 'Alta',
+                        'media': 'Média',
+                        'baixa': 'Baixa'
+                    };
+                    if (os.prioridade !== prioridadeMap[filtroAtual.prioridade]) {
+                        return false;
+                    }
+                }
+                
+                if (filtroAtual.pesquisa) {
+                    const termo = filtroAtual.pesquisa;
+                    return (
+                        os.id.toString().includes(termo) ||
+                        os.setor_origem.toLowerCase().includes(termo) ||
+                        os.setor_destino.toLowerCase().includes(termo) ||
+                        os.descricao.toLowerCase().includes(termo)
+                    );
+                }
+                
+                return true;
+            });
+            
+            ordenarOS();
+            osVisiveis = 10;
+            exibirOSFiltradas();
+        }
+
+        function ordenarOS() {
+            switch(filtroAtual.ordenacao) {
+                case 'data_recente':
+                    osFiltradas.sort((a, b) => new Date(b.data_abertura) - new Date(a.data_abertura));
+                    break;
+                case 'data_antiga':
+                    osFiltradas.sort((a, b) => new Date(a.data_abertura) - new Date(b.data_abertura));
+                    break;
+                case 'prioridade':
+                    const prioridadeOrder = { 'Crítica': 4, 'Alta': 3, 'Média': 2, 'Baixa': 1 };
+                    osFiltradas.sort((a, b) => prioridadeOrder[b.prioridade] - prioridadeOrder[a.prioridade]);
+                    break;
+                case 'numero':
+                    osFiltradas.sort((a, b) => b.id - a.id);
+                    break;
+            }
+        }
+
+        function filtrarPorStatus(status) {
+            filtroAtual.status = status;
+            
+            document.querySelectorAll('.status-tab').forEach(tab => tab.classList.remove('active'));
+            document.querySelectorAll('.contador-item').forEach(item => item.classList.remove('active'));
+            
+            if (status === 'todos') {
+                document.querySelector('[onclick="mudarAba(\'todos\')"]').classList.add('active');
+                document.querySelector('.contador-item:first-child').classList.add('active');
+            } else {
+                document.querySelector(`[onclick="mudarAba('${status}')"]`).classList.add('active');
+                document.querySelector(`.contador-item:nth-child(${getContadorIndex(status)})`).classList.add('active');
+            }
+            
+            aplicarFiltros();
+        }
+
+        function filtrarPorPrioridade(prioridade) {
+            filtroAtual.prioridade = prioridade;
+            
+            document.querySelectorAll('.quick-filter-btn').forEach(btn => btn.classList.remove('active'));
+            document.querySelector(`[onclick="filtrarPorPrioridade('${prioridade}')"]`).classList.add('active');
+            
+            aplicarFiltros();
+        }
+
+        function mudarAba(status) {
+            filtrarPorStatus(status);
+            
+            const titulos = {
+                'todos': 'Todas as suas Ordens de Serviço',
+                'aberto': 'Suas Ordens em Aberto',
+                'andamento': 'Suas Ordens em Andamento', 
+                'aguardando': 'Suas Ordens Aguardando Peças',
+                'finalizado': 'Suas Ordens Finalizadas'
+            };
+            
+            document.getElementById('sectionTitle').innerHTML = 
+                `<i class="fas ${getAbaIcon(status)}"></i> ${titulos[status]}`;
+        }
+
+        function getAbaIcon(status) {
+            const icons = {
+                'todos': 'fa-layer-group',
+                'aberto': 'fa-clock',
+                'andamento': 'fa-play-circle',
+                'aguardando': 'fa-pause-circle',
+                'finalizado': 'fa-check-circle'
+            };
+            return icons[status];
+        }
+
+        function getContadorIndex(status) {
+            const indices = {
+                'aberto': 2,
+                'andamento': 3,
+                'aguardando': 4,
+                'finalizado': 5
+            };
+            return indices[status] || 1;
+        }
+
+        function limparFiltros() {
+            document.getElementById('filtroPeriodo').value = 'todos';
+            document.getElementById('filtroOrdenacao').value = 'data_recente';
+            document.getElementById('filtroPesquisa').value = '';
+            
+            document.querySelectorAll('.quick-filter-btn').forEach(btn => btn.classList.remove('active'));
+            document.querySelector('[onclick="filtrarPorPrioridade(\'todas\')"]').classList.add('active');
+            
+            filtroAtual = {
+                status: 'todos',
+                periodo: 'todos',
+                ordenacao: 'data_recente',
+                pesquisa: '',
+                prioridade: 'todas'
+            };
+            
+            aplicarFiltros();
+            mudarAba('todos');
+        }
+
+        // ✅ FUNÇÃO PARA EXIBIR OS FILTRADAS
+        function exibirOSFiltradas() {
+            const osParaExibir = osFiltradas.slice(0, osVisiveis);
+            
+            document.getElementById('count-exibidas').textContent = `${osParaExibir.length} de ${osFiltradas.length}`;
+            
+            exibirListaOS('listaOS', osParaExibir);
+            
+            const verMaisContainer = document.getElementById('verMaisContainer');
+            if (osFiltradas.length > osVisiveis) {
+                verMaisContainer.style.display = 'block';
+                document.getElementById('btnVerMais').innerHTML = 
+                    `<i class="fas fa-chevron-down"></i> Ver Mais (${osFiltradas.length - osVisiveis} restantes)`;
+            } else {
+                verMaisContainer.style.display = 'none';
+            }
+        }
+
+        function carregarMaisOS() {
+            osVisiveis += 10;
+            exibirOSFiltradas();
+        }
+
+        // ✅ ATUALIZAR CONTADORES NAS ABAS
+        function atualizarContadoresAbas() {
+            const contadores = {
+                'todos': todasOS.length,
+                'aberto': todasOS.filter(os => os.status === 'Aberto').length,
+                'andamento': todasOS.filter(os => os.status === 'Em Andamento').length,
+                'aguardando': todasOS.filter(os => os.status === 'Aguardando Peças').length,
+                'finalizado': todasOS.filter(os => os.status === 'Finalizado').length
+            };
+            
+            Object.keys(contadores).forEach(status => {
+                const badge = document.getElementById(`badge-${status}`);
+                if (badge) {
+                    badge.textContent = contadores[status];
+                }
+            });
+        }
+
+        // ✅ VERIFICAÇÃO DE AUTENTICAÇÃO
+        function verificarAutenticacao() {
+            const user = localStorage.getItem('kronos_user');
+            const token = localStorage.getItem('kronos_token');
+            
+            if (!user || !token) {
+                alert('Você precisa estar logado para acessar esta página.');
+                window.location.href = 'index.html';
+                return false;
+            }
+            
+            try {
+                const userData = JSON.parse(user);
+                document.getElementById('userInfo').textContent = `Olá, ${userData.nome.split(' ')[0]}!`;
+                document.getElementById('welcomeMessage').textContent = `Bem-vindo, ${userData.nome}!`;
+                return true;
+            } catch (e) {
+                console.error('Erro:', e);
+                window.location.href = 'index.html';
+                return false;
+            }
+        }
+
+        // ✅ FUNÇÃO CARREGAR OS ATUALIZADA COM FILTROS
+        async function carregarMinhasOS() {
+            try {
+                mostrarLoading(true);
+                const token = localStorage.getItem('kronos_token');
+                if (!token) {
+                    mostrarError(true, 'Usuário não autenticado.');
+                    return;
+                }
+
+                const response = await fetch(`${API_BASE_URL}/api/os/minhas`, {
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json'
+                    }
+                });
+                
+                if (!response.ok) {
+                    if (response.status === 401) {
+                        mostrarError(true, 'Sessão expirada. Faça login novamente.');
+                        setTimeout(() => window.location.href = 'index.html', 2000);
+                        return;
+                    }
+                    throw new Error(`Erro HTTP: ${response.status}`);
+                }
+                
+                const data = await response.json();
+                let ordens = [];
+                if (data.success && data.data) {
+                    ordens = data.data;
+                } else if (Array.isArray(data)) {
+                    ordens = data;
+                }
+                
+                todasOS = ordens.sort((a, b) => new Date(b.data_abertura) - new Date(a.data_abertura));
+                
+                // ✅ APLICAR FILTROS E ATUALIZAR INTERFACE
+                aplicarFiltros();
+                atualizarContadores(todasOS);
+                atualizarContadoresAbas();
+                mostrarLoading(false);
+                
+                // ✅ INICIAR SISTEMA DE ATUALIZAÇÃO EM TEMPO REAL
+                iniciarAtualizacaoTempoReal();
+                
+            } catch (error) {
+                console.error('❌ Erro:', error);
+                mostrarError(true, `Erro ao carregar: ${error.message}`);
+            }
+        }
+
+        function atualizarContadores(ordens) {
+            const total = ordens.length;
+            const abertas = ordens.filter(os => os.status === 'Aberto').length;
+            const andamento = ordens.filter(os => os.status === 'Em Andamento').length;
+            const aguardando = ordens.filter(os => os.status === 'Aguardando Peças').length;
+            const finalizadas = ordens.filter(os => os.status === 'Finalizado').length;
+
+            document.getElementById('total-minhas-os').textContent = total;
+            document.getElementById('abertas-minhas-os').textContent = abertas;
+            document.getElementById('andamento-minhas-os').textContent = andamento;
+            document.getElementById('aguardando-minhas-os').textContent = aguardando;
+            document.getElementById('finalizadas-minhas-os').textContent = finalizadas;
+        }
+
+        function exibirListaOS(elementId, ordens) {
+            const lista = document.getElementById(elementId);
+            
+            if (ordens.length === 0) {
+                lista.innerHTML = `
+                    <div class="empty-state">
+                        <i class="fas fa-inbox"></i>
+                        <h4>Nenhuma ordem de serviço encontrada</h4>
+                        <p>Tente alterar os filtros ou verifique se há novas OS.</p>
+                    </div>
+                `;
+                return;
+            }
+
+            lista.innerHTML = ordens.map(os => {
+                const statusClass = (os.status || 'Aberto').toLowerCase().replace(/ /g, '');
+                const dataAbertura = new Date(os.data_abertura).toLocaleDateString('pt-BR');
+                const horaAbertura = new Date(os.data_abertura).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+                
+                const classeAguardando = os.status === 'Aguardando Peças' ? 'aguardando-pecas' : '';
+                
+                return `
+                    <div class="os-item ${classeAguardando}">
+                        <div class="os-header">
+                            <div class="os-info">
+                                <h4>OS #${os.id} - ${os.setor_destino}</h4>
+                                <div class="os-meta">
+                                    ${dataAbertura} às ${horaAbertura}
+                                    ${os.prioridade ? `<span style="margin-left: 1rem; color: ${getPrioridadeColor(os.prioridade)}">${getPrioridadeIcon(os.prioridade)} ${os.prioridade}</span>` : ''}
+                                </div>
+                            </div>
+                            <span class="status ${statusClass}">
+                                ${os.status === 'Aguardando Peças' ? '⏳ ' : ''}${os.status}
+                            </span>
+                        </div>
+                        <div class="os-details">
+                            <p><strong>Setor Origem:</strong> ${os.setor_origem}</p>
+                            <p><strong>Categoria:</strong> ${os.categoria}</p>
+                            <p><strong>Descrição:</strong> ${os.descricao}</p>
+                            ${os.relato_tecnico ? `<p><strong>Relatório Técnico:</strong> ${os.relato_tecnico}</p>` : ''}
+                            ${os.status === 'Aguardando Peças' ? `
+                                <div style="background: rgba(155, 89, 182, 0.1); padding: 1rem; border-radius: 10px; margin-top: 1rem; border: 1px solid rgba(155, 89, 182, 0.2);">
+                                    <strong><i class="fas fa-info-circle"></i> Informação:</strong> Esta OS está aguardando a chegada de peças para continuar o atendimento.
+                                </div>
+                            ` : ''}
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        function getPrioridadeColor(prioridade) {
+            const colors = {
+                'Baixa': '#2ecc71',
+                'Média': '#f1c40f', 
+                'Alta': '#e67e22',
+                'Crítica': '#e74c3c'
+            };
+            return colors[prioridade] || '#94A3B8';
+        }
+
+        function getPrioridadeIcon(prioridade) {
+            const icons = {
+                'Baixa': '🟢',
+                'Média': '🟡',
+                'Alta': '🟠',
+                'Crítica': '🔴'
+            };
+            return icons[prioridade] || '⚪';
+        }
+
+        // ✅ SISTEMA DE NOTIFICAÇÕES
+        function showToast(message, type = 'success', duration = 4000) {
+            const toast = document.createElement('div');
+            toast.className = `toast ${type}`;
+            toast.innerHTML = `
+                <div style="display: flex; align-items: center; gap: 10px;">
+                    <i class="fas ${getToastIcon(type)}"></i>
+                    <span>${message}</span>
+                </div>
+            `;
+            document.getElementById('toastContainer').appendChild(toast);
+            
+            setTimeout(() => toast.classList.add('show'), 50);
+            
+            setTimeout(() => {
+                toast.classList.remove('show');
+                setTimeout(() => {
+                    if (toast.parentNode) {
+                        toast.parentNode.removeChild(toast);
+                    }
+                }, 300);
+            }, duration);
+        }
+
+        function getToastIcon(type) {
+            const icons = {
+                'success': 'fa-check-circle',
+                'error': 'fa-exclamation-triangle',
+                'warning': 'fa-exclamation-circle',
+                'info': 'fa-info-circle',
+                'celebration': 'fa-party-horn',
+                'aguardando': 'fa-clock',
+                'urgent': 'fa-bell'
+            };
+            return icons[type] || 'fa-info-circle';
+        }
+
+        // ✅ ALTERNAR NOTIFICAÇÕES
+        function alternarNotificacoes() {
+            notificationEnabled = !notificationEnabled;
+            localStorage.setItem('kronos_notifications_solicitante', notificationEnabled.toString());
+            
+            const btn = document.getElementById('btnNotificacoes');
+            if (notificationEnabled) {
+                btn.innerHTML = '<i class="fas fa-bell"></i> Notificações: ON';
+                btn.classList.remove('btn-secondary');
+                btn.classList.add('btn-info');
+                showToast('🔔 Notificações ativadas', 'success', 3000);
+            } else {
+                btn.innerHTML = '<i class="fas fa-bell-slash"></i> Notificações: OFF';
+                btn.classList.remove('btn-info');
+                btn.classList.add('btn-secondary');
+                showToast('🔕 Notificações desativadas', 'warning', 3000);
+            }
+            
+            atualizarContadorAtualizacoes(0);
+        }
+
+        // ✅ ATUALIZAR CONTADOR DE ATUALIZAÇÕES
+        function atualizarContadorAtualizacoes(quantidade) {
+            const contador = document.getElementById('contadorAtualizacoes');
+            if (!contador) return;
+
+            if (quantidade > 0 && notificationEnabled) {
+                contador.textContent = quantidade;
+                contador.style.display = 'inline-block';
+            } else {
+                contador.style.display = 'none';
+            }
+        }
+
+        // ✅ INICIALIZAR BOTÃO DE NOTIFICAÇÕES
+        function inicializarBotaoNotificacoes() {
+            const btn = document.getElementById('btnNotificacoes');
+            if (notificationEnabled) {
+                btn.innerHTML = '<i class="fas fa-bell"></i> Notificações: ON';
+                btn.classList.remove('btn-secondary');
+                btn.classList.add('btn-info');
+            } else {
+                btn.innerHTML = '<i class="fas fa-bell-slash"></i> Notificações: OFF';
+                btn.classList.remove('btn-info');
+                btn.classList.add('btn-secondary');
+            }
+        }
+
+        function mostrarLoading(mostrar) {
+            document.getElementById('loadingState').style.display = mostrar ? 'block' : 'none';
+            document.getElementById('errorState').style.display = 'none';
+            document.getElementById('contentArea').style.display = mostrar ? 'none' : 'block';
+        }
+
+        function mostrarError(mostrar, mensagem) {
+            document.getElementById('errorState').style.display = mostrar ? 'block' : 'none';
+            document.getElementById('loadingState').style.display = 'none';
+            document.getElementById('contentArea').style.display = mostrar ? 'none' : 'block';
+            if (mensagem) {
+                document.getElementById('errorMessage').textContent = mensagem;
+            }
+        }
+
+        // ✅ CORREÇÃO CRÍTICA: DESTRAVAR ÁUDIO INTERATIVAMENTE
+        async function destravarAudioInterativo() {
+            console.log('Destravando áudio interativamente...');
+            
+            const resultado = await sistemaAudio.destravar();
+            
+            if (resultado) {
+                mostrarStatusSom('🔊 Som ativado com sucesso!', true);
+                fecharModalAudio();
+                audioUnlocked = true;
+                audioTested = true;
+                
+                setTimeout(() => testarSom(), 500);
+            } else {
+                mostrarStatusSom('❌ Erro ao ativar som', false);
+            }
+            
+            atualizarBotoesSom();
+        }
+
+        // ✅ MOSTRAR MODAL DE DESTRAVAMENTO
+        function mostrarModalAudio() {
+            if (!audioEnabled || audioUnlocked) return;
+            
+            document.getElementById('audioUnlockModal').style.display = 'flex';
+        }
+
+        // ✅ FECHAR MODAL DE DESTRAVAMENTO
+        function fecharModalAudio() {
+            document.getElementById('audioUnlockModal').style.display = 'none';
+        }
+
+        // ✅ TESTAR SOM
+        function testarSom() {
+            if (!sistemaAudio.podeTocar()) {
+                mostrarModalAudio();
+                return;
+            }
+            
+            const btnTest = document.getElementById('btnTestSound');
+            btnTest.classList.add('testing');
+            
+            sistemaAudio.tocarTesteCompleto();
+            
+            setTimeout(() => {
+                btnTest.classList.remove('testing');
+                mostrarStatusSom('🔊 Teste de som realizado!', true);
+            }, 2500);
+        }
+
+        // ✅ ALTERNAR SOM
+        function alternarSom() {
+            const novoEstado = sistemaAudio.alternar();
+            
+            if (novoEstado) {
+                mostrarStatusSom('🔊 Som ativado', true);
+                setTimeout(() => {
+                    if (!sistemaAudio.unlocked && isMobile) {
+                        mostrarModalAudio();
+                    }
+                }, 1000);
+            } else {
+                mostrarStatusSom('🔇 Som desativado', false);
+            }
+            
+            atualizarBotoesSom();
+        }
+
+        // ✅ ATUALIZAR BOTÕES DE SOM
+        function atualizarBotoesSom() {
+            const btnToggle = document.getElementById('btnToggleSound');
+            const btnTest = document.getElementById('btnTestSound');
+            const icon = btnToggle.querySelector('i');
+            
+            if (audioEnabled) {
+                btnToggle.classList.add('active');
+                icon.className = 'fas fa-volume-up';
+                btnTest.disabled = false;
+                btnTest.title = 'Testar som moderno';
+            } else {
+                btnToggle.classList.remove('active');
+                icon.className = 'fas fa-volume-mute';
+                btnTest.disabled = true;
+                btnTest.title = 'Ative o som primeiro';
+            }
+        }
+
+        // ✅ MOSTRAR STATUS DO SOM
+        function mostrarStatusSom(mensagem, sucesso = true) {
+            const statusElement = document.getElementById('soundStatus');
+            statusElement.textContent = mensagem;
+            statusElement.style.display = 'block';
+            statusElement.style.color = sucesso ? '#2ecc71' : '#e74c3c';
+            statusElement.style.borderColor = sucesso ? 'rgba(46, 204, 113, 0.3)' : 'rgba(231, 76, 60, 0.3)';
+            
+            setTimeout(() => {
+                statusElement.style.display = 'none';
+            }, 3000);
+        }
+
+        function configurarModal() {
+            const btnNovaOS = document.getElementById('btnNovaOS');
+            const modal = document.getElementById('modalNovaOS');
+            const closeBtn = document.querySelector('.close');
+            const setorDestino = document.getElementById('setor_destino');
+            const categoria = document.getElementById('categoria');
+
+            if (btnNovaOS) {
+                btnNovaOS.onclick = () => modal.style.display = 'block';
+            }
+            if (closeBtn) {
+                closeBtn.onclick = () => modal.style.display = 'none';
+            }
+            window.onclick = (e) => {
+                if (e.target === modal) modal.style.display = 'none';
+            };
+
+            if (setorDestino && categoria) {
+                setorDestino.addEventListener('change', function() {
+                    const setor = this.value;
+                    categoria.innerHTML = '<option value="">Selecione uma categoria</option>';
+                    let opcoes = [];
+                    if (setor === 'TI') {
+                        opcoes = ['Impressora', 'Rede', 'Sistema', 'Computador', 'Periféricos'];
+                    } else if (setor === 'Manutenção') {
+                        opcoes = ['Refrigeração', 'Elétrica', 'Hidráulica', 'Mobiliário', 'Predial'];
+                    }
+                    opcoes.forEach(op => {
+                        const opt = document.createElement('option');
+                        opt.value = op;
+                        opt.textContent = op;
+                        categoria.appendChild(opt);
+                    });
+                });
+            }
+        }
+
+        // ✅ ATUALIZAR O SUBMIT DA NOVA OS COM SOM COMPATÍVEL
+        document.getElementById('formNovaOS').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            const token = localStorage.getItem('kronos_token');
+            const btnSubmit = document.getElementById('btnSubmitOS');
+
+            const novaOS = {
+                setor_origem: document.getElementById('setor_origem').value,
+                setor_destino: document.getElementById('setor_destino').value,
+                categoria: document.getElementById('categoria').value,
+                cliente: document.getElementById('cliente').value,
+                descricao: document.getElementById('descricao').value,
+                prioridade: document.getElementById('prioridade').value
+            };
+
+            btnSubmit.disabled = true;
+            btnSubmit.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Criando...';
+
+            try {
+                const response = await fetch(`${API_BASE_URL}/api/os`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${token}`
+                    },
+                    body: JSON.stringify(novaOS)
+                });
+
+                const data = await response.json();
+                if (data.success) {
+                    // ✅ TOCAR SOM COMPATÍVEL PARA CRIAÇÃO DE OS
+                    sistemaAudio.tocarSomCriacaoOS();
+                    
+                    showToast('✅ OS criada com sucesso!', 'success');
+                    document.getElementById('modalNovaOS').style.display = 'none';
+                    document.getElementById('formNovaOS').reset();
+                    carregarMinhasOS();
+                } else {
+                    showToast('❌ Erro: ' + (data.message || 'Erro ao criar OS'), 'error');
+                }
+            } catch (error) {
+                console.error('Erro:', error);
+                showToast('❌ Erro de conexão', 'error');
+            } finally {
+                btnSubmit.disabled = false;
+                btnSubmit.innerHTML = '<i class="fas fa-check-circle"></i> Criar Ordem de Serviço';
+            }
+        });
+
+        function logout() {
+            if (confirm('Deseja sair?')) {
+                localStorage.removeItem('kronos_user');
+                localStorage.removeItem('kronos_token');
+                window.location.href = 'index.html';
+            }
+        }
+
+        // ✅ INICIALIZAÇÃO COMPLETA CORRIGIDA
+        document.addEventListener('DOMContentLoaded', async function() {
+            if (verificarAutenticacao()) {
+                // Inicializar sistema de áudio moderno
+                await sistemaAudio.inicializar();
+                
+                // ✅ CORREÇÃO: Inicialização específica para mobile
+                if (isMobile && audioEnabled && !sistemaAudio.unlocked) {
+                    setTimeout(() => {
+                        mostrarModalAudio();
+                    }, 1000);
+                }
+                
+                // Configurar controles de som
+                atualizarBotoesSom();
+                document.getElementById('btnToggleSound').addEventListener('click', alternarSom);
+                document.getElementById('btnTestSound').addEventListener('click', testarSom);
+                
+                // ✅ CORREÇÃO PARA MOBILE
+                document.getElementById('btnToggleSound').addEventListener('touchstart', alternarSom, { passive: true });
+                document.getElementById('btnTestSound').addEventListener('touchstart', testarSom, { passive: true });
+                
+                // Inicializar botão de notificações
+                inicializarBotaoNotificacoes();
+                configurarModal();
+                
+                // Carregamento inicial
+                carregarMinhasOS();
+                
+                // Mostrar instrução para mobile
+                if (isMobile && audioEnabled) {
+                    setTimeout(() => {
+                        showToast('🔊 Clique em "Ativar Som" para notificações sonoras', 'info', 5000);
+                    }, 2000);
+                }
+            }
+        });
+
+        // ✅ EVENT LISTENERS PARA MOBILE
+        window.addEventListener('click', function(event) {
+            const modal = document.getElementById('modalNovaOS');
+            if (event.target === modal) {
+                modal.style.display = 'none';
+            }
+        });
+
+        // ✅ CORREÇÃO PARA BOTÕES NO MOBILE
+        document.addEventListener('touchstart', function() {
+            // Esta função vazia ajuda a melhorar a responsividade no mobile
+        }, { passive: true });
+    </script>
+</body>
+</html>
