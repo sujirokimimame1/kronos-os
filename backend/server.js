@@ -1,7 +1,6 @@
 const express = require('express');
 const cors = require('cors');
 const path = require('path');
-const { dbPath } = require('./db');
 
 // Tratamento global de erros
 process.on('uncaughtException', (err) => {
@@ -15,27 +14,36 @@ process.on('unhandledRejection', (reason) => {
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-// ✅ Configuração CORS para produção
+// ✅ Configuração CORS para produção e Render
+const allowedOrigins = [
+  'https://kronos-app-prod.fly.dev',
+  'https://kronos-os-1.onrender.com',
+  'http://localhost:3000',
+  'http://localhost:8080',
+  'http://127.0.0.1:3000',
+  'http://127.0.0.1:8080'
+];
+
+function isAllowedOrigin(origin) {
+  if (!origin) return true; // mobile apps, curl, health checks
+
+  return (
+    allowedOrigins.includes(origin) ||
+    origin.includes('fly.dev') ||
+    origin.includes('onrender.com') ||
+    origin.includes('localhost') ||
+    origin.includes('127.0.0.1')
+  );
+}
+
 app.use(cors({
   origin: function(origin, callback) {
-    // Permitir requests sem origin (como mobile apps ou curl)
-    if (!origin) return callback(null, true);
-    
-    // Lista de origens permitidas
-    const allowedOrigins = [
-      'https://kronos-app-prod.fly.dev',
-      'http://localhost:3000',
-      'http://localhost:8080',
-      'http://127.0.0.1:3000',
-      'http://127.0.0.1:8080'
-    ];
-    
-    if (allowedOrigins.indexOf(origin) !== -1 || origin.includes('fly.dev') || origin.includes('onrender.com')) {
-      callback(null, true);
-    } else {
-      console.log('🚫 Origem bloqueada:', origin);
-      callback(new Error('Não permitido por CORS'));
+    if (isAllowedOrigin(origin)) {
+      return callback(null, true);
     }
+
+    console.log('🚫 Origem bloqueada:', origin);
+    return callback(new Error('Não permitido por CORS'));
   },
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH'],
@@ -44,26 +52,25 @@ app.use(cors({
 
 // Middleware para headers de segurança
 app.use((req, res, next) => {
-  // Headers CORS dinâmicos baseados na origem da requisição
   const origin = req.headers.origin;
-  if (origin && (origin.includes('fly.dev') || origin.includes('onrender.com') || origin.includes('localhost') || origin.includes('127.0.0.1'))) {
+
+  if (isAllowedOrigin(origin) && origin) {
     res.header('Access-Control-Allow-Origin', origin);
   }
-  
+
   res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS, PATCH');
   res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization, Accept, X-Requested-With');
   res.header('Access-Control-Allow-Credentials', 'true');
   res.header('X-Content-Type-Options', 'nosniff');
   res.header('X-Frame-Options', 'DENY');
   res.header('X-XSS-Protection', '1; mode=block');
-  
-  // Log de requisições
+
   console.log(`🌐 [${new Date().toISOString()}] ${req.method} ${req.url} - Origin: ${origin || 'N/A'}`);
-  
+
   if (req.method === 'OPTIONS') {
     return res.status(200).end();
   }
-  
+
   next();
 });
 
