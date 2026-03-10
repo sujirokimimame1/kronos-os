@@ -18,6 +18,7 @@ exports.getRelatorios = async (req, res) => {
         prioridade,
         status,
         data_abertura,
+        data_fechamento,
         relato_tecnico
       FROM ordens_servico 
       WHERE 1=1
@@ -75,23 +76,85 @@ exports.getRelatorios = async (req, res) => {
 
       console.log(`✅ ${rows.length} ordens de serviço encontradas`);
 
-      const estatisticas = calcularEstatisticas(rows);
-      const agrupamentos = calcularAgrupamentos(rows);
+      const chamados = rows.map(os => ({
+        id: os.id,
+        setor_origem: os.setor_origem || 'Não informado',
+        setor_destino: os.setor_destino || 'Não informado',
+        categoria: os.categoria || 'Geral',
+        cliente: os.cliente || 'Não informado',
+        descricao: os.descricao || 'Sem descrição',
+        prioridade: os.prioridade || 'Média',
+        status: os.status || 'Aberto',
+        data_abertura: os.data_abertura || new Date().toISOString(),
+        data_fechamento: os.data_fechamento || null,
+        relato_tecnico: os.relato_tecnico || null
+      }));
 
+      // Calcular estatísticas de tempo e SLA
+      const tempos = chamados
+        .map(c => calcularTempoResolucao(c))
+        .filter(t => t !== null);
+
+      const tempoMedioResolucao = tempos.length > 0
+        ? Math.round(tempos.reduce((a, b) => a + b, 0) / tempos.length)
+        : 0;
+
+      const slaCumprido = chamados.filter(c => calcularSLA(c)).length;
+      
+      const taxaSLACumprido = chamados.length > 0
+        ? Math.round((slaCumprido / chamados.length) * 100)
+        : 0;
+
+      // Calcular tempo médio por setor
+      const tempoMedioSetor = {
+        'TI': 0,
+        'Manutenção': 0
+      };
+      
+      const contagemSetor = {
+        'TI': 0,
+        'Manutenção': 0
+      };
+      
+      chamados.forEach(os => {
+        if (os.status === 'Finalizado' && os.data_fechamento && os.setor_destino) {
+          const tempo = calcularTempoResolucao(os);
+          if (tempo !== null && (os.setor_destino === 'TI' || os.setor_destino === 'Manutenção')) {
+            tempoMedioSetor[os.setor_destino] += tempo;
+            contagemSetor[os.setor_destino]++;
+          }
+        }
+      });
+      
+      if (contagemSetor['TI'] > 0) {
+        tempoMedioSetor['TI'] = Math.round(tempoMedioSetor['TI'] / contagemSetor['TI']);
+      }
+      
+      if (contagemSetor['Manutenção'] > 0) {
+        tempoMedioSetor['Manutenção'] = Math.round(tempoMedioSetor['Manutenção'] / contagemSetor['Manutenção']);
+      }
+
+      const estatisticas = calcularEstatisticas(chamados, tempoMedioResolucao, slaCumprido, taxaSLACumprido);
+      const agrupamentos = calcularAgrupamentos(chamados, tempoMedioSetor);
+
+      // ✅ MELHORIA: Adicionar status de SLA para cada chamado
       const responseData = {
-        chamados: rows.map(os => ({
-          id: os.id,
-          setor_origem: os.setor_origem || 'Não informado',
-          setor_destino: os.setor_destino || 'Não informado',
-          categoria: os.categoria || 'Geral',
-          cliente: os.cliente || 'Não informado',
-          descricao: os.descricao || 'Sem descrição',
-          prioridade: os.prioridade || 'Média',
-          status: os.status || 'Aberto',
-          data_abertura: os.data_abertura || new Date().toISOString(),
-          relato_tecnico: os.relato_tecnico || null,
-          tempo_resolucao_horas: null
-        })),
+        chamados: chamados.map(os => {
+          const tempo = calcularTempoResolucao(os);
+          const dentroSLA = calcularSLA(os);
+
+          let sla_status = 'Em aberto';
+
+          if (tempo !== null) {
+            sla_status = dentroSLA ? 'Dentro do SLA' : 'Fora do SLA';
+          }
+
+          return {
+            ...os,
+            tempo_resolucao_horas: tempo,
+            sla_status
+          };
+        }),
         estatisticas,
         agrupamentos,
         filtrosAplicados: {
@@ -201,6 +264,37 @@ exports.getSetores = async (req, res) => {
   }
 };
 
+// ✅ FUNÇÃO: Calcular tempo de resolução em horas
+function calcularTempoResolucao(os) {
+  if (!os.data_fechamento) return null;
+
+  const abertura = new Date(os.data_abertura);
+  const fechamento = new Date(os.data_fechamento);
+
+  const diff = fechamento - abertura;
+
+  return Math.round(diff / (1000 * 60 * 60)); // horas
+}
+
+// ✅ FUNÇÃO: Calcular se a OS cumpriu o SLA (CORRIGIDA)
+function calcularSLA(os) {
+  const tempo = calcularTempoResolucao(os);
+
+  // ✅ CORREÇÃO: Verificar explicitamente null em vez de usar !tempo
+  if (tempo === null) return false;
+
+  const limites = {
+    'Baixa': 72,
+    'Média': 48,
+    'Alta': 24,
+    'Crítica': 8
+  };
+
+  const limite = limites[os.prioridade] || 48;
+
+  return tempo <= limite;
+}
+
 function construirIntervaloDatas(dataInicio, dataFim) {
   if (!dataInicio && !dataFim) return null;
 
@@ -243,7 +337,7 @@ function obterTopCategoriaPorSetor(ordens, setorDestino) {
   };
 }
 
-function calcularEstatisticas(ordens) {
+function calcularEstatisticas(ordens, tempoMedioResolucao, slaCumprido, taxaSLACumprido) {
   const totalOS = ordens.length;
   const osFinalizadas = ordens.filter(os => os.status === 'Finalizado').length;
   const osAbertas = ordens.filter(os => os.status === 'Aberto').length;
@@ -265,6 +359,11 @@ function calcularEstatisticas(ordens) {
   const topCategoriaTI = obterTopCategoriaPorSetor(ordens, 'TI');
   const topCategoriaManutencao = obterTopCategoriaPorSetor(ordens, 'Manutenção');
 
+  // Calcular eficiência geral (média entre taxa de conclusão e cumprimento de SLA)
+  const eficienciaGeral = totalOS > 0 && osFinalizadas > 0
+    ? parseFloat(((taxaConclusao + taxaSLACumprido) / 2).toFixed(1))
+    : 0;
+
   return {
     totalOS,
     osFinalizadas,
@@ -272,20 +371,20 @@ function calcularEstatisticas(ordens) {
     osAndamento,
     osAguardando,
     taxaConclusao: parseFloat(taxaConclusao.toFixed(1)),
-    tempoMedio: 24.0,
-    tempoMedioResolucao: 24.0,
+    tempoMedio: tempoMedioResolucao,
+    tempoMedioResolucao: tempoMedioResolucao,
+    slaCumprido: slaCumprido,
+    taxaSLACumprido: taxaSLACumprido,
     setorTop,
-    slaCumprido: 75.0,
-    taxaSLACumprido: 75.0,
-    osDentroSLA: Math.floor(osFinalizadas * 0.75),
+    osDentroSLA: slaCumprido,
     totalOSFinalizadas: osFinalizadas,
-    eficienciaGeral: parseFloat((((taxaConclusao || 0) + 75) / 2).toFixed(1)),
+    eficienciaGeral: eficienciaGeral,
     topCategoriaTI,
     topCategoriaManutencao
   };
 }
 
-function calcularAgrupamentos(ordens) {
+function calcularAgrupamentos(ordens, tempoMedioSetor) {
   const statusCount = {};
   ordens.forEach(os => {
     const status = os.status || 'Aberto';
@@ -334,11 +433,6 @@ function calcularAgrupamentos(ordens) {
     }
   });
 
-  const tempoMedioSetor = {
-    'TI': 18.5,
-    'Manutenção': 32.2
-  };
-
   return {
     status: statusCount,
     prioridades: prioridadeCount,
@@ -349,3 +443,5 @@ function calcularAgrupamentos(ordens) {
     tempoMedioSetor: tempoMedioSetor
   };
 }
+
+  

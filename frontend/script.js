@@ -14,6 +14,13 @@ class AuthSystem {
             return null;
         }
     }
+    
+    static isTecnico() {
+        const user = this.getUser();
+        if (!user) return false;
+
+        return user.tipo === 'tecnico' || user.tipo === 'admin';
+    }
 
     static getToken() {
         return localStorage.getItem('kronos_token');

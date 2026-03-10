@@ -28,15 +28,80 @@ const db = new sqlite3.Database(dbPath, (err) => {
   }
 });
 
+// ✅ FUNÇÃO PARA CLASSIFICAR TIPO DE USUÁRIO
+function classificarTipoUsuario(setor, tipoAtual = null) {
+  if (tipoAtual === 'admin' || tipoAtual === 'tecnico' || tipoAtual === 'solicitante') {
+    return tipoAtual;
+  }
+
+  if (setor === 'TI' || setor === 'Manutenção') {
+    return 'tecnico';
+  }
+
+  return 'solicitante';
+}
+
+// ✅ FUNÇÃO PARA VERIFICAR E CRIAR CAMPOS NA TABELA USUARIOS
+function verificarECriarCamposUsuarios() {
+  return new Promise((resolve) => {
+    db.all("PRAGMA table_info(usuarios)", (err, rows) => {
+      if (err) {
+        console.error('❌ Erro ao verificar estrutura da tabela usuarios:', err);
+        resolve();
+        return;
+      }
+
+      const camposExistentes = Array.isArray(rows) ? rows.map((row) => row.name) : [];
+
+      const finalizar = () => {
+        db.run(
+          `UPDATE usuarios
+           SET tipo = CASE
+             WHEN tipo = 'admin' THEN 'admin'
+             WHEN setor IN ('TI', 'Manutenção') THEN 'tecnico'
+             ELSE 'solicitante'
+           END
+           WHERE tipo IS NULL OR tipo = '' OR tipo NOT IN ('solicitante', 'tecnico', 'admin')`,
+          (updateErr) => {
+            if (updateErr) {
+              console.error('❌ Erro ao normalizar tipos de usuário:', updateErr);
+            } else {
+              console.log('✅ Perfis de usuário normalizados');
+            }
+            resolve();
+          }
+        );
+      };
+
+      if (!camposExistentes.includes('tipo')) {
+        db.run(
+          "ALTER TABLE usuarios ADD COLUMN tipo TEXT NOT NULL DEFAULT 'solicitante' CHECK(tipo IN ('solicitante', 'tecnico', 'admin'))",
+          (alterErr) => {
+            if (alterErr) {
+              console.error('❌ Erro ao adicionar coluna tipo em usuarios:', alterErr);
+            } else {
+              console.log('✅ Campo tipo adicionado em usuarios');
+            }
+            finalizar();
+          }
+        );
+      } else {
+        finalizar();
+      }
+    });
+  });
+}
+
 function criarTabelas() {
   db.serialize(() => {
-    // Tabela de usuários
+    // ✅ TABELA DE USUÁRIOS ATUALIZADA COM CAMPO TIPO
     db.run(`
       CREATE TABLE IF NOT EXISTS usuarios (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         nome TEXT NOT NULL,
         email TEXT NOT NULL UNIQUE,
         senha TEXT NOT NULL,
+        tipo TEXT NOT NULL DEFAULT 'solicitante' CHECK(tipo IN ('solicitante', 'tecnico', 'admin')),
         setor TEXT CHECK(setor IN (
           'Pronto Socorro', 'Recepção', 'Ambulatório', 'Administrativo',
           'Faturamento', 'Maternidade', 'Clínica Médica', 'Clínica Cirúrgica',
@@ -53,7 +118,7 @@ function criarTabelas() {
       }
     });
 
-    // ✅ TABELA CORRIGIDA: Adicionar campos para relatórios
+    // ✅ TABELA ORDENS_SERVICO
     db.run(`
       CREATE TABLE IF NOT EXISTS ordens_servico (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -68,7 +133,7 @@ function criarTabelas() {
         relato_tecnico TEXT,
         materiais_usados TEXT,
         data_abertura TEXT DEFAULT (datetime('now', 'localtime')),
-        -- ✅ NOVOS CAMPOS PARA RELATÓRIOS
+        -- ✅ CAMPOS PARA RELATÓRIOS
         data_fechamento TEXT,
         tempo_resolucao_horas REAL,
         FOREIGN KEY (user_id) REFERENCES usuarios(id)
@@ -79,12 +144,13 @@ function criarTabelas() {
       } else {
         console.log('✅ Tabela ordens_servico verificada/criada');
         
-        // ✅ VERIFICAR E ADICIONAR CAMPOS FALTANTES
+        // ✅ VERIFICAR CAMPOS FALTANTES EM AMBAS AS TABELAS
         await verificarECriarCampos();
+        await verificarECriarCamposUsuarios();
       }
     });
 
-    // Inserir usuário padrão se não existir
+    // ✅ INSERIR USUÁRIOS PADRÃO ATUALIZADOS COM TIPO
     db.get("SELECT COUNT(*) as count FROM usuarios", (err, row) => {
       if (err) {
         console.error('❌ Erro ao verificar usuários:', err);
@@ -93,11 +159,11 @@ function criarTabelas() {
 
       if (row.count === 0) {
         db.run(`
-          INSERT INTO usuarios (nome, email, senha, setor)
+          INSERT INTO usuarios (nome, email, senha, tipo, setor)
           VALUES 
-          ('Admin', 'admin@hospital.com', '123456', 'TI'),
-          ('Técnico Manutenção', 'manutencao@hospital.com', '123456', 'Manutenção'),
-          ('Usuário Teste', 'teste@hospital.com', '123456', 'Pronto Socorro')
+          ('Admin', 'admin@hospital.com', '123456', 'admin', 'TI'),
+          ('Técnico Manutenção', 'manutencao@hospital.com', '123456', 'tecnico', 'Manutenção'),
+          ('Usuário Teste', 'teste@hospital.com', '123456', 'solicitante', 'Pronto Socorro')
         `, (err) => {
           if (err) {
             console.error('❌ Erro ao inserir usuários padrão:', err);
@@ -110,7 +176,7 @@ function criarTabelas() {
   });
 }
 
-// ✅ FUNÇÃO PARA VERIFICAR E CRIAR CAMPOS FALTANTES
+// ✅ FUNÇÃO PARA VERIFICAR E CRIAR CAMPOS FALTANTES NA TABELA ORDENS_SERVICO
 function verificarECriarCampos() {
   return new Promise((resolve) => {
     // Verificar se campo data_fechamento existe
@@ -122,7 +188,7 @@ function verificarECriarCampos() {
       }
 
       const camposExistentes = Array.isArray(rows) ? rows.map((row) => row.name) : [];
-      console.log('📋 Campos existentes:', camposExistentes);
+      console.log('📋 Campos existentes em ordens_servico:', camposExistentes);
 
       // Adicionar data_fechamento se não existir
       if (!camposExistentes.includes('data_fechamento')) {
@@ -215,9 +281,9 @@ class OrdemServico {
     );
   }
 
-  // ✅ MÉTODO ATUALIZADO: Incluir data_fechamento e calcular tempo - COM NOVO STATUS
+  // ✅ MÉTODO ATUALIZADO: Incluir data_fechamento e calcular tempo
   static updateStatus(id, status, relato_tecnico = null, materiais_usados = null, callback) {
-    // ✅ VALIDAÇÃO DO NOVO STATUS
+    // ✅ VALIDAÇÃO DO STATUS
     const statusValidos = ['Aberto', 'Em Andamento', 'Aguardando Peças', 'Finalizado', 'Cancelado'];
     if (!statusValidos.includes(status)) {
       return callback(new Error('Status inválido. Use: Aberto, Em Andamento, Aguardando Peças, Finalizado ou Cancelado'));
@@ -297,7 +363,7 @@ class OrdemServico {
     });
   }
 
-  // ✅ NOVO MÉTODO: Atualização completa com reclassificação
+  // ✅ MÉTODO: Atualização completa com reclassificação
   static updateCompleta(id, data, callback) {
     const { status, prioridade, relato_tecnico, materiais_usados } = data;
     
@@ -341,4 +407,4 @@ class OrdemServico {
   }
 }
 
-module.exports = { db, dbPath, OrdemServico };
+module.exports = { db, dbPath, OrdemServico, classificarTipoUsuario };

@@ -667,6 +667,34 @@
         .prioridade.alta { background: rgba(253, 126, 20, 0.2); color: #ffa94d; }
         .prioridade.crítica { background: rgba(220, 53, 69, 0.2); color: #ff6b6b; }
 
+        /* ✅ BADGES DE SLA */
+        .sla-badge {
+            padding: 0.35rem 0.7rem;
+            border-radius: 10px;
+            font-size: 0.75rem;
+            font-weight: bold;
+            display: inline-block;
+            text-transform: uppercase;
+        }
+
+        .sla-dentro {
+            background: rgba(25, 135, 84, 0.2);
+            color: #51cf66;
+            border: 1px solid rgba(25, 135, 84, 0.3);
+        }
+
+        .sla-fora {
+            background: rgba(220, 53, 69, 0.2);
+            color: #ff6b6b;
+            border: 1px solid rgba(220, 53, 69, 0.3);
+        }
+
+        .sla-aberto {
+            background: rgba(255, 193, 7, 0.2);
+            color: #ffd93d;
+            border: 1px solid rgba(255, 193, 7, 0.3);
+        }
+
         /* Animações */
         @keyframes fadeIn {
             from { opacity: 0; }
@@ -1303,6 +1331,8 @@
                                 <th>Status</th>
                                 <th>Prioridade</th>
                                 <th>Data Abertura</th>
+                                <th>Tempo</th>
+                                <th>SLA</th>
                                 <th>Relatório Técnico</th>
                             </tr>
                         </thead>
@@ -1645,6 +1675,28 @@
                     const dataAbertura = new Date(dataAtual);
                     dataAbertura.setDate(dataAtual.getDate() - diasAtras);
                     
+                    // Gerar data de fechamento para OS finalizadas
+                    let dataFechamento = null;
+                    let tempoResolucao = null;
+                    let slaStatus = 'Em aberto';
+                    
+                    if (statusOS === 'Finalizado') {
+                        dataFechamento = new Date(dataAbertura);
+                        const horasResolucao = Math.floor(Math.random() * 72) + 1; // 1 a 72 horas
+                        dataFechamento.setHours(dataAbertura.getHours() + horasResolucao);
+                        tempoResolucao = horasResolucao;
+                        
+                        // Calcular SLA
+                        const limites = {
+                            'Baixa': 72,
+                            'Média': 48,
+                            'Alta': 24,
+                            'Crítica': 8
+                        };
+                        const limite = limites[prioridade] || 48;
+                        slaStatus = horasResolucao <= limite ? 'Dentro do SLA' : 'Fora do SLA';
+                    }
+                    
                     ordensServico.push({
                         id: i,
                         setor_origem: setor,
@@ -1655,6 +1707,9 @@
                         prioridade: prioridade,
                         status: statusOS,
                         data_abertura: dataAbertura.toISOString(),
+                        data_fechamento: dataFechamento ? dataFechamento.toISOString() : null,
+                        tempo_resolucao_horas: tempoResolucao,
+                        sla_status: slaStatus,
                         relato_tecnico: statusOS === 'Finalizado' ? 'Serviço concluído com sucesso' : null
                     });
                 }
@@ -1680,6 +1735,44 @@
                 const osAguardando = ordensServico.filter(os => os.status === 'Aguardando Peças').length;
                 const taxaConclusao = totalOS > 0 ? Math.round((osFinalizadas / totalOS) * 100) : 0;
                 
+                // Calcular tempo médio de resolução
+                let somaHoras = 0;
+                let totalComTempo = 0;
+                
+                ordensServico.forEach(os => {
+                    if (os.status === 'Finalizado' && os.data_abertura && os.data_fechamento) {
+                        const abertura = new Date(os.data_abertura);
+                        const fechamento = new Date(os.data_fechamento);
+                        const horas = Math.round((fechamento - abertura) / (1000 * 60 * 60));
+                        somaHoras += horas;
+                        totalComTempo++;
+                    }
+                });
+                
+                const tempoMedioResolucao = totalComTempo > 0 ? Math.round(somaHoras / totalComTempo) : 24;
+                
+                // Calcular SLA
+                let dentroSLA = 0;
+                ordensServico.forEach(os => {
+                    if (os.status === 'Finalizado' && os.data_abertura && os.data_fechamento) {
+                        const abertura = new Date(os.data_abertura);
+                        const fechamento = new Date(os.data_fechamento);
+                        const horas = Math.round((fechamento - abertura) / (1000 * 60 * 60));
+                        
+                        const limites = {
+                            'Baixa': 72,
+                            'Média': 48,
+                            'Alta': 24,
+                            'Crítica': 8
+                        };
+                        const limite = limites[os.prioridade] || 48;
+                        
+                        if (horas <= limite) dentroSLA++;
+                    }
+                });
+                
+                const taxaSLA = totalComTempo > 0 ? Math.round((dentroSLA / totalComTempo) * 100) : 75;
+                
                 // Setor mais demandado
                 const contagemSetores = this.contarPorSetor(ordensServico);
                 const setorTop = Object.keys(contagemSetores).length > 0 ? 
@@ -1693,14 +1786,14 @@
                     osAndamento,
                     osAguardando,
                     taxaConclusao,
-                    tempoMedioResolucao: 24,
-                    taxaSLACumprido: 75,
+                    tempoMedioResolucao,
+                    taxaSLACumprido: taxaSLA,
                     setorTop,
                     primeiraResposta: 2,
                     taxaReabertura: 5,
                     satisfacao: 85,
                     custoMedio: 1500,
-                    eficienciaGeral: 80
+                    eficienciaGeral: Math.round((taxaConclusao + taxaSLA) / 2)
                 };
             }
 
@@ -1750,24 +1843,68 @@
             }
 
             calcularTempoPorSetor(ordensServico) {
-                const tempos = {
-                    'TI': 18.5,
-                    'Manutenção': 32.2,
-                    'Enfermaria': 28.7,
-                    'UTI': 15.3,
-                    'Laboratório': 24.1
-                };
-                return tempos;
+                const tempos = {};
+                const contagem = {};
+                
+                ordensServico.forEach(os => {
+                    if (os.status === 'Finalizado' && os.data_abertura && os.data_fechamento && os.setor_destino) {
+                        const abertura = new Date(os.data_abertura);
+                        const fechamento = new Date(os.data_fechamento);
+                        const horas = Math.round((fechamento - abertura) / (1000 * 60 * 60));
+                        
+                        if (!tempos[os.setor_destino]) {
+                            tempos[os.setor_destino] = 0;
+                            contagem[os.setor_destino] = 0;
+                        }
+                        
+                        tempos[os.setor_destino] += horas;
+                        contagem[os.setor_destino]++;
+                    }
+                });
+                
+                const resultado = {};
+                Object.keys(tempos).forEach(setor => {
+                    resultado[setor] = contagem[setor] > 0 ? Math.round(tempos[setor] / contagem[setor]) : 24;
+                });
+                
+                return resultado;
             }
 
             calcularSLAPorSetor(ordensServico) {
-                const sla = {
-                    'TI': 85,
-                    'Manutenção': 72,
-                    'Enfermaria': 78,
-                    'UTI': 92,
-                    'Laboratório': 81
-                };
+                const sla = {};
+                const dentroSLA = {};
+                const contagem = {};
+                
+                ordensServico.forEach(os => {
+                    if (os.status === 'Finalizado' && os.data_abertura && os.data_fechamento && os.setor_destino) {
+                        const abertura = new Date(os.data_abertura);
+                        const fechamento = new Date(os.data_fechamento);
+                        const horas = Math.round((fechamento - abertura) / (1000 * 60 * 60));
+                        
+                        const limites = {
+                            'Baixa': 72,
+                            'Média': 48,
+                            'Alta': 24,
+                            'Crítica': 8
+                        };
+                        const limite = limites[os.prioridade] || 48;
+                        
+                        if (!dentroSLA[os.setor_destino]) {
+                            dentroSLA[os.setor_destino] = 0;
+                            contagem[os.setor_destino] = 0;
+                        }
+                        
+                        contagem[os.setor_destino]++;
+                        if (horas <= limite) {
+                            dentroSLA[os.setor_destino]++;
+                        }
+                    }
+                });
+                
+                Object.keys(contagem).forEach(setor => {
+                    sla[setor] = contagem[setor] > 0 ? Math.round((dentroSLA[setor] / contagem[setor]) * 100) : 75;
+                });
+                
                 return sla;
             }
 
@@ -1781,17 +1918,49 @@
                     const totalOS = osSetor.length;
                     const taxaConclusao = totalOS > 0 ? Math.round((osFinalizadas / totalOS) * 100) : 0;
                     
+                    // Calcular SLA para o setor
+                    let dentroSLA = 0;
+                    let totalComTempo = 0;
+                    
+                    osSetor.forEach(os => {
+                        if (os.status === 'Finalizado' && os.data_abertura && os.data_fechamento) {
+                            const abertura = new Date(os.data_abertura);
+                            const fechamento = new Date(os.data_fechamento);
+                            const horas = Math.round((fechamento - abertura) / (1000 * 60 * 60));
+                            
+                            const limites = {
+                                'Baixa': 72,
+                                'Média': 48,
+                                'Alta': 24,
+                                'Crítica': 8
+                            };
+                            const limite = limites[os.prioridade] || 48;
+                            
+                            totalComTempo++;
+                            if (horas <= limite) dentroSLA++;
+                        }
+                    });
+                    
+                    const taxaSLA = totalComTempo > 0 ? Math.round((dentroSLA / totalComTempo) * 100) : 75;
+                    
                     desempenho[setor] = {
                         totalOS,
                         osFinalizadas,
                         taxaConclusao,
                         tempoMedio: 24,
-                        taxaSLA: 75,
-                        eficiencia: Math.round((taxaConclusao + 75) / 2)
+                        taxaSLA,
+                        eficiencia: Math.round((taxaConclusao + taxaSLA) / 2)
                     };
                 });
                 
                 return desempenho;
+            }
+
+            // ✅ MÉTODO PARA OBTER CLASSE DO SLA
+            obterClasseSLA(status) {
+                if (status === 'Dentro do SLA') return 'sla-badge sla-dentro';
+                if (status === 'Fora do SLA') return 'sla-badge sla-fora';
+                return 'sla-badge sla-aberto';
             }
 
             // ✅ ATUALIZAR DADOS DO DASHBOARD - CORRIGIDO
@@ -1812,9 +1981,10 @@
                 this.atualizarElemento('osAndamento', metricas.osAndamento || 0);
                 this.atualizarElemento('osAguardando', metricas.osAguardando || 0);
                 
-                // Atualizar métricas de tempo
+                // Atualizar métricas de tempo - CORRIGIDO
                 this.atualizarElemento('tempoResolucaoMedia', (metricas.tempoMedioResolucao || 0) + 'h');
                 this.atualizarElemento('slaCumprido', (metricas.taxaSLACumprido || 0) + '%');
+                this.atualizarElemento('tempoMedio', (metricas.tempoMedioResolucao || 0) + 'h');
                 this.atualizarElemento('eficienciaGeral', (metricas.eficienciaGeral || 0) + '%');
                 
                 // Atualizar barras de progresso
@@ -2046,7 +2216,6 @@
                 const labels = Object.keys(dados);
                 const valores = Object.values(dados);
                 
-                // CORREÇÃO DO GRÁFICO DE PRIORIDADE - usando doughnut em vez de polarArea
                 this.graficos.prioridade = new Chart(ctx, {
                     type: 'doughnut',
                     data: {
@@ -2314,6 +2483,7 @@
                 this.atualizarTabelaSetores();
             }
 
+            // ✅ ATUALIZAR TABELA DETALHADA COM COLUNAS DE TEMPO E SLA - CORRIGIDO
             atualizarTabelaDetalhada() {
                 const tbody = document.getElementById('corpoTabelaDetalhada');
                 if (!tbody) return;
@@ -2325,12 +2495,17 @@
                 ordensServico.slice(0, 50).forEach(os => {
                     const row = document.createElement('tr');
                     
+                    // Usar os dados já processados pelo backend
+                    const tempo = os.tempo_resolucao_horas !== null 
+                        ? os.tempo_resolucao_horas + 'h' 
+                        : '-';
+                    
+                    const classeSLA = this.obterClasseSLA(os.sla_status);
+                    
+                    // Formatar data
                     const dataAbertura = new Date(os.data_abertura);
-                    const dataFormatada = dataAbertura.toLocaleDateString('pt-BR');
-                    const horaFormatada = dataAbertura.toLocaleTimeString('pt-BR', { 
-                        hour: '2-digit', 
-                        minute: '2-digit' 
-                    });
+                    const dataFormatada = dataAbertura.toLocaleDateString('pt-BR') + ' ' + 
+                        dataAbertura.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
                     
                     row.innerHTML = `
                         <td>#${os.id}</td>
@@ -2341,7 +2516,9 @@
                         <td>${os.descricao || 'Sem descrição'}</td>
                         <td><span class="status-badge status-${this.formatarStatusClass(os.status)}">${os.status}</span></td>
                         <td><span class="prioridade-badge prioridade-${this.formatarPrioridadeClass(os.prioridade)}">${os.prioridade}</span></td>
-                        <td>${dataFormatada} ${horaFormatada}</td>
+                        <td>${dataFormatada}</td>
+                        <td>${tempo}</td>
+                        <td><span class="${classeSLA}">${os.sla_status || 'Em aberto'}</span></td>
                         <td>${os.relato_tecnico || '-'}</td>
                     `;
                     
@@ -2969,8 +3146,12 @@
             }
 
             converterParaCSVDetalhado(dados) {
-                const headers = ['ID', 'Setor Origem', 'Setor Destino', 'Categoria', 'Cliente', 'Descrição', 'Status', 'Prioridade', 'Data Abertura', 'Relatório Técnico'];
+                const headers = ['ID', 'Setor Origem', 'Setor Destino', 'Categoria', 'Cliente', 'Descrição', 'Status', 'Prioridade', 'Data Abertura', 'Data Fechamento', 'Tempo (h)', 'SLA', 'Relatório Técnico'];
                 const rows = dados.map(os => {
+                    const abertura = new Date(os.data_abertura);
+                    const fechamento = os.data_fechamento ? new Date(os.data_fechamento) : null;
+                    const tempo = os.tempo_resolucao_horas !== null ? os.tempo_resolucao_horas : '-';
+                    
                     return [
                         os.id,
                         os.setor_origem || 'N/A',
@@ -2980,8 +3161,11 @@
                         `"${(os.descricao || 'Sem descrição').replace(/"/g, '""')}"`,
                         os.status || 'Aberto',
                         os.prioridade || 'Média',
-                        new Date(os.data_abertura).toLocaleDateString('pt-BR'),
-                        os.relato_tecnico || '-'
+                        abertura.toLocaleDateString('pt-BR'),
+                        fechamento ? fechamento.toLocaleDateString('pt-BR') : '-',
+                        tempo,
+                        os.sla_status || 'Em aberto',
+                        `"${(os.relato_tecnico || '-').replace(/"/g, '""')}"`
                     ];
                 });
                 

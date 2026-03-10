@@ -732,6 +732,124 @@
             animation: pulse 2s infinite;
         }
 
+        /* ✅ ESTILOS PARA SLA */
+        .sla-badge {
+            padding: 0.3rem 0.7rem;
+            border-radius: 12px;
+            font-size: 0.75rem;
+            font-weight: bold;
+            text-transform: uppercase;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.3rem;
+            margin-left: 0.5rem;
+        }
+
+        .sla-dentro {
+            background: rgba(46, 204, 113, 0.2);
+            color: #2ecc71;
+            border: 1px solid rgba(46, 204, 113, 0.3);
+        }
+
+        .sla-alerta {
+            background: rgba(241, 196, 15, 0.2);
+            color: #f1c40f;
+            border: 1px solid rgba(241, 196, 15, 0.3);
+        }
+
+        .sla-fora {
+            background: rgba(231, 76, 60, 0.2);
+            color: #e74c3c;
+            border: 1px solid rgba(231, 76, 60, 0.3);
+        }
+
+        /* ✅ PAINEL VISUAL DE SLA NO CARD */
+        .sla-panel {
+            margin-top: 1rem;
+            padding: 1rem;
+            border-radius: 14px;
+            background: rgba(79, 195, 247, 0.07);
+            border: 1px solid rgba(79, 195, 247, 0.15);
+        }
+
+        .sla-panel-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 0.75rem;
+            margin-bottom: 0.75rem;
+            flex-wrap: wrap;
+        }
+
+        .sla-title {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            font-weight: 700;
+            color: var(--primary);
+        }
+
+        .sla-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+            gap: 0.75rem;
+            margin-bottom: 0.75rem;
+        }
+
+        .sla-box {
+            background: rgba(15, 23, 42, 0.45);
+            border: 1px solid rgba(79, 195, 247, 0.15);
+            border-radius: 12px;
+            padding: 0.75rem;
+        }
+
+        .sla-box-label {
+            font-size: 0.75rem;
+            color: var(--gray);
+            margin-bottom: 0.25rem;
+            text-transform: uppercase;
+            letter-spacing: 0.4px;
+        }
+
+        .sla-box-value {
+            font-size: 1rem;
+            font-weight: 700;
+            color: var(--light);
+        }
+
+        .sla-progress {
+            width: 100%;
+            height: 10px;
+            border-radius: 999px;
+            background: rgba(255,255,255,0.08);
+            overflow: hidden;
+            margin-top: 0.5rem;
+        }
+
+        .sla-progress-bar {
+            height: 100%;
+            border-radius: 999px;
+            transition: width 0.4s ease;
+        }
+
+        .sla-progress-dentro {
+            background: linear-gradient(90deg, #2ecc71, #27ae60);
+        }
+
+        .sla-progress-alerta {
+            background: linear-gradient(90deg, #f1c40f, #f39c12);
+        }
+
+        .sla-progress-fora {
+            background: linear-gradient(90deg, #e74c3c, #c0392b);
+        }
+
+        .sla-resumo {
+            font-size: 0.88rem;
+            color: var(--gray);
+            margin-top: 0.5rem;
+        }
+
         /* ✅ Destaque para OS com prioridade alterada */
         .os-item.prioridade-reclassificada {
             border-left: 4px solid #FFD93D;
@@ -1399,6 +1517,7 @@
                         <option value="data_antiga">Data mais antiga</option>
                         <option value="prioridade">Prioridade (Alta → Baixa)</option>
                         <option value="numero">Número da OS</option>
+                        <option value="sla">SLA mais urgente</option>
                     </select>
                 </div>
                 
@@ -1570,6 +1689,26 @@
         const API_BASE_URL = window.location.origin;
         let userSetor = '';
         let currentOSData = null;
+
+        // 🔒 PROTEÇÃO DE ACESSO AO DASHBOARD TÉCNICO
+        document.addEventListener('DOMContentLoaded', function () {
+
+            const token = localStorage.getItem('kronos_token');
+            const user = JSON.parse(localStorage.getItem('kronos_user') || 'null');
+
+            if (!token || !user) {
+                alert('Faça login para continuar.');
+                window.location.href = 'index.html';
+                return;
+            }
+
+            if (user.tipo !== 'tecnico' && user.tipo !== 'admin') {
+                alert('Acesso restrito à equipe técnica.');
+                window.location.href = 'solicitante-dashboard.html';
+                return;
+            }
+
+        });
 
         // ✅ CONFIGURAÇÃO DO BANCO DE DADOS (PRESERVADA)
         const DB_CONFIG = {
@@ -1751,410 +1890,133 @@
             });
         }
 
-        // ✅ SISTEMA DE ÁUDIO MODERNO - CORRIGIDO PARA MOBILE
-        class SistemaAudioModerno {
-            constructor() {
-                this.context = null;
-                this.unlocked = false;
-                this.enabled = audioEnabled;
-                this.initialized = false;
-                this.isMobile = isMobile;
-            }
+        // ✅ FUNÇÕES PARA CÁLCULO DE SLA - ATUALIZADAS
+        function obterLimiteSLA(prioridade) {
+            const p = (prioridade || '').toLowerCase();
 
-            // ✅ INICIALIZAR SISTEMA DE ÁUDIO - CORRIGIDO PARA MOBILE
-            async inicializar() {
-                if (this.initialized) return true;
+            if (p === 'baixa') return 72;
+            if (p === 'alta') return 24;
+            if (p === 'crítica' || p === 'critica') return 8;
 
-                try {
-                    const AudioContext = window.AudioContext || window.webkitAudioContext;
-                    if (!AudioContext) {
-                        console.warn('❌ Web Audio API não suportada');
-                        return false;
-                    }
-
-                    this.context = new AudioContext();
-                    
-                    // ✅ ESTRATÉGIA MELHOR PARA MOBILE - Aguardar interação
-                    if (this.isMobile) {
-                        console.log('📱 Modo mobile detectado - Áudio aguardando interação');
-                        // No mobile, precisamos esperar interação do usuário
-                        this.context.suspend();
-                    }
-
-                    this.initialized = true;
-                    console.log('✅ Sistema de áudio moderno inicializado');
-                    return true;
-                } catch (error) {
-                    console.error('❌ Erro ao inicializar áudio:', error);
-                    return false;
-                }
-            }
-
-            // ✅ DESTRAVAR ÁUDIO INTERATIVAMENTE - CORRIGIDO PARA MOBILE
-            async destravar() {
-                if (!this.context) return false;
-
-                try {
-                    // ✅ ESTRATÉGIA SIMPLES E EFETIVA PARA MOBILE
-                    await this.context.resume();
-                    
-                    // Tocar um som simples para destravar
-                    await this.tocarSomTeste();
-                    
-                    this.unlocked = true;
-                    console.log('🔊 Áudio destravado com sucesso');
-                    return true;
-                } catch (error) {
-                    console.error('❌ Erro ao destravar áudio:', error);
-                    return false;
-                }
-            }
-
-            // ✅ TOCAR SOM DE TESTE SIMPLES - CORRIGIDO
-            async tocarSomTeste() {
-                if (!this.context || !this.enabled) return;
-
-                try {
-                    const oscillator = this.context.createOscillator();
-                    const gainNode = this.context.createGain();
-                    
-                    oscillator.connect(gainNode);
-                    gainNode.connect(this.context.destination);
-                    
-                    oscillator.frequency.value = 440;
-                    gainNode.gain.value = 0.001; // Volume muito baixo para teste
-                    
-                    oscillator.start();
-                    oscillator.stop(this.context.currentTime + 0.1);
-                    
-                } catch (error) {
-                    console.log('⚠️ Som de teste não pôde ser reproduzido');
-                }
-            }
-
-            // ✅ VERIFICAR SE PODE TOCAR SOM - CORRIGIDO PARA MOBILE
-            podeTocar() {
-                return this.context && this.enabled && this.unlocked && this.initialized;
-            }
-
-            // ✅ SOM MODERNO PARA NOTIFICAÇÃO DE NOVA OS (CRÍTICA/ALTA) - PRESERVADO
-            tocarSomNovaOSCritica() {
-                if (!this.podeTocar()) return;
-
-                try {
-                    const now = this.context.currentTime;
-                    const oscillator1 = this.context.createOscillator();
-                    const oscillator2 = this.context.createOscillator();
-                    const gainNode = this.context.createGain();
-                    
-                    oscillator1.connect(gainNode);
-                    oscillator2.connect(gainNode);
-                    gainNode.connect(this.context.destination);
-
-                    oscillator1.type = 'sine';
-                    oscillator2.type = 'square';
-                    
-                    oscillator1.frequency.setValueAtTime(800, now);
-                    oscillator1.frequency.exponentialRampToValueAtTime(1200, now + 0.1);
-                    oscillator1.frequency.exponentialRampToValueAtTime(800, now + 0.2);
-                    
-                    oscillator2.frequency.setValueAtTime(400, now);
-                    oscillator2.frequency.exponentialRampToValueAtTime(600, now + 0.15);
-                    
-                    gainNode.gain.setValueAtTime(0, now);
-                    gainNode.gain.linearRampToValueAtTime(0.8, now + 0.05);
-                    gainNode.gain.exponentialRampToValueAtTime(0.6, now + 0.1);
-                    gainNode.gain.linearRampToValueAtTime(0.8, now + 0.15);
-                    gainNode.gain.exponentialRampToValueAtTime(0.3, now + 0.2);
-                    gainNode.gain.linearRampToValueAtTime(0.8, now + 0.25);
-                    gainNode.gain.exponentialRampToValueAtTime(0.01, now + 0.4);
-
-                    oscillator1.start(now);
-                    oscillator2.start(now);
-                    oscillator1.stop(now + 0.4);
-                    oscillator2.stop(now + 0.4);
-
-                    console.log('🔊 SOM MODERNO - Nova OS crítica/alta');
-
-                } catch (error) {
-                    console.error('❌ Erro ao tocar som de nova OS:', error);
-                }
-            }
-
-            // ✅ SOM MODERNO PARA NOTIFICAÇÃO DE NOVA OS (MÉDIA) - PRESERVADO
-            tocarSomNovaOSMedia() {
-                if (!this.podeTocar()) return;
-
-                try {
-                    const now = this.context.currentTime;
-                    const oscillator = this.context.createOscillator();
-                    const gainNode = this.context.createGain();
-                    
-                    oscillator.connect(gainNode);
-                    gainNode.connect(this.context.destination);
-
-                    oscillator.type = 'sine';
-                    
-                    oscillator.frequency.setValueAtTime(600, now);
-                    oscillator.frequency.exponentialRampToValueAtTime(800, now + 0.2);
-                    oscillator.frequency.exponentialRampToValueAtTime(600, now + 0.4);
-                    
-                    gainNode.gain.setValueAtTime(0, now);
-                    gainNode.gain.linearRampToValueAtTime(0.5, now + 0.1);
-                    gainNode.gain.exponentialRampToValueAtTime(0.3, now + 0.3);
-                    gainNode.gain.exponentialRampToValueAtTime(0.01, now + 0.5);
-
-                    oscillator.start(now);
-                    oscillator.stop(now + 0.5);
-
-                    console.log('🔊 SOM MODERADO - Nova OS média');
-
-                } catch (error) {
-                    console.error('❌ Erro ao tocar som de OS média:', error);
-                }
-            }
-
-            // ✅ SOM MODERNO PARA NOTIFICAÇÃO DE NOVA OS (BAIXA) - PRESERVADO
-            tocarSomNovaOSBaixa() {
-                if (!this.podeTocar()) return;
-
-                try {
-                    const now = this.context.currentTime;
-                    const oscillator = this.context.createOscillator();
-                    const gainNode = this.context.createGain();
-                    
-                    oscillator.connect(gainNode);
-                    gainNode.connect(this.context.destination);
-
-                    oscillator.type = 'triangle';
-                    
-                    oscillator.frequency.setValueAtTime(400, now);
-                    oscillator.frequency.exponentialRampToValueAtTime(500, now + 0.3);
-                    
-                    gainNode.gain.setValueAtTime(0, now);
-                    gainNode.gain.linearRampToValueAtTime(0.3, now + 0.1);
-                    gainNode.gain.exponentialRampToValueAtTime(0.01, now + 0.4);
-
-                    oscillator.start(now);
-                    oscillator.stop(now + 0.4);
-
-                    console.log('🔊 SOM SUAVE - Nova OS baixa');
-
-                } catch (error) {
-                    console.error('❌ Erro ao tocar som de OS baixa:', error);
-                }
-            }
-
-            // ✅ SOM MODERNO PARA INICIAR ATENDIMENTO - PRESERVADO
-            tocarSomInicioAtendimento() {
-                if (!this.podeTocar()) return;
-
-                try {
-                    const now = this.context.currentTime;
-                    const oscillator1 = this.context.createOscillator();
-                    const oscillator2 = this.context.createOscillator();
-                    const gainNode = this.context.createGain();
-                    
-                    oscillator1.connect(gainNode);
-                    oscillator2.connect(gainNode);
-                    gainNode.connect(this.context.destination);
-
-                    oscillator1.type = 'sine';
-                    oscillator2.type = 'triangle';
-                    
-                    oscillator1.frequency.setValueAtTime(300, now);
-                    oscillator1.frequency.exponentialRampToValueAtTime(800, now + 0.3);
-                    
-                    oscillator2.frequency.setValueAtTime(200, now);
-                    oscillator2.frequency.exponentialRampToValueAtTime(500, now + 0.25);
-                    
-                    gainNode.gain.setValueAtTime(0, now);
-                    gainNode.gain.linearRampToValueAtTime(0.7, now + 0.1);
-                    gainNode.gain.exponentialRampToValueAtTime(0.4, now + 0.2);
-                    gainNode.gain.linearRampToValueAtTime(0.7, now + 0.3);
-                    gainNode.gain.exponentialRampToValueAtTime(0.01, now + 0.5);
-
-                    oscillator1.start(now);
-                    oscillator2.start(now);
-                    oscillator1.stop(now + 0.5);
-                    oscillator2.stop(now + 0.5);
-
-                    console.log('🔊 SOM MODERNO - Início de atendimento');
-
-                } catch (error) {
-                    console.error('❌ Erro ao tocar som de início:', error);
-                }
-            }
-
-            // ✅ SOM MODERNO PARA FINALIZAR ATENDIMENTO - PRESERVADO
-            tocarSomFinalizacao() {
-                if (!this.podeTocar()) return;
-
-                try {
-                    const now = this.context.currentTime;
-                    const oscillator1 = this.context.createOscillator();
-                    const oscillator2 = this.context.createOscillator();
-                    const oscillator3 = this.context.createOscillator();
-                    const gainNode = this.context.createGain();
-                    
-                    oscillator1.connect(gainNode);
-                    oscillator2.connect(gainNode);
-                    oscillator3.connect(gainNode);
-                    gainNode.connect(this.context.destination);
-
-                    oscillator1.type = 'sine';
-                    oscillator2.type = 'sine';
-                    oscillator3.type = 'sine';
-                    
-                    oscillator1.frequency.setValueAtTime(523.25, now);
-                    oscillator2.frequency.setValueAtTime(659.25, now);
-                    oscillator3.frequency.setValueAtTime(783.99, now);
-                    
-                    gainNode.gain.setValueAtTime(0, now);
-                    gainNode.gain.linearRampToValueAtTime(0.6, now + 0.1);
-                    gainNode.gain.exponentialRampToValueAtTime(0.4, now + 0.3);
-                    gainNode.gain.linearRampToValueAtTime(0.6, now + 0.5);
-                    gainNode.gain.exponentialRampToValueAtTime(0.01, now + 0.8);
-
-                    oscillator1.start(now);
-                    oscillator2.start(now);
-                    oscillator3.start(now);
-                    oscillator1.stop(now + 0.8);
-                    oscillator2.stop(now + 0.8);
-                    oscillator3.stop(now + 0.8);
-
-                    console.log('🔊 SOM MODERNO - Finalização com sucesso');
-
-                } catch (error) {
-                    console.error('❌ Erro ao tocar som de finalização:', error);
-                }
-            }
-
-            // ✅ SOM MODERNO PARA AGUARDANDO PEÇAS - PRESERVADO
-            tocarSomAguardandoPecas() {
-                if (!this.podeTocar()) return;
-
-                try {
-                    const now = this.context.currentTime;
-                    const oscillator = this.context.createOscillator();
-                    const gainNode = this.context.createGain();
-                    
-                    oscillator.connect(gainNode);
-                    gainNode.connect(this.context.destination);
-
-                    oscillator.type = 'sine';
-                    
-                    oscillator.frequency.setValueAtTime(600, now);
-                    oscillator.frequency.exponentialRampToValueAtTime(300, now + 0.4);
-                    
-                    gainNode.gain.setValueAtTime(0, now);
-                    gainNode.gain.linearRampToValueAtTime(0.5, now + 0.1);
-                    gainNode.gain.exponentialRampToValueAtTime(0.3, now + 0.3);
-                    gainNode.gain.linearRampToValueAtTime(0.5, now + 0.5);
-                    gainNode.gain.exponentialRampToValueAtTime(0.01, now + 0.7);
-
-                    oscillator.start(now);
-                    oscillator.stop(now + 0.7);
-
-                    console.log('🔊 SOM MODERNO - Aguardando peças');
-
-                } catch (error) {
-                    console.error('❌ Erro ao tocar som de aguardando:', error);
-                }
-            }
-
-            // ✅ SOM MODERNO PARA RETOMAR ATENDIMENTO - PRESERVADO
-            tocarSomRetomada() {
-                if (!this.podeTocar()) return;
-
-                try {
-                    const now = this.context.currentTime;
-                    const oscillator1 = this.context.createOscillator();
-                    const oscillator2 = this.context.createOscillator();
-                    const gainNode = this.context.createGain();
-                    
-                    oscillator1.connect(gainNode);
-                    oscillator2.connect(gainNode);
-                    gainNode.connect(this.context.destination);
-
-                    oscillator1.type = 'sine';
-                    oscillator2.type = 'square';
-                    
-                    oscillator1.frequency.setValueAtTime(400, now);
-                    oscillator1.frequency.exponentialRampToValueAtTime(800, now + 0.2);
-                    
-                    oscillator2.frequency.setValueAtTime(300, now);
-                    oscillator2.frequency.exponentialRampToValueAtTime(600, now + 0.15);
-                    
-                    gainNode.gain.setValueAtTime(0, now);
-                    gainNode.gain.linearRampToValueAtTime(0.7, now + 0.1);
-                    gainNode.gain.exponentialRampToValueAtTime(0.01, now + 0.3);
-
-                    oscillator1.start(now);
-                    oscillator2.start(now);
-                    oscillator1.stop(now + 0.3);
-                    oscillator2.stop(now + 0.3);
-
-                    console.log('🔊 SOM MODERNO - Retomada de atendimento');
-
-                } catch (error) {
-                    console.error('❌ Erro ao tocar som de retomada:', error);
-                }
-            }
-
-            // ✅ TESTE DE SOM COMPLETO - PRESERVADO
-            tocarTesteCompleto() {
-                if (!this.podeTocar()) return;
-
-                this.tocarSomNovaOSCritica();
-                
-                setTimeout(() => {
-                    this.tocarSomNovaOSMedia();
-                }, 600);
-                
-                setTimeout(() => {
-                    this.tocarSomNovaOSBaixa();
-                }, 1200);
-                
-                setTimeout(() => {
-                    this.tocarSomInicioAtendimento();
-                }, 1800);
-                
-                setTimeout(() => {
-                    this.tocarSomAguardandoPecas();
-                }, 2400);
-                
-                setTimeout(() => {
-                    this.tocarSomRetomada();
-                }, 3000);
-                
-                setTimeout(() => {
-                    this.tocarSomFinalizacao();
-                }, 3600);
-            }
-
-            // ✅ ALTERNAR ESTADO DO SOM - PRESERVADO
-            alternar() {
-                this.enabled = !this.enabled;
-                audioEnabled = this.enabled;
-                localStorage.setItem('kronos_audio', this.enabled.toString());
-                return this.enabled;
-            }
+            return 48; // média
         }
 
-        // ✅ INSTÂNCIA GLOBAL DO SISTEMA DE ÁUDIO MODERNO
-        const sistemaAudio = new SistemaAudioModerno();
+        function calcularHorasDecorridas(dataAbertura, dataFechamento = null) {
+            if (!dataAbertura) return null;
 
-        // ✅ CORREÇÃO CRÍTICA: INICIALIZAÇÃO DE ÁUDIO PARA MOBILE
-        function inicializarAudioMobile() {
-            if (!isMobile) return;
-            
-            // No mobile, mostramos o modal de destravamento imediatamente
-            setTimeout(() => {
-                if (audioEnabled && !sistemaAudio.unlocked) {
-                    mostrarModalAudio();
-                }
-            }, 1000);
+            const inicio = new Date(dataAbertura);
+            const fim = dataFechamento ? new Date(dataFechamento) : new Date();
+
+            const diff = fim - inicio;
+            const horas = diff / (1000 * 60 * 60);
+
+            return !isNaN(horas) ? horas : null;
+        }
+
+        function formatarHoras(valorHoras) {
+            if (valorHoras === null || valorHoras === undefined || isNaN(valorHoras)) return '-';
+
+            const totalMin = Math.max(0, Math.round(valorHoras * 60));
+            const horas = Math.floor(totalMin / 60);
+            const minutos = totalMin % 60;
+
+            return `${horas}h ${String(minutos).padStart(2, '0')}min`;
+        }
+
+        function obterStatusSLA(os) {
+            const horas = calcularHorasDecorridas(
+                os.data_abertura,
+                os.status === 'Finalizado' ? os.data_fechamento : null
+            );
+
+            if (horas === null) {
+                return {
+                    texto: 'Sem SLA',
+                    classe: 'sla-badge sla-alerta',
+                    status: 'alerta'
+                };
+            }
+
+            const limite = obterLimiteSLA(os.prioridade);
+
+            if (horas > limite) {
+                return {
+                    texto: 'SLA Estourado',
+                    classe: 'sla-badge sla-fora',
+                    status: 'fora'
+                };
+            }
+
+            if (horas >= limite * 0.8) {
+                return {
+                    texto: 'Próximo do SLA',
+                    classe: 'sla-badge sla-alerta',
+                    status: 'alerta'
+                };
+            }
+
+            return {
+                texto: 'Dentro do SLA',
+                classe: 'sla-badge sla-dentro',
+                status: 'dentro'
+            };
+        }
+
+        function formatarTempoSLA(os) {
+            const horas = calcularHorasDecorridas(
+                os.data_abertura,
+                os.status === 'Finalizado' ? os.data_fechamento : null
+            );
+
+            if (horas === null) return '-';
+            return formatarHoras(horas);
+        }
+
+        function obterResumoSLA(os) {
+            const limite = obterLimiteSLA(os.prioridade);
+            const horas = calcularHorasDecorridas(
+                os.data_abertura,
+                os.status === 'Finalizado' ? os.data_fechamento : null
+            );
+
+            if (horas === null) {
+                return {
+                    limite,
+                    decorrido: null,
+                    restante: null,
+                    progresso: 0,
+                    mensagem: 'Não foi possível calcular o SLA.',
+                    status: 'alerta'
+                };
+            }
+
+            const restante = limite - horas;
+            const progresso = Math.min((horas / limite) * 100, 100);
+            const statusSla = obterStatusSLA(os);
+
+            let mensagem = '';
+            if (restante > 0) {
+                mensagem = `Faltam ${formatarHoras(restante)} para o prazo do SLA.`;
+            } else if (restante === 0) {
+                mensagem = 'O SLA vence agora.';
+            } else {
+                mensagem = `SLA estourado em ${formatarHoras(Math.abs(restante))}.`;
+            }
+
+            return {
+                limite,
+                decorrido: horas,
+                restante,
+                progresso,
+                mensagem,
+                status: statusSla.status
+            };
+        }
+
+        function corBarraSLA(status) {
+            if (status === 'fora') return 'sla-progress-fora';
+            if (status === 'alerta') return 'sla-progress-alerta';
+            return 'sla-progress-dentro';
         }
 
         // ✅ FUNÇÕES DE FILTRO E ORGANIZAÇÃO (PRESERVADAS)
@@ -2218,9 +2080,9 @@
                     const termo = filtroAtual.pesquisa;
                     return (
                         os.id.toString().includes(termo) ||
-                        os.cliente.toLowerCase().includes(termo) ||
-                        os.descricao.toLowerCase().includes(termo) ||
-                        os.setor_origem.toLowerCase().includes(termo)
+                        (os.cliente && os.cliente.toLowerCase().includes(termo)) ||
+                        (os.descricao && os.descricao.toLowerCase().includes(termo)) ||
+                        (os.setor_origem && os.setor_origem.toLowerCase().includes(termo))
                     );
                 }
                 
@@ -2246,6 +2108,17 @@
                     break;
                 case 'numero':
                     osFiltradas.sort((a, b) => b.id - a.id);
+                    break;
+                case 'sla':
+                    osFiltradas.sort((a, b) => {
+                        const resumoA = obterResumoSLA(a);
+                        const resumoB = obterResumoSLA(b);
+
+                        const restanteA = resumoA.restante ?? 999999;
+                        const restanteB = resumoB.restante ?? 999999;
+
+                        return restanteA - restanteB;
+                    });
                     break;
             }
         }
@@ -2341,7 +2214,7 @@
             
             document.getElementById('count-exibidas').textContent = `${osParaExibir.length} de ${osFiltradas.length}`;
             
-            exibirListaOS('listaOS', osParaExibir, 'todas');
+            exibirListaOS('listaOS', osParaExibir);
             
             const verMaisContainer = document.getElementById('verMaisContainer');
             if (osFiltradas.length > osVisiveis) {
@@ -2602,32 +2475,38 @@
             return icons[status] || '📄';
         }
 
-        function exibirListaOS(elementId, ordens, tipo) {
+        function getStatusClass(status) {
+            const classes = {
+                'Aberto': 'status-aberto',
+                'Em Andamento': 'status-andamento',
+                'Aguardando Peças': 'status-aguardandopecas',
+                'Finalizado': 'status-finalizado',
+                'Cancelado': 'status-cancelado'
+            };
+            return classes[status] || '';
+        }
+
+        function exibirListaOS(elementId, ordens) {
             const lista = document.getElementById(elementId);
             
             if (ordens.length === 0) {
-                let mensagem = '';
-                let icone = '';
-                if (tipo === 'pendentes') {
-                    mensagem = 'Nenhuma OS pendente';
-                    icone = 'fa-clock';
-                } else {
-                    mensagem = 'Nenhuma OS atendida';
-                    icone = 'fa-check-circle';
-                }
-                
                 lista.innerHTML = `
                     <div class="empty-state">
-                        <i class="fas ${icone}"></i>
-                        <h4>${mensagem}</h4>
-                        <p>${tipo === 'pendentes' ? 'Todas as OS estão finalizadas!' : 'Suas OS finalizadas aparecerão aqui'}</p>
+                        <i class="fas fa-clipboard-list"></i>
+                        <h4>Nenhuma OS encontrada</h4>
+                        <p>Tente ajustar os filtros ou verificar outros períodos</p>
                     </div>
                 `;
                 return;
             }
 
             lista.innerHTML = ordens.map(os => {
-                const statusClass = `status-${os.status.toLowerCase().replace(/ /g, '')}`;
+                // ✅ Cálculo do SLA para esta OS
+                const slaStatus = obterStatusSLA(os);
+                const resumoSLA = obterResumoSLA(os);
+                const barraClasse = corBarraSLA(resumoSLA.status);
+                
+                const statusClass = getStatusClass(os.status);
                 const prioridadeClass = getPrioridadeClass(os.prioridade);
                 const prioridadeIcon = getPrioridadeIcon(os.prioridade);
                 const dataAbertura = new Date(os.data_abertura).toLocaleDateString('pt-BR');
@@ -2637,29 +2516,73 @@
                     <div class="os-item" data-os-id="${os.id}">
                         <div class="os-header">
                             <div class="os-info">
-                                <h4>OS #${os.id} - ${os.setor_origem}</h4>
+                                <h4>
+                                    OS #${os.id} - ${os.setor_origem || 'Setor não informado'}
+                                </h4>
                                 <div class="os-meta">
-                                    ${os.cliente} • ${dataAbertura} às ${horaAbertura}
-                                    <span class="prioridade-badge ${prioridadeClass}">
-                                        ${prioridadeIcon} ${os.prioridade}
-                                    </span>
+                                    ${os.cliente || 'Cliente não informado'} • ${dataAbertura} às ${horaAbertura}
                                 </div>
                             </div>
-                            <span class="status-badge ${statusClass}">
-                                ${getStatusIcon(os.status)} ${os.status}
-                            </span>
+                            <div style="display: flex; gap: 0.5rem; align-items: center; flex-wrap: wrap;">
+                                <span class="status-badge ${statusClass}">
+                                    ${getStatusIcon(os.status)} ${os.status}
+                                </span>
+                                <span class="prioridade-badge ${prioridadeClass}">
+                                    ${prioridadeIcon} ${os.prioridade}
+                                </span>
+                                <span class="${slaStatus.classe}">
+                                    <i class="fas fa-stopwatch"></i> ${slaStatus.texto}
+                                </span>
+                            </div>
                         </div>
                         
                         <div class="os-details">
-                            <p><strong><i class="fas fa-tag"></i> Categoria:</strong> ${os.categoria}</p>
+                            <p><strong><i class="fas fa-tag"></i> Categoria:</strong> ${os.categoria || 'Não informada'}</p>
                             <p><strong><i class="fas fa-cogs"></i> Setor Destino:</strong> ${os.setor_destino}</p>
-                            <p><strong><i class="fas fa-file-alt"></i> Descrição:</strong> ${os.descricao}</p>
+                            <p><strong><i class="fas fa-file-alt"></i> Descrição:</strong> ${os.descricao || 'Sem descrição'}</p>
                             
                             ${os.relato_tecnico ? `
                                 <div style="background: rgba(79, 195, 247, 0.1); padding: 1rem; border-radius: 10px; margin-top: 1rem; border: 1px solid rgba(79, 195, 247, 0.2);">
                                     <strong><i class="fas fa-clipboard-check"></i> Relatório Técnico:</strong> ${os.relato_tecnico}
                                 </div>
                             ` : ''}
+                        </div>
+
+                        <!-- ✅ PAINEL DE SLA -->
+                        <div class="sla-panel">
+                            <div class="sla-panel-header">
+                                <div class="sla-title">
+                                    <i class="fas fa-hourglass-half"></i> Painel de SLA
+                                </div>
+                                <span class="${slaStatus.classe}">${slaStatus.texto}</span>
+                            </div>
+
+                            <div class="sla-grid">
+                                <div class="sla-box">
+                                    <div class="sla-box-label">Tempo decorrido</div>
+                                    <div class="sla-box-value">${formatarTempoSLA(os)}</div>
+                                </div>
+
+                                <div class="sla-box">
+                                    <div class="sla-box-label">Prazo SLA</div>
+                                    <div class="sla-box-value">${formatarHoras(resumoSLA.limite)}</div>
+                                </div>
+
+                                <div class="sla-box">
+                                    <div class="sla-box-label">
+                                        ${resumoSLA.restante >= 0 ? 'Tempo restante' : 'Tempo excedido'}
+                                    </div>
+                                    <div class="sla-box-value">
+                                        ${formatarHoras(Math.abs(resumoSLA.restante ?? 0))}
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="sla-progress">
+                                <div class="sla-progress-bar ${barraClasse}" style="width: ${resumoSLA.progresso}%;"></div>
+                            </div>
+
+                            <div class="sla-resumo">${resumoSLA.mensagem}</div>
                         </div>
                         
                         <div class="os-actions">
@@ -3272,6 +3195,412 @@
             showToast('Modo offline - Trabalhando com dados locais', 'warning');
         });
 
+        // ✅ SISTEMA DE ÁUDIO MODERNO - CORRIGIDO PARA MOBILE
+        class SistemaAudioModerno {
+            constructor() {
+                this.context = null;
+                this.unlocked = false;
+                this.enabled = audioEnabled;
+                this.initialized = false;
+                this.isMobile = isMobile;
+            }
+
+            // ✅ INICIALIZAR SISTEMA DE ÁUDIO - CORRIGIDO PARA MOBILE
+            async inicializar() {
+                if (this.initialized) return true;
+
+                try {
+                    const AudioContext = window.AudioContext || window.webkitAudioContext;
+                    if (!AudioContext) {
+                        console.warn('❌ Web Audio API não suportada');
+                        return false;
+                    }
+
+                    this.context = new AudioContext();
+                    
+                    // ✅ ESTRATÉGIA MELHOR PARA MOBILE - Aguardar interação
+                    if (this.isMobile) {
+                        console.log('📱 Modo mobile detectado - Áudio aguardando interação');
+                        // No mobile, precisamos esperar interação do usuário
+                        this.context.suspend();
+                    }
+
+                    this.initialized = true;
+                    console.log('✅ Sistema de áudio moderno inicializado');
+                    return true;
+                } catch (error) {
+                    console.error('❌ Erro ao inicializar áudio:', error);
+                    return false;
+                }
+            }
+
+            // ✅ DESTRAVAR ÁUDIO INTERATIVAMENTE - CORRIGIDO PARA MOBILE
+            async destravar() {
+                if (!this.context) return false;
+
+                try {
+                    // ✅ ESTRATÉGIA SIMPLES E EFETIVA PARA MOBILE
+                    await this.context.resume();
+                    
+                    // Tocar um som simples para destravar
+                    await this.tocarSomTeste();
+                    
+                    this.unlocked = true;
+                    console.log('🔊 Áudio destravado com sucesso');
+                    return true;
+                } catch (error) {
+                    console.error('❌ Erro ao destravar áudio:', error);
+                    return false;
+                }
+            }
+
+            // ✅ TOCAR SOM DE TESTE SIMPLES - CORRIGIDO
+            async tocarSomTeste() {
+                if (!this.context || !this.enabled) return;
+
+                try {
+                    const oscillator = this.context.createOscillator();
+                    const gainNode = this.context.createGain();
+                    
+                    oscillator.connect(gainNode);
+                    gainNode.connect(this.context.destination);
+                    
+                    oscillator.frequency.value = 440;
+                    gainNode.gain.value = 0.001; // Volume muito baixo para teste
+                    
+                    oscillator.start();
+                    oscillator.stop(this.context.currentTime + 0.1);
+                    
+                } catch (error) {
+                    console.log('⚠️ Som de teste não pôde ser reproduzido');
+                }
+            }
+
+            // ✅ VERIFICAR SE PODE TOCAR SOM - CORRIGIDO PARA MOBILE
+            podeTocar() {
+                return this.context && this.enabled && this.unlocked && this.initialized;
+            }
+
+            // ✅ SOM MODERNO PARA NOTIFICAÇÃO DE NOVA OS (CRÍTICA/ALTA) - PRESERVADO
+            tocarSomNovaOSCritica() {
+                if (!this.podeTocar()) return;
+
+                try {
+                    const now = this.context.currentTime;
+                    const oscillator1 = this.context.createOscillator();
+                    const oscillator2 = this.context.createOscillator();
+                    const gainNode = this.context.createGain();
+                    
+                    oscillator1.connect(gainNode);
+                    oscillator2.connect(gainNode);
+                    gainNode.connect(this.context.destination);
+
+                    oscillator1.type = 'sine';
+                    oscillator2.type = 'square';
+                    
+                    oscillator1.frequency.setValueAtTime(800, now);
+                    oscillator1.frequency.exponentialRampToValueAtTime(1200, now + 0.1);
+                    oscillator1.frequency.exponentialRampToValueAtTime(800, now + 0.2);
+                    
+                    oscillator2.frequency.setValueAtTime(400, now);
+                    oscillator2.frequency.exponentialRampToValueAtTime(600, now + 0.15);
+                    
+                    gainNode.gain.setValueAtTime(0, now);
+                    gainNode.gain.linearRampToValueAtTime(0.8, now + 0.05);
+                    gainNode.gain.exponentialRampToValueAtTime(0.6, now + 0.1);
+                    gainNode.gain.linearRampToValueAtTime(0.8, now + 0.15);
+                    gainNode.gain.exponentialRampToValueAtTime(0.3, now + 0.2);
+                    gainNode.gain.linearRampToValueAtTime(0.8, now + 0.25);
+                    gainNode.gain.exponentialRampToValueAtTime(0.01, now + 0.4);
+
+                    oscillator1.start(now);
+                    oscillator2.start(now);
+                    oscillator1.stop(now + 0.4);
+                    oscillator2.stop(now + 0.4);
+
+                    console.log('🔊 SOM MODERNO - Nova OS crítica/alta');
+
+                } catch (error) {
+                    console.error('❌ Erro ao tocar som de nova OS:', error);
+                }
+            }
+
+            // ✅ SOM MODERNO PARA NOTIFICAÇÃO DE NOVA OS (MÉDIA) - PRESERVADO
+            tocarSomNovaOSMedia() {
+                if (!this.podeTocar()) return;
+
+                try {
+                    const now = this.context.currentTime;
+                    const oscillator = this.context.createOscillator();
+                    const gainNode = this.context.createGain();
+                    
+                    oscillator.connect(gainNode);
+                    gainNode.connect(this.context.destination);
+
+                    oscillator.type = 'sine';
+                    
+                    oscillator.frequency.setValueAtTime(600, now);
+                    oscillator.frequency.exponentialRampToValueAtTime(800, now + 0.2);
+                    oscillator.frequency.exponentialRampToValueAtTime(600, now + 0.4);
+                    
+                    gainNode.gain.setValueAtTime(0, now);
+                    gainNode.gain.linearRampToValueAtTime(0.5, now + 0.1);
+                    gainNode.gain.exponentialRampToValueAtTime(0.3, now + 0.3);
+                    gainNode.gain.exponentialRampToValueAtTime(0.01, now + 0.5);
+
+                    oscillator.start(now);
+                    oscillator.stop(now + 0.5);
+
+                    console.log('🔊 SOM MODERADO - Nova OS média');
+
+                } catch (error) {
+                    console.error('❌ Erro ao tocar som de OS média:', error);
+                }
+            }
+
+            // ✅ SOM MODERNO PARA NOTIFICAÇÃO DE NOVA OS (BAIXA) - PRESERVADO
+            tocarSomNovaOSBaixa() {
+                if (!this.podeTocar()) return;
+
+                try {
+                    const now = this.context.currentTime;
+                    const oscillator = this.context.createOscillator();
+                    const gainNode = this.context.createGain();
+                    
+                    oscillator.connect(gainNode);
+                    gainNode.connect(this.context.destination);
+
+                    oscillator.type = 'triangle';
+                    
+                    oscillator.frequency.setValueAtTime(400, now);
+                    oscillator.frequency.exponentialRampToValueAtTime(500, now + 0.3);
+                    
+                    gainNode.gain.setValueAtTime(0, now);
+                    gainNode.gain.linearRampToValueAtTime(0.3, now + 0.1);
+                    gainNode.gain.exponentialRampToValueAtTime(0.01, now + 0.4);
+
+                    oscillator.start(now);
+                    oscillator.stop(now + 0.4);
+
+                    console.log('🔊 SOM SUAVE - Nova OS baixa');
+
+                } catch (error) {
+                    console.error('❌ Erro ao tocar som de OS baixa:', error);
+                }
+            }
+
+            // ✅ SOM MODERNO PARA INICIAR ATENDIMENTO - PRESERVADO
+            tocarSomInicioAtendimento() {
+                if (!this.podeTocar()) return;
+
+                try {
+                    const now = this.context.currentTime;
+                    const oscillator1 = this.context.createOscillator();
+                    const oscillator2 = this.context.createOscillator();
+                    const gainNode = this.context.createGain();
+                    
+                    oscillator1.connect(gainNode);
+                    oscillator2.connect(gainNode);
+                    gainNode.connect(this.context.destination);
+
+                    oscillator1.type = 'sine';
+                    oscillator2.type = 'triangle';
+                    
+                    oscillator1.frequency.setValueAtTime(300, now);
+                    oscillator1.frequency.exponentialRampToValueAtTime(800, now + 0.3);
+                    
+                    oscillator2.frequency.setValueAtTime(200, now);
+                    oscillator2.frequency.exponentialRampToValueAtTime(500, now + 0.25);
+                    
+                    gainNode.gain.setValueAtTime(0, now);
+                    gainNode.gain.linearRampToValueAtTime(0.7, now + 0.1);
+                    gainNode.gain.exponentialRampToValueAtTime(0.4, now + 0.2);
+                    gainNode.gain.linearRampToValueAtTime(0.7, now + 0.3);
+                    gainNode.gain.exponentialRampToValueAtTime(0.01, now + 0.5);
+
+                    oscillator1.start(now);
+                    oscillator2.start(now);
+                    oscillator1.stop(now + 0.5);
+                    oscillator2.stop(now + 0.5);
+
+                    console.log('🔊 SOM MODERNO - Início de atendimento');
+
+                } catch (error) {
+                    console.error('❌ Erro ao tocar som de início:', error);
+                }
+            }
+
+            // ✅ SOM MODERNO PARA FINALIZAR ATENDIMENTO - PRESERVADO
+            tocarSomFinalizacao() {
+                if (!this.podeTocar()) return;
+
+                try {
+                    const now = this.context.currentTime;
+                    const oscillator1 = this.context.createOscillator();
+                    const oscillator2 = this.context.createOscillator();
+                    const oscillator3 = this.context.createOscillator();
+                    const gainNode = this.context.createGain();
+                    
+                    oscillator1.connect(gainNode);
+                    oscillator2.connect(gainNode);
+                    oscillator3.connect(gainNode);
+                    gainNode.connect(this.context.destination);
+
+                    oscillator1.type = 'sine';
+                    oscillator2.type = 'sine';
+                    oscillator3.type = 'sine';
+                    
+                    oscillator1.frequency.setValueAtTime(523.25, now);
+                    oscillator2.frequency.setValueAtTime(659.25, now);
+                    oscillator3.frequency.setValueAtTime(783.99, now);
+                    
+                    gainNode.gain.setValueAtTime(0, now);
+                    gainNode.gain.linearRampToValueAtTime(0.6, now + 0.1);
+                    gainNode.gain.exponentialRampToValueAtTime(0.4, now + 0.3);
+                    gainNode.gain.linearRampToValueAtTime(0.6, now + 0.5);
+                    gainNode.gain.exponentialRampToValueAtTime(0.01, now + 0.8);
+
+                    oscillator1.start(now);
+                    oscillator2.start(now);
+                    oscillator3.start(now);
+                    oscillator1.stop(now + 0.8);
+                    oscillator2.stop(now + 0.8);
+                    oscillator3.stop(now + 0.8);
+
+                    console.log('🔊 SOM MODERNO - Finalização com sucesso');
+
+                } catch (error) {
+                    console.error('❌ Erro ao tocar som de finalização:', error);
+                }
+            }
+
+            // ✅ SOM MODERNO PARA AGUARDANDO PEÇAS - PRESERVADO
+            tocarSomAguardandoPecas() {
+                if (!this.podeTocar()) return;
+
+                try {
+                    const now = this.context.currentTime;
+                    const oscillator = this.context.createOscillator();
+                    const gainNode = this.context.createGain();
+                    
+                    oscillator.connect(gainNode);
+                    gainNode.connect(this.context.destination);
+
+                    oscillator.type = 'sine';
+                    
+                    oscillator.frequency.setValueAtTime(600, now);
+                    oscillator.frequency.exponentialRampToValueAtTime(300, now + 0.4);
+                    
+                    gainNode.gain.setValueAtTime(0, now);
+                    gainNode.gain.linearRampToValueAtTime(0.5, now + 0.1);
+                    gainNode.gain.exponentialRampToValueAtTime(0.3, now + 0.3);
+                    gainNode.gain.linearRampToValueAtTime(0.5, now + 0.5);
+                    gainNode.gain.exponentialRampToValueAtTime(0.01, now + 0.7);
+
+                    oscillator.start(now);
+                    oscillator.stop(now + 0.7);
+
+                    console.log('🔊 SOM MODERNO - Aguardando peças');
+
+                } catch (error) {
+                    console.error('❌ Erro ao tocar som de aguardando:', error);
+                }
+            }
+
+            // ✅ SOM MODERNO PARA RETOMAR ATENDIMENTO - PRESERVADO
+            tocarSomRetomada() {
+                if (!this.podeTocar()) return;
+
+                try {
+                    const now = this.context.currentTime;
+                    const oscillator1 = this.context.createOscillator();
+                    const oscillator2 = this.context.createOscillator();
+                    const gainNode = this.context.createGain();
+                    
+                    oscillator1.connect(gainNode);
+                    oscillator2.connect(gainNode);
+                    gainNode.connect(this.context.destination);
+
+                    oscillator1.type = 'sine';
+                    oscillator2.type = 'square';
+                    
+                    oscillator1.frequency.setValueAtTime(400, now);
+                    oscillator1.frequency.exponentialRampToValueAtTime(800, now + 0.2);
+                    
+                    oscillator2.frequency.setValueAtTime(300, now);
+                    oscillator2.frequency.exponentialRampToValueAtTime(600, now + 0.15);
+                    
+                    gainNode.gain.setValueAtTime(0, now);
+                    gainNode.gain.linearRampToValueAtTime(0.7, now + 0.1);
+                    gainNode.gain.exponentialRampToValueAtTime(0.01, now + 0.3);
+
+                    oscillator1.start(now);
+                    oscillator2.start(now);
+                    oscillator1.stop(now + 0.3);
+                    oscillator2.stop(now + 0.3);
+
+                    console.log('🔊 SOM MODERNO - Retomada de atendimento');
+
+                } catch (error) {
+                    console.error('❌ Erro ao tocar som de retomada:', error);
+                }
+            }
+
+            // ✅ TESTE DE SOM COMPLETO - PRESERVADO
+            tocarTesteCompleto() {
+                if (!this.podeTocar()) return;
+
+                this.tocarSomNovaOSCritica();
+                
+                setTimeout(() => {
+                    this.tocarSomNovaOSMedia();
+                }, 600);
+                
+                setTimeout(() => {
+                    this.tocarSomNovaOSBaixa();
+                }, 1200);
+                
+                setTimeout(() => {
+                    this.tocarSomInicioAtendimento();
+                }, 1800);
+                
+                setTimeout(() => {
+                    this.tocarSomAguardandoPecas();
+                }, 2400);
+                
+                setTimeout(() => {
+                    this.tocarSomRetomada();
+                }, 3000);
+                
+                setTimeout(() => {
+                    this.tocarSomFinalizacao();
+                }, 3600);
+            }
+
+            // ✅ ALTERNAR ESTADO DO SOM - PRESERVADO
+            alternar() {
+                this.enabled = !this.enabled;
+                audioEnabled = this.enabled;
+                localStorage.setItem('kronos_audio', this.enabled.toString());
+                return this.enabled;
+            }
+        }
+
+        // ✅ INSTÂNCIA GLOBAL DO SISTEMA DE ÁUDIO MODERNO
+        const sistemaAudio = new SistemaAudioModerno();
+
+        // ✅ CORREÇÃO CRÍTICA: INICIALIZAÇÃO DE ÁUDIO PARA MOBILE
+        function inicializarAudioMobile() {
+            if (!isMobile) return;
+            
+            // No mobile, mostramos o modal de destravamento imediatamente
+            setTimeout(() => {
+                if (audioEnabled && !sistemaAudio.unlocked) {
+                    mostrarModalAudio();
+                }
+            }, 1000);
+        }
+
         // ✅ INICIALIZAÇÃO COMPLETA ATUALIZADA - CORRIGIDA PARA MOBILE
         document.addEventListener('DOMContentLoaded', async function() {
             // Inicializar banco de dados primeiro
@@ -3321,6 +3650,13 @@
                         showToast('📱 Use os filtros para encontrar OS específicas rapidamente', 'info', 5000);
                     }, 3000);
                 }
+
+                // ✅ ATUALIZAÇÃO AUTOMÁTICA DO SLA A CADA MINUTO
+                setInterval(() => {
+                    if (todasOS && todasOS.length) {
+                        aplicarFiltros();
+                    }
+                }, 60000);
             }
         });
 
