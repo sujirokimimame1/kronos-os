@@ -75,49 +75,47 @@ app.use((req, res, next) => {
 });
 
 // ✅ Aumentar limite para uploads e dados complexos
-app.use(express.json({ 
+app.use(express.json({
   limit: '10mb',
   verify: (req, res, buf) => {
     try {
       JSON.parse(buf);
     } catch (e) {
       console.error('❌ JSON malformado:', e.message);
-      res.status(400).json({ 
-        success: false, 
-        message: 'JSON malformado' 
+      res.status(400).json({
+        success: false,
+        message: 'JSON malformado'
       });
     }
   }
 }));
 
-app.use(express.urlencoded({ 
-  extended: true, 
-  limit: '10mb' 
+app.use(express.urlencoded({
+  extended: true,
+  limit: '10mb'
 }));
 
 // Servir arquivos estáticos do frontend
 app.use(express.static(path.join(__dirname, '../frontend'), {
-  index: false, // Não servir index.html automaticamente
-  setHeaders: (res, path) => {
-    // Headers de cache para arquivos estáticos
-    if (path.endsWith('.html')) {
+  index: false,
+  setHeaders: (res, filePath) => {
+    if (filePath.endsWith('.html')) {
       res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
-    } else if (path.endsWith('.css') || path.endsWith('.js')) {
-      res.setHeader('Cache-Control', 'public, max-age=86400'); // 1 dia
+    } else if (filePath.endsWith('.css') || filePath.endsWith('.js')) {
+      res.setHeader('Cache-Control', 'public, max-age=86400');
     }
   }
 }));
 
-// ✅ Health check melhorado para Fly.io
+// ✅ Health check melhorado para Fly.io / Render
 app.get('/health', (req, res) => {
   const { db } = require('./db');
-  
-  // Verificar saúde do banco de dados
-  db.get("SELECT COUNT(*) as user_count FROM usuarios", (err, row) => {
+
+  db.get('SELECT COUNT(*) as user_count FROM usuarios', (err, row) => {
     const dbStatus = err ? 'ERROR' : 'HEALTHY';
     const dbError = err ? err.message : null;
-    
-    res.status(200).json({ 
+
+    res.status(200).json({
       status: 'OK',
       timestamp: new Date().toISOString(),
       environment: process.env.NODE_ENV || 'development',
@@ -136,16 +134,15 @@ app.get('/health', (req, res) => {
 // ✅ Rota de status do sistema
 app.get('/api/status', (req, res) => {
   const { db } = require('./db');
-  
-  // Coletar estatísticas do sistema
+
   Promise.all([
     new Promise(resolve => {
-      db.get("SELECT COUNT(*) as total FROM ordens_servico", (err, row) => {
+      db.get('SELECT COUNT(*) as total FROM ordens_servico', (err, row) => {
         resolve({ total_os: err ? 0 : row.total });
       });
     }),
     new Promise(resolve => {
-      db.get("SELECT COUNT(*) as total FROM usuarios", (err, row) => {
+      db.get('SELECT COUNT(*) as total FROM usuarios', (err, row) => {
         resolve({ total_usuarios: err ? 0 : row.total });
       });
     }),
@@ -161,14 +158,14 @@ app.get('/api/status', (req, res) => {
     })
   ]).then(results => {
     const status = Object.assign({}, ...results);
-    
+
     res.json({
       success: true,
       system: {
         status: 'operational',
         timestamp: new Date().toISOString(),
         version: '1.0.0',
-        features: ['Aguardando Peças'] // ✅ NOVA FUNCIONALIDADE
+        features: ['Aguardando Peças']
       },
       statistics: status
     });
@@ -178,36 +175,34 @@ app.get('/api/status', (req, res) => {
 // ✅ Middleware de logging aprimorado
 app.use((req, res, next) => {
   const start = Date.now();
-  
-  // Log da requisição
+
   console.log(`📨 [${new Date().toISOString()}] ${req.method} ${req.path}`, {
     ip: req.ip,
     userAgent: req.get('User-Agent'),
     contentType: req.get('Content-Type')
   });
 
-  // Interceptar resposta para logging
   const originalSend = res.send;
   res.send = function(data) {
     const duration = Date.now() - start;
-    
+
     console.log(`📤 [${new Date().toISOString()}] ${req.method} ${req.path} → ${res.statusCode} (${duration}ms)`, {
       statusCode: res.statusCode,
       duration: `${duration}ms`,
       contentLength: res.get('Content-Length')
     });
-    
-    originalSend.call(this, data);
+
+    return originalSend.call(this, data);
   };
 
   next();
 });
 
-// ✅ IMPORTAR ROTAS - CORREÇÃO CRÍTICA
+// ✅ IMPORTAR ROTAS
 try {
   const usuariosRoutes = require('./routes/usuarios');
   const osRoutes = require('./routes/os');
-  const relatoriosRoutes = require('./routes/relatorios'); // ✅ ROTA DE RELATÓRIOS
+  const relatoriosRoutes = require('./routes/relatorios');
 
   console.log('✅ Rotas carregadas:', {
     usuarios: !!usuariosRoutes,
@@ -215,13 +210,11 @@ try {
     relatorios: !!relatoriosRoutes
   });
 
-  // ✅ REGISTRAR ROTAS DA API
   app.use('/api/usuarios', usuariosRoutes);
   app.use('/api/os', osRoutes);
-  app.use('/api/relatorios', relatoriosRoutes); // ✅ REGISTRAR ROTA DE RELATÓRIOS
+  app.use('/api/relatorios', relatoriosRoutes);
 
   console.log('🚀 Rotas da API registradas com sucesso');
-
 } catch (error) {
   console.error('❌ ERRO CRÍTICO ao carregar rotas:', error);
   process.exit(1);
@@ -230,11 +223,11 @@ try {
 // ✅ ROTAS PARA PÁGINAS HTML COM TRATAMENTO DE ERRO
 const servePage = (pageName) => (req, res) => {
   const filePath = path.join(__dirname, '../frontend', pageName);
-  
+
   res.sendFile(filePath, (err) => {
     if (err) {
       console.error(`❌ Erro ao servir ${pageName}:`, err);
-      
+
       if (err.code === 'ENOENT') {
         res.status(404).json({
           success: false,
@@ -257,63 +250,59 @@ app.get('/cadastro', servePage('cadastro.html'));
 app.get('/solicitante-dashboard', servePage('solicitante-dashboard.html'));
 app.get('/tecnico-dashboard', servePage('tecnico-dashboard.html'));
 app.get('/tecnico-selecao-setor', servePage('tecnico-selecao-setor.html'));
-app.get('/relatorios', servePage('relatorios.html')); // ✅ ROTA DE RELATÓRIOS
+app.get('/relatorios', servePage('relatorios.html'));
 
 // ✅ Redirects para compatibilidade
 app.get('/tecnico', (req, res) => {
   res.redirect('/tecnico-selecao-setor');
 });
 
-// ✅ Rota para debug do banco (apenas desenvolvimento)
+// ✅ Rota para debug do banco
 app.get('/api/debug/db', (req, res) => {
   if (process.env.NODE_ENV === 'production' && !req.headers['x-debug-key']) {
-    return res.status(403).json({ 
-      success: false, 
-      message: 'Debug não disponível em produção' 
+    return res.status(403).json({
+      success: false,
+      message: 'Debug não disponível em produção'
     });
   }
 
   const { db } = require('./db');
-  
+
   db.all("SELECT name FROM sqlite_master WHERE type='table'", (err, tables) => {
     if (err) {
-      return res.status(500).json({ 
+      return res.status(500).json({
         success: false,
-        error: err.message 
+        error: err.message
       });
     }
-    
-    const result = { 
+
+    const result = {
       success: true,
       tables: [],
-      database: dbPath
+      database: 'SQLite conectado'
     };
-    
-    // Para cada tabela, contar registros e mostrar estrutura
+
     const tablePromises = tables.map(table => {
       return new Promise((resolve) => {
         const tableInfo = { name: table.name };
-        
-        // Contar registros
+
         db.get(`SELECT COUNT(*) as count FROM ${table.name}`, (err, countRow) => {
           if (err) {
             tableInfo.error = err.message;
           } else {
             tableInfo.count = countRow.count;
           }
-          
-          // Obter estrutura
+
           db.all(`PRAGMA table_info(${table.name})`, (err, columns) => {
             if (!err) {
               tableInfo.columns = columns;
             }
-            
-            // Obter alguns registros de exemplo
+
             db.all(`SELECT * FROM ${table.name} LIMIT 3`, (err, sampleRows) => {
               if (!err) {
                 tableInfo.sample = sampleRows;
               }
-              
+
               result.tables.push(tableInfo);
               resolve();
             });
@@ -321,20 +310,20 @@ app.get('/api/debug/db', (req, res) => {
         });
       });
     });
-    
+
     Promise.all(tablePromises).then(() => {
       res.json(result);
     });
   });
 });
 
-// ✅ Rota para limpar cache (apenas desenvolvimento)
+// ✅ Rota para limpar cache
 if (process.env.NODE_ENV !== 'production') {
   app.delete('/api/debug/cache', (req, res) => {
     Object.keys(require.cache).forEach(key => {
       delete require.cache[key];
     });
-    
+
     res.json({
       success: true,
       message: 'Cache limpo',
@@ -352,25 +341,23 @@ app.use((err, req, res, next) => {
     method: req.method,
     body: req.body
   });
-  
-  // Erro de CORS
+
   if (err.message === 'Não permitido por CORS') {
-    return res.status(403).json({ 
-      success: false, 
-      message: 'Origem não permitida' 
+    return res.status(403).json({
+      success: false,
+      message: 'Origem não permitida'
     });
   }
-  
-  // Erro de validação
+
   if (err instanceof SyntaxError && err.status === 400 && 'body' in err) {
-    return res.status(400).json({ 
-      success: false, 
-      message: 'JSON malformado' 
+    return res.status(400).json({
+      success: false,
+      message: 'JSON malformado'
     });
   }
-  
-  res.status(500).json({ 
-    success: false, 
+
+  res.status(500).json({
+    success: false,
     message: 'Erro interno do servidor',
     error: process.env.NODE_ENV === 'production' ? {} : {
       message: err.message,
@@ -382,23 +369,21 @@ app.use((err, req, res, next) => {
 // ✅ Rota 404 para API
 app.use('/api/*', (req, res) => {
   console.log(`❌ API não encontrada: ${req.method} ${req.originalUrl}`);
-  
-  res.status(404).json({ 
-    success: false, 
+
+  res.status(404).json({
+    success: false,
     message: 'Endpoint da API não encontrado',
     path: req.originalUrl,
     method: req.method
   });
 });
 
-// ✅ Fallback para SPA (Single Page Application)
+// ✅ Fallback para SPA
 app.get('*', (req, res) => {
-  // Se for uma rota de API, já foi tratada acima
   if (req.path.startsWith('/api/')) {
     return;
   }
-  
-  // Servir index.html para SPA routing
+
   res.sendFile(path.join(__dirname, '../frontend/index.html'), (err) => {
     if (err) {
       console.error('❌ Erro ao servir SPA fallback:', err);
@@ -429,7 +414,7 @@ app.listen(PORT, '0.0.0.0', () => {
 🚀 Servidor rodando na porta: ${PORT}
 📊 Ambiente: ${process.env.NODE_ENV || 'development'}
 🌐 Timezone: ${process.env.TZ || 'UTC'}
-🗄️  Banco: ${dbPath}
+🗄️  Banco: SQLite conectado
 
 ✨ NOVAS FUNCIONALIDADES:
    • ✅ Status "Aguardando Peças" para técnicos
