@@ -6,14 +6,60 @@ if (!connectionString) {
   throw new Error('DATABASE_URL não definida no ambiente.');
 }
 
-const db = new Pool({
+const pool = new Pool({
   connectionString,
   ssl: {
     rejectUnauthorized: false
   }
 });
 
-db.connect()
+// Wrapper compatível com SQLite + PostgreSQL
+const db = {
+  async query(text, params = []) {
+    return pool.query(text, params);
+  },
+
+  async get(text, params = [], callback) {
+    try {
+      const result = await pool.query(text, params);
+      const row = result.rows[0] || null;
+      if (callback) callback(null, row);
+      return row;
+    } catch (err) {
+      if (callback) callback(err);
+      else throw err;
+    }
+  },
+
+  async all(text, params = [], callback) {
+    try {
+      const result = await pool.query(text, params);
+      if (callback) callback(null, result.rows);
+      return result.rows;
+    } catch (err) {
+      if (callback) callback(err);
+      else throw err;
+    }
+  },
+
+  async run(text, params = [], callback) {
+    try {
+      const result = await pool.query(text, params);
+      const meta = {
+        lastID: result.rows && result.rows[0] ? result.rows[0].id : undefined,
+        changes: result.rowCount || 0
+      };
+
+      if (callback) callback.call(meta, null);
+      return meta;
+    } catch (err) {
+      if (callback) callback(err);
+      else throw err;
+    }
+  }
+};
+
+pool.connect()
   .then(async (client) => {
     console.log('✅ PostgreSQL conectado');
     client.release();
