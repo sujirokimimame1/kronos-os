@@ -1,30 +1,27 @@
-const sqlite3 = require('sqlite3').verbose();
-const path = require('path');
-const fs = require('fs');
+const { Pool } = require('pg');
 
-// ✅ Caminho único do banco
-// Em produção no Render, defina:
-// DB_PATH=/data/kronos.db
-// Em ambiente local, se não definir DB_PATH, ele usará ./data/kronos.db
-const dbPath = process.env.DB_PATH || path.join(__dirname, '..', 'data', 'kronos.db');
-const dbDir = path.dirname(dbPath);
+const connectionString = process.env.DATABASE_URL;
 
-// ✅ Garantir que o diretório existe
-if (!fs.existsSync(dbDir)) {
-  fs.mkdirSync(dbDir, { recursive: true });
-  console.log('✅ Pasta do banco criada:', dbDir);
+if (!connectionString) {
+  throw new Error('DATABASE_URL não definida no ambiente.');
 }
 
-console.log('📦 Banco selecionado:', dbPath);
-
-const db = new sqlite3.Database(dbPath, (err) => {
-  if (err) {
-    console.error('❌ Falha ao abrir/criar o banco de dados:', err.message);
-  } else {
-    console.log('✅ Banco de dados conectado:', dbPath);
-    criarTabelas();
+const db = new Pool({
+  connectionString,
+  ssl: {
+    rejectUnauthorized: false
   }
 });
+
+db.connect()
+  .then(async (client) => {
+    console.log('✅ PostgreSQL conectado');
+    client.release();
+    await criarTabelas();
+  })
+  .catch((err) => {
+    console.error('❌ Erro ao conectar no PostgreSQL:', err.message);
+  });
 
 // ✅ FUNÇÃO PARA CLASSIFICAR TIPO DE USUÁRIO
 function classificarTipoUsuario(setor, tipoAtual = null) {
@@ -39,94 +36,68 @@ function classificarTipoUsuario(setor, tipoAtual = null) {
   return 'solicitante';
 }
 
-// ✅ FUNÇÃO PARA VERIFICAR E CRIAR CAMPOS NA TABELA USUARIOS
-function verificarECriarCamposUsuarios() {
-  return new Promise((resolve) => {
-    db.all('PRAGMA table_info(usuarios)', (err, rows) => {
-      if (err) {
-        console.error('❌ Erro ao verificar estrutura da tabela usuarios:', err);
-        resolve();
-        return;
-      }
+async function verificarECriarCamposUsuarios() {
+  try {
+    await db.query(`
+      ALTER TABLE usuarios
+      ADD COLUMN IF NOT EXISTS tipo TEXT NOT NULL DEFAULT 'solicitante'
+    `);
 
-      const camposExistentes = Array.isArray(rows) ? rows.map((row) => row.name) : [];
+    await db.query(`
+      UPDATE usuarios
+      SET tipo = CASE
+        WHEN tipo = 'admin' THEN 'admin'
+        WHEN setor IN ('TI', 'Manutenção') THEN 'tecnico'
+        ELSE 'solicitante'
+      END
+      WHERE tipo IS NULL
+         OR tipo = ''
+         OR tipo NOT IN ('solicitante', 'tecnico', 'admin')
+    `);
 
-      const finalizar = () => {
-        db.run(
-          `UPDATE usuarios
-           SET tipo = CASE
-             WHEN tipo = 'admin' THEN 'admin'
-             WHEN setor IN ('TI', 'Manutenção') THEN 'tecnico'
-             ELSE 'solicitante'
-           END
-           WHERE tipo IS NULL OR tipo = '' OR tipo NOT IN ('solicitante', 'tecnico', 'admin')`,
-          (updateErr) => {
-            if (updateErr) {
-              console.error('❌ Erro ao normalizar tipos de usuário:', updateErr);
-            } else {
-              console.log('✅ Perfis de usuário normalizados');
-            }
-            resolve();
-          }
-        );
-      };
-
-      if (!camposExistentes.includes('tipo')) {
-        db.run(
-          "ALTER TABLE usuarios ADD COLUMN tipo TEXT NOT NULL DEFAULT 'solicitante' CHECK(tipo IN ('solicitante', 'tecnico', 'admin'))",
-          (alterErr) => {
-            if (alterErr) {
-              console.error('❌ Erro ao adicionar coluna tipo em usuarios:', alterErr);
-            } else {
-              console.log('✅ Campo tipo adicionado em usuarios');
-            }
-            finalizar();
-          }
-        );
-      } else {
-        finalizar();
-      }
-    });
-  });
+    console.log('✅ Estrutura e perfis da tabela usuarios verificados');
+  } catch (err) {
+    console.error('❌ Erro ao verificar/ajustar tabela usuarios:', err.message);
+  }
 }
 
-function criarTabelas() {
-  db.serialize(() => {
-    // ✅ TABELA DE USUÁRIOS
-    db.run(
-      `
+async function verificarECriarCampos() {
+  try {
+    await db.query(`
+      ALTER TABLE ordens_servico
+      ADD COLUMN IF NOT EXISTS data_fechamento TIMESTAMP
+    `);
+
+    await db.query(`
+      ALTER TABLE ordens_servico
+      ADD COLUMN IF NOT EXISTS tempo_resolucao_horas REAL
+    `);
+
+    console.log('✅ Campos adicionais da tabela ordens_servico verificados');
+  } catch (err) {
+    console.error('❌ Erro ao verificar campos de ordens_servico:', err.message);
+  }
+}
+
+async function criarTabelas() {
+  try {
+    await db.query(`
       CREATE TABLE IF NOT EXISTS usuarios (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        id SERIAL PRIMARY KEY,
         nome TEXT NOT NULL,
         email TEXT NOT NULL UNIQUE,
         senha TEXT NOT NULL,
-        tipo TEXT NOT NULL DEFAULT 'solicitante' CHECK(tipo IN ('solicitante', 'tecnico', 'admin')),
-        setor TEXT CHECK(setor IN (
-          'Pronto Socorro', 'Recepção', 'Ambulatório', 'Administrativo',
-          'Faturamento', 'Maternidade', 'Clínica Médica', 'Clínica Cirúrgica',
-          'Centro Cirúrgico', 'Tomografia', 'Mamografia', 'HEMOPI', 'Núcleos', 'UTI',
-          'Farmácia', 'Almoxarifado', 'Nutrição', 'Laboratório', 'Fisioterapia',
-          'TI', 'Manutenção'
-        ))
+        tipo TEXT NOT NULL DEFAULT 'solicitante',
+        setor TEXT
       )
-    `,
-      (err) => {
-        if (err) {
-          console.error('❌ Erro ao criar tabela usuarios:', err);
-        } else {
-          console.log('✅ Tabela usuarios verificada/criada');
-        }
-      }
-    );
+    `);
 
-    // ✅ TABELA ORDENS_SERVICO
-    db.run(
-      `
+    await db.query(`
       CREATE TABLE IF NOT EXISTS ordens_servico (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        id SERIAL PRIMARY KEY,
         user_id INTEGER NOT NULL DEFAULT 1,
         setor_origem TEXT NOT NULL,
-        setor_destino TEXT NOT NULL CHECK(setor_destino IN ('TI', 'Manutenção')),
+        setor_destino TEXT NOT NULL,
         categoria TEXT NOT NULL,
         cliente TEXT NOT NULL,
         descricao TEXT NOT NULL,
@@ -134,293 +105,255 @@ function criarTabelas() {
         status TEXT NOT NULL DEFAULT 'Aberto',
         relato_tecnico TEXT,
         materiais_usados TEXT,
-        data_abertura TEXT DEFAULT (datetime('now', 'localtime')),
-        data_fechamento TEXT,
+        data_abertura TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        data_fechamento TIMESTAMP,
         tempo_resolucao_horas REAL,
-        FOREIGN KEY (user_id) REFERENCES usuarios(id)
+        CONSTRAINT fk_usuario
+          FOREIGN KEY(user_id)
+          REFERENCES usuarios(id)
+          ON DELETE SET DEFAULT
       )
-    `,
-      async (err) => {
-        if (err) {
-          console.error('❌ Erro ao criar tabela ordens_servico:', err);
-        } else {
-          console.log('✅ Tabela ordens_servico verificada/criada');
+    `);
 
-          // ✅ VERIFICAR CAMPOS FALTANTES
-          await verificarECriarCampos();
-          await verificarECriarCamposUsuarios();
-        }
-      }
-    );
+    await verificarECriarCampos();
+    await verificarECriarCamposUsuarios();
 
-    // ✅ INSERIR USUÁRIOS PADRÃO APENAS SE A TABELA ESTIVER VAZIA
-    db.get('SELECT COUNT(*) as count FROM usuarios', (err, row) => {
-      if (err) {
-        console.error('❌ Erro ao verificar usuários:', err);
-        return;
-      }
+    const result = await db.query('SELECT COUNT(*)::int AS count FROM usuarios');
+    const count = result.rows[0].count;
 
-      if (row.count === 0) {
-        db.run(
-          `
-          INSERT INTO usuarios (nome, email, senha, tipo, setor)
-          VALUES 
+    if (count === 0) {
+      await db.query(`
+        INSERT INTO usuarios (nome, email, senha, tipo, setor)
+        VALUES
           ('Admin', 'admin@hospital.com', '123456', 'admin', 'TI'),
           ('Técnico Manutenção', 'manutencao@hospital.com', '123456', 'tecnico', 'Manutenção'),
           ('Usuário Teste', 'teste@hospital.com', '123456', 'solicitante', 'Pronto Socorro')
-        `,
-          (insertErr) => {
-            if (insertErr) {
-              console.error('❌ Erro ao inserir usuários padrão:', insertErr);
-            } else {
-              console.log('✅ Usuários padrão inseridos');
-            }
-          }
-        );
-      }
-    });
-  });
-}
+      `);
 
-// ✅ FUNÇÃO PARA VERIFICAR E CRIAR CAMPOS FALTANTES NA TABELA ORDENS_SERVICO
-function verificarECriarCampos() {
-  return new Promise((resolve) => {
-    db.all('PRAGMA table_info(ordens_servico)', (err, rows) => {
-      if (err) {
-        console.error('❌ Erro ao verificar estrutura da tabela ordens_servico:', err);
-        resolve();
-        return;
-      }
+      console.log('✅ Usuários padrão inseridos');
+    }
 
-      const camposExistentes = Array.isArray(rows) ? rows.map((row) => row.name) : [];
-      console.log('📋 Campos existentes em ordens_servico:', camposExistentes);
-
-      const promises = [];
-
-      if (!camposExistentes.includes('data_fechamento')) {
-        promises.push(
-          new Promise((res) => {
-            db.run('ALTER TABLE ordens_servico ADD COLUMN data_fechamento TEXT', (alterErr) => {
-              if (alterErr) {
-                console.error('❌ Erro ao adicionar data_fechamento:', alterErr);
-              } else {
-                console.log('✅ Campo data_fechamento adicionado');
-              }
-              res();
-            });
-          })
-        );
-      }
-
-      if (!camposExistentes.includes('tempo_resolucao_horas')) {
-        promises.push(
-          new Promise((res) => {
-            db.run('ALTER TABLE ordens_servico ADD COLUMN tempo_resolucao_horas REAL', (alterErr) => {
-              if (alterErr) {
-                console.error('❌ Erro ao adicionar tempo_resolucao_horas:', alterErr);
-              } else {
-                console.log('✅ Campo tempo_resolucao_horas adicionado');
-              }
-              res();
-            });
-          })
-        );
-      }
-
-      Promise.all(promises).then(() => resolve());
-    });
-  });
+    console.log('✅ Tabelas PostgreSQL prontas');
+  } catch (err) {
+    console.error('❌ Erro ao criar tabelas:', err.message);
+  }
 }
 
 class OrdemServico {
-  static getAll(callback) {
-    const query = `
-      SELECT os.*, u.nome as cliente_nome 
-      FROM ordens_servico os 
-      LEFT JOIN usuarios u ON os.user_id = u.id 
-      ORDER BY os.id DESC
-    `;
-    db.all(query, callback);
-  }
-
-  static getByUserId(user_id, callback) {
-    const query = `
-      SELECT os.*, u.nome as cliente_nome 
-      FROM ordens_servico os 
-      LEFT JOIN usuarios u ON os.user_id = u.id 
-      WHERE os.user_id = ? 
-      ORDER BY os.id DESC
-    `;
-    db.all(query, [user_id], callback);
-  }
-
-  static create(data, callback) {
-    let user_id = data.user_id || 1;
-    user_id = parseInt(user_id, 10);
-    if (isNaN(user_id)) user_id = 1;
-
-    const {
-      setor_origem = 'Não informado',
-      setor_destino,
-      categoria = 'Geral',
-      cliente,
-      descricao,
-      prioridade = 'Média',
-      status = 'Aberto',
-      solicitante,
-      equipamento,
-      defeito
-    } = data;
-
-    const clienteFinal = cliente || solicitante || 'Não informado';
-    const descricaoFinal = descricao || defeito || 'Não informado';
-    const descricaoCompleta = equipamento
-      ? `Equipamento: ${equipamento}. Problema: ${descricaoFinal}`
-      : descricaoFinal;
-
-    console.log('📦 Criando OS:', {
-      user_id,
-      setor_destino,
-      cliente: clienteFinal,
-      prioridade
-    });
-
-    db.run(
-      `INSERT INTO ordens_servico (user_id, setor_origem, setor_destino, categoria, cliente, descricao, prioridade, status)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
-      [user_id, setor_origem, setor_destino, categoria, clienteFinal, descricaoCompleta, prioridade, status],
-      function (err) {
-        if (err) {
-          console.error('❌ Erro ao criar OS:', err);
-          return callback(err);
-        }
-        console.log(`✅ OS criada com ID: ${this.lastID}`);
-        callback(null, { id: this.lastID });
-      }
-    );
-  }
-
-  // ✅ Atualizar status com cálculo de tempo de resolução
-  static updateStatus(id, status, relato_tecnico = null, materiais_usados = null, callback) {
-    const statusValidos = ['Aberto', 'Em Andamento', 'Aguardando Peças', 'Finalizado', 'Cancelado'];
-
-    if (!statusValidos.includes(status)) {
-      return callback(
-        new Error('Status inválido. Use: Aberto, Em Andamento, Aguardando Peças, Finalizado ou Cancelado')
-      );
+  static async getAll(callback) {
+    try {
+      const query = `
+        SELECT os.*, u.nome AS cliente_nome
+        FROM ordens_servico os
+        LEFT JOIN usuarios u ON os.user_id = u.id
+        ORDER BY os.id DESC
+      `;
+      const result = await db.query(query);
+      callback(null, result.rows);
+    } catch (err) {
+      console.error('❌ Erro ao listar OS:', err);
+      callback(err);
     }
+  }
 
-    if (status === 'Finalizado') {
-      const dataFechamento = new Date().toISOString();
+  static async getByUserId(user_id, callback) {
+    try {
+      const query = `
+        SELECT os.*, u.nome AS cliente_nome
+        FROM ordens_servico os
+        LEFT JOIN usuarios u ON os.user_id = u.id
+        WHERE os.user_id = $1
+        ORDER BY os.id DESC
+      `;
+      const result = await db.query(query, [user_id]);
+      callback(null, result.rows);
+    } catch (err) {
+      console.error('❌ Erro ao listar OS do usuário:', err);
+      callback(err);
+    }
+  }
 
-      db.get('SELECT data_abertura FROM ordens_servico WHERE id = ?', [id], (err, row) => {
-        if (err) {
-          console.error('❌ Erro ao buscar data abertura:', err);
-          return callback(err);
-        }
+  static async create(data, callback) {
+    try {
+      let user_id = data.user_id || 1;
+      user_id = parseInt(user_id, 10);
+      if (isNaN(user_id)) user_id = 1;
+
+      const {
+        setor_origem = 'Não informado',
+        setor_destino,
+        categoria = 'Geral',
+        cliente,
+        descricao,
+        prioridade = 'Média',
+        status = 'Aberto',
+        solicitante,
+        equipamento,
+        defeito
+      } = data;
+
+      const clienteFinal = cliente || solicitante || 'Não informado';
+      const descricaoFinal = descricao || defeito || 'Não informado';
+      const descricaoCompleta = equipamento
+        ? `Equipamento: ${equipamento}. Problema: ${descricaoFinal}`
+        : descricaoFinal;
+
+      const result = await db.query(
+        `INSERT INTO ordens_servico
+          (user_id, setor_origem, setor_destino, categoria, cliente, descricao, prioridade, status)
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+         RETURNING id`,
+        [user_id, setor_origem, setor_destino, categoria, clienteFinal, descricaoCompleta, prioridade, status]
+      );
+
+      console.log(`✅ OS criada com ID: ${result.rows[0].id}`);
+      callback(null, { id: result.rows[0].id });
+    } catch (err) {
+      console.error('❌ Erro ao criar OS:', err);
+      callback(err);
+    }
+  }
+
+  static async updateStatus(id, status, relato_tecnico = null, materiais_usados = null, callback) {
+    try {
+      const statusValidos = ['Aberto', 'Em Andamento', 'Aguardando Peças', 'Finalizado', 'Cancelado'];
+      if (!statusValidos.includes(status)) {
+        return callback(new Error('Status inválido. Use: Aberto, Em Andamento, Aguardando Peças, Finalizado ou Cancelado'));
+      }
+
+      if (status === 'Finalizado') {
+        const result = await db.query(
+          `SELECT data_abertura FROM ordens_servico WHERE id = $1`,
+          [id]
+        );
 
         let tempoResolucaoHoras = null;
 
-        if (row && row.data_abertura) {
-          const dataAbertura = new Date(row.data_abertura);
-          const dataFechamentoDate = new Date(dataFechamento);
-          const diffMs = dataFechamentoDate - dataAbertura;
+        if (result.rows.length > 0 && result.rows[0].data_abertura) {
+          const dataAbertura = new Date(result.rows[0].data_abertura);
+          const dataFechamento = new Date();
+          const diffMs = dataFechamento - dataAbertura;
           tempoResolucaoHoras = parseFloat((diffMs / (1000 * 60 * 60)).toFixed(1));
         }
 
-        db.run(
-          `UPDATE ordens_servico 
-           SET status = ?, relato_tecnico = ?, materiais_usados = ?, data_fechamento = ?, tempo_resolucao_horas = ?
-           WHERE id = ?`,
-          [status, relato_tecnico, materiais_usados, dataFechamento, tempoResolucaoHoras, id],
-          callback
+        await db.query(
+          `UPDATE ordens_servico
+           SET status = $1,
+               relato_tecnico = $2,
+               materiais_usados = $3,
+               data_fechamento = CURRENT_TIMESTAMP,
+               tempo_resolucao_horas = $4
+           WHERE id = $5`,
+          [status, relato_tecnico, materiais_usados, tempoResolucaoHoras, id]
         );
-      });
-    } else {
-      db.run(
-        `UPDATE ordens_servico 
-         SET status = ?, relato_tecnico = ?, materiais_usados = ?, data_fechamento = NULL, tempo_resolucao_horas = NULL
-         WHERE id = ?`,
-        [status, relato_tecnico, materiais_usados, id],
-        callback
-      );
+      } else {
+        await db.query(
+          `UPDATE ordens_servico
+           SET status = $1,
+               relato_tecnico = $2,
+               materiais_usados = $3,
+               data_fechamento = NULL,
+               tempo_resolucao_horas = NULL
+           WHERE id = $4`,
+          [status, relato_tecnico, materiais_usados, id]
+        );
+      }
+
+      callback(null);
+    } catch (err) {
+      console.error('❌ Erro ao atualizar status da OS:', err);
+      callback(err);
     }
   }
 
-  static getBySetorDestino(setor_destino, callback) {
-    const query = `
-      SELECT os.*, u.nome as cliente_nome 
-      FROM ordens_servico os 
-      LEFT JOIN usuarios u ON os.user_id = u.id 
-      WHERE os.setor_destino = ? 
-      ORDER BY os.id DESC
-    `;
-
-    db.all(query, [setor_destino], (err, rows) => {
-      if (err) {
-        console.error('❌ Erro ao buscar OSs por setor:', err);
-        return callback(err);
-      }
-      console.log(`✅ Encontradas ${rows.length} OSs para setor ${setor_destino}`);
-      callback(null, rows);
-    });
+  static async getBySetorDestino(setor_destino, callback) {
+    try {
+      const query = `
+        SELECT os.*, u.nome AS cliente_nome
+        FROM ordens_servico os
+        LEFT JOIN usuarios u ON os.user_id = u.id
+        WHERE os.setor_destino = $1
+        ORDER BY os.id DESC
+      `;
+      const result = await db.query(query, [setor_destino]);
+      callback(null, result.rows);
+    } catch (err) {
+      console.error('❌ Erro ao buscar OSs por setor:', err);
+      callback(err);
+    }
   }
 
-  static getById(id, callback) {
-    const query = `
-      SELECT os.*, u.nome as cliente_nome, u.email as cliente_email
-      FROM ordens_servico os
-      LEFT JOIN usuarios u ON os.user_id = u.id
-      WHERE os.id = ?
-    `;
-
-    db.get(query, [id], (err, row) => {
-      if (err) {
-        console.error('❌ Erro ao buscar OS por ID:', err);
-        return callback(err);
-      }
-      callback(null, row);
-    });
+  static async getById(id, callback) {
+    try {
+      const query = `
+        SELECT os.*, u.nome AS cliente_nome, u.email AS cliente_email
+        FROM ordens_servico os
+        LEFT JOIN usuarios u ON os.user_id = u.id
+        WHERE os.id = $1
+      `;
+      const result = await db.query(query, [id]);
+      callback(null, result.rows[0] || null);
+    } catch (err) {
+      console.error('❌ Erro ao buscar OS por ID:', err);
+      callback(err);
+    }
   }
 
-  static updateCompleta(id, data, callback) {
-    const { status, prioridade, relato_tecnico, materiais_usados } = data;
+  static async updateCompleta(id, data, callback) {
+    try {
+      const { status, prioridade, relato_tecnico, materiais_usados } = data;
 
-    const statusValidos = ['Aberto', 'Em Andamento', 'Aguardando Peças', 'Finalizado', 'Cancelado'];
-    if (!statusValidos.includes(status)) {
-      return callback(new Error('Status inválido'));
-    }
-
-    let query = 'UPDATE ordens_servico SET status = ?';
-    const params = [status];
-
-    if (prioridade) {
-      query += ', prioridade = ?';
-      params.push(prioridade);
-    }
-
-    if (status === 'Finalizado') {
-      query += ", relato_tecnico = ?, materiais_usados = ?, data_fechamento = datetime('now', 'localtime')";
-      params.push(relato_tecnico || null, materiais_usados || null);
-    } else {
-      query += ', relato_tecnico = ?, materiais_usados = ?';
-      params.push(relato_tecnico || null, materiais_usados || null);
-    }
-
-    query += ' WHERE id = ?';
-    params.push(id);
-
-    console.log('📝 Query de atualização completa:', query);
-    console.log('📋 Parâmetros:', params);
-
-    db.run(query, params, function (err) {
-      if (err) {
-        console.error('❌ Erro ao atualizar OS completa:', err);
-        return callback(err);
+      const statusValidos = ['Aberto', 'Em Andamento', 'Aguardando Peças', 'Finalizado', 'Cancelado'];
+      if (!statusValidos.includes(status)) {
+        return callback(new Error('Status inválido'));
       }
-      callback(null, { changes: this.changes });
-    });
+
+      if (status === 'Finalizado') {
+        const resultAbertura = await db.query(
+          `SELECT data_abertura FROM ordens_servico WHERE id = $1`,
+          [id]
+        );
+
+        let tempoResolucaoHoras = null;
+
+        if (resultAbertura.rows.length > 0 && resultAbertura.rows[0].data_abertura) {
+          const dataAbertura = new Date(resultAbertura.rows[0].data_abertura);
+          const dataFechamento = new Date();
+          const diffMs = dataFechamento - dataAbertura;
+          tempoResolucaoHoras = parseFloat((diffMs / (1000 * 60 * 60)).toFixed(1));
+        }
+
+        const result = await db.query(
+          `UPDATE ordens_servico
+           SET status = $1,
+               prioridade = COALESCE($2, prioridade),
+               relato_tecnico = $3,
+               materiais_usados = $4,
+               data_fechamento = CURRENT_TIMESTAMP,
+               tempo_resolucao_horas = $5
+           WHERE id = $6`,
+          [status, prioridade || null, relato_tecnico || null, materiais_usados || null, tempoResolucaoHoras, id]
+        );
+
+        callback(null, { changes: result.rowCount });
+      } else {
+        const result = await db.query(
+          `UPDATE ordens_servico
+           SET status = $1,
+               prioridade = COALESCE($2, prioridade),
+               relato_tecnico = $3,
+               materiais_usados = $4
+           WHERE id = $5`,
+          [status, prioridade || null, relato_tecnico || null, materiais_usados || null, id]
+        );
+
+        callback(null, { changes: result.rowCount });
+      }
+    } catch (err) {
+      console.error('❌ Erro ao atualizar OS completa:', err);
+      callback(err);
+    }
   }
 }
 
-module.exports = { db, dbPath, OrdemServico, classificarTipoUsuario };
+module.exports = { db, OrdemServico, classificarTipoUsuario };
