@@ -2,22 +2,20 @@ const sqlite3 = require('sqlite3').verbose();
 const path = require('path');
 const fs = require('fs');
 
-// ✅ Configuração do banco (Render/Fly/local)
-const candidateDbPaths = [
-  process.env.DB_PATH,
-  path.join(__dirname, 'db', 'kronos.db'),
-  path.join(__dirname, '..', 'data', 'kronos.db'),
-  path.join(__dirname, 'kronos.db')
-].filter(Boolean);
-
-const dbPath = candidateDbPaths.find((candidate) => fs.existsSync(candidate)) || candidateDbPaths[candidateDbPaths.length - 1];
+// ✅ Caminho único do banco
+// Em produção no Render, defina:
+// DB_PATH=/data/kronos.db
+// Em ambiente local, se não definir DB_PATH, ele usará ./data/kronos.db
+const dbPath = process.env.DB_PATH || path.join(__dirname, '..', 'data', 'kronos.db');
 const dbDir = path.dirname(dbPath);
 
-// Garantir que o diretório existe
+// ✅ Garantir que o diretório existe
 if (!fs.existsSync(dbDir)) {
   fs.mkdirSync(dbDir, { recursive: true });
   console.log('✅ Pasta do banco criada:', dbDir);
 }
+
+console.log('📦 Banco selecionado:', dbPath);
 
 const db = new sqlite3.Database(dbPath, (err) => {
   if (err) {
@@ -44,7 +42,7 @@ function classificarTipoUsuario(setor, tipoAtual = null) {
 // ✅ FUNÇÃO PARA VERIFICAR E CRIAR CAMPOS NA TABELA USUARIOS
 function verificarECriarCamposUsuarios() {
   return new Promise((resolve) => {
-    db.all("PRAGMA table_info(usuarios)", (err, rows) => {
+    db.all('PRAGMA table_info(usuarios)', (err, rows) => {
       if (err) {
         console.error('❌ Erro ao verificar estrutura da tabela usuarios:', err);
         resolve();
@@ -94,8 +92,9 @@ function verificarECriarCamposUsuarios() {
 
 function criarTabelas() {
   db.serialize(() => {
-    // ✅ TABELA DE USUÁRIOS ATUALIZADA COM CAMPO TIPO
-    db.run(`
+    // ✅ TABELA DE USUÁRIOS
+    db.run(
+      `
       CREATE TABLE IF NOT EXISTS usuarios (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         nome TEXT NOT NULL,
@@ -110,16 +109,19 @@ function criarTabelas() {
           'TI', 'Manutenção'
         ))
       )
-    `, (err) => {
-      if (err) {
-        console.error('❌ Erro ao criar tabela usuarios:', err);
-      } else {
-        console.log('✅ Tabela usuarios verificada/criada');
+    `,
+      (err) => {
+        if (err) {
+          console.error('❌ Erro ao criar tabela usuarios:', err);
+        } else {
+          console.log('✅ Tabela usuarios verificada/criada');
+        }
       }
-    });
+    );
 
     // ✅ TABELA ORDENS_SERVICO
-    db.run(`
+    db.run(
+      `
       CREATE TABLE IF NOT EXISTS ordens_servico (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         user_id INTEGER NOT NULL DEFAULT 1,
@@ -133,44 +135,48 @@ function criarTabelas() {
         relato_tecnico TEXT,
         materiais_usados TEXT,
         data_abertura TEXT DEFAULT (datetime('now', 'localtime')),
-        -- ✅ CAMPOS PARA RELATÓRIOS
         data_fechamento TEXT,
         tempo_resolucao_horas REAL,
         FOREIGN KEY (user_id) REFERENCES usuarios(id)
       )
-    `, async (err) => {
-      if (err) {
-        console.error('❌ Erro ao criar tabela ordens_servico:', err);
-      } else {
-        console.log('✅ Tabela ordens_servico verificada/criada');
-        
-        // ✅ VERIFICAR CAMPOS FALTANTES EM AMBAS AS TABELAS
-        await verificarECriarCampos();
-        await verificarECriarCamposUsuarios();
-      }
-    });
+    `,
+      async (err) => {
+        if (err) {
+          console.error('❌ Erro ao criar tabela ordens_servico:', err);
+        } else {
+          console.log('✅ Tabela ordens_servico verificada/criada');
 
-    // ✅ INSERIR USUÁRIOS PADRÃO ATUALIZADOS COM TIPO
-    db.get("SELECT COUNT(*) as count FROM usuarios", (err, row) => {
+          // ✅ VERIFICAR CAMPOS FALTANTES
+          await verificarECriarCampos();
+          await verificarECriarCamposUsuarios();
+        }
+      }
+    );
+
+    // ✅ INSERIR USUÁRIOS PADRÃO APENAS SE A TABELA ESTIVER VAZIA
+    db.get('SELECT COUNT(*) as count FROM usuarios', (err, row) => {
       if (err) {
         console.error('❌ Erro ao verificar usuários:', err);
         return;
       }
 
       if (row.count === 0) {
-        db.run(`
+        db.run(
+          `
           INSERT INTO usuarios (nome, email, senha, tipo, setor)
           VALUES 
           ('Admin', 'admin@hospital.com', '123456', 'admin', 'TI'),
           ('Técnico Manutenção', 'manutencao@hospital.com', '123456', 'tecnico', 'Manutenção'),
           ('Usuário Teste', 'teste@hospital.com', '123456', 'solicitante', 'Pronto Socorro')
-        `, (err) => {
-          if (err) {
-            console.error('❌ Erro ao inserir usuários padrão:', err);
-          } else {
-            console.log('✅ Usuários padrão inseridos');
+        `,
+          (insertErr) => {
+            if (insertErr) {
+              console.error('❌ Erro ao inserir usuários padrão:', insertErr);
+            } else {
+              console.log('✅ Usuários padrão inseridos');
+            }
           }
-        });
+        );
       }
     });
   });
@@ -179,10 +185,9 @@ function criarTabelas() {
 // ✅ FUNÇÃO PARA VERIFICAR E CRIAR CAMPOS FALTANTES NA TABELA ORDENS_SERVICO
 function verificarECriarCampos() {
   return new Promise((resolve) => {
-    // Verificar se campo data_fechamento existe
-    db.all("PRAGMA table_info(ordens_servico)", (err, rows) => {
+    db.all('PRAGMA table_info(ordens_servico)', (err, rows) => {
       if (err) {
-        console.error('❌ Erro ao verificar estrutura da tabela:', err);
+        console.error('❌ Erro ao verificar estrutura da tabela ordens_servico:', err);
         resolve();
         return;
       }
@@ -190,30 +195,39 @@ function verificarECriarCampos() {
       const camposExistentes = Array.isArray(rows) ? rows.map((row) => row.name) : [];
       console.log('📋 Campos existentes em ordens_servico:', camposExistentes);
 
-      // Adicionar data_fechamento se não existir
+      const promises = [];
+
       if (!camposExistentes.includes('data_fechamento')) {
-        db.run("ALTER TABLE ordens_servico ADD COLUMN data_fechamento TEXT", (err) => {
-          if (err) {
-            console.error('❌ Erro ao adicionar data_fechamento:', err);
-          } else {
-            console.log('✅ Campo data_fechamento adicionado');
-          }
-        });
+        promises.push(
+          new Promise((res) => {
+            db.run('ALTER TABLE ordens_servico ADD COLUMN data_fechamento TEXT', (alterErr) => {
+              if (alterErr) {
+                console.error('❌ Erro ao adicionar data_fechamento:', alterErr);
+              } else {
+                console.log('✅ Campo data_fechamento adicionado');
+              }
+              res();
+            });
+          })
+        );
       }
 
-      // Adicionar tempo_resolucao_horas se não existir
       if (!camposExistentes.includes('tempo_resolucao_horas')) {
-        db.run("ALTER TABLE ordens_servico ADD COLUMN tempo_resolucao_horas REAL", (err) => {
-          if (err) {
-            console.error('❌ Erro ao adicionar tempo_resolucao_horas:', err);
-          } else {
-            console.log('✅ Campo tempo_resolucao_horas adicionado');
-          }
-          resolve();
-        });
-      } else {
-        resolve();
+        promises.push(
+          new Promise((res) => {
+            db.run('ALTER TABLE ordens_servico ADD COLUMN tempo_resolucao_horas REAL', (alterErr) => {
+              if (alterErr) {
+                console.error('❌ Erro ao adicionar tempo_resolucao_horas:', alterErr);
+              } else {
+                console.log('✅ Campo tempo_resolucao_horas adicionado');
+              }
+              res();
+            });
+          })
+        );
       }
+
+      Promise.all(promises).then(() => resolve());
     });
   });
 }
@@ -242,35 +256,40 @@ class OrdemServico {
 
   static create(data, callback) {
     let user_id = data.user_id || 1;
-    user_id = parseInt(user_id);
+    user_id = parseInt(user_id, 10);
     if (isNaN(user_id)) user_id = 1;
 
-    const { 
-      setor_origem = 'Não informado', 
-      setor_destino, 
-      categoria = 'Geral', 
-      cliente, 
-      descricao, 
-      prioridade = 'Média', 
+    const {
+      setor_origem = 'Não informado',
+      setor_destino,
+      categoria = 'Geral',
+      cliente,
+      descricao,
+      prioridade = 'Média',
       status = 'Aberto',
-      solicitante,       
-      equipamento,       
-      defeito            
+      solicitante,
+      equipamento,
+      defeito
     } = data;
 
     const clienteFinal = cliente || solicitante || 'Não informado';
     const descricaoFinal = descricao || defeito || 'Não informado';
-    const descricaoCompleta = equipamento ? 
-      `Equipamento: ${equipamento}. Problema: ${descricaoFinal}` : 
-      descricaoFinal;
+    const descricaoCompleta = equipamento
+      ? `Equipamento: ${equipamento}. Problema: ${descricaoFinal}`
+      : descricaoFinal;
 
-    console.log('📦 Criando OS:', { user_id, setor_destino, cliente: clienteFinal, prioridade });
+    console.log('📦 Criando OS:', {
+      user_id,
+      setor_destino,
+      cliente: clienteFinal,
+      prioridade
+    });
 
     db.run(
       `INSERT INTO ordens_servico (user_id, setor_origem, setor_destino, categoria, cliente, descricao, prioridade, status)
        VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
       [user_id, setor_origem, setor_destino, categoria, clienteFinal, descricaoCompleta, prioridade, status],
-      function(err) {
+      function (err) {
         if (err) {
           console.error('❌ Erro ao criar OS:', err);
           return callback(err);
@@ -281,26 +300,27 @@ class OrdemServico {
     );
   }
 
-  // ✅ MÉTODO ATUALIZADO: Incluir data_fechamento e calcular tempo
+  // ✅ Atualizar status com cálculo de tempo de resolução
   static updateStatus(id, status, relato_tecnico = null, materiais_usados = null, callback) {
-    // ✅ VALIDAÇÃO DO STATUS
     const statusValidos = ['Aberto', 'Em Andamento', 'Aguardando Peças', 'Finalizado', 'Cancelado'];
+
     if (!statusValidos.includes(status)) {
-      return callback(new Error('Status inválido. Use: Aberto, Em Andamento, Aguardando Peças, Finalizado ou Cancelado'));
+      return callback(
+        new Error('Status inválido. Use: Aberto, Em Andamento, Aguardando Peças, Finalizado ou Cancelado')
+      );
     }
-    
+
     if (status === 'Finalizado') {
-      // ✅ CALCULAR TEMPO DE RESOLUÇÃO AO FINALIZAR
       const dataFechamento = new Date().toISOString();
-      
-      // Buscar data de abertura para calcular tempo
-      db.get("SELECT data_abertura FROM ordens_servico WHERE id = ?", [id], (err, row) => {
+
+      db.get('SELECT data_abertura FROM ordens_servico WHERE id = ?', [id], (err, row) => {
         if (err) {
           console.error('❌ Erro ao buscar data abertura:', err);
           return callback(err);
         }
 
         let tempoResolucaoHoras = null;
+
         if (row && row.data_abertura) {
           const dataAbertura = new Date(row.data_abertura);
           const dataFechamentoDate = new Date(dataFechamento);
@@ -335,7 +355,7 @@ class OrdemServico {
       WHERE os.setor_destino = ? 
       ORDER BY os.id DESC
     `;
-    
+
     db.all(query, [setor_destino], (err, rows) => {
       if (err) {
         console.error('❌ Erro ao buscar OSs por setor:', err);
@@ -353,7 +373,7 @@ class OrdemServico {
       LEFT JOIN usuarios u ON os.user_id = u.id
       WHERE os.id = ?
     `;
-    
+
     db.get(query, [id], (err, row) => {
       if (err) {
         console.error('❌ Erro ao buscar OS por ID:', err);
@@ -363,41 +383,37 @@ class OrdemServico {
     });
   }
 
-  // ✅ MÉTODO: Atualização completa com reclassificação
   static updateCompleta(id, data, callback) {
     const { status, prioridade, relato_tecnico, materiais_usados } = data;
-    
-    // ✅ VALIDAÇÃO DO STATUS
+
     const statusValidos = ['Aberto', 'Em Andamento', 'Aguardando Peças', 'Finalizado', 'Cancelado'];
     if (!statusValidos.includes(status)) {
       return callback(new Error('Status inválido'));
     }
-    
-    let query = `UPDATE ordens_servico SET status = ?`;
+
+    let query = 'UPDATE ordens_servico SET status = ?';
     const params = [status];
-    
-    // Se houver nova prioridade, atualizar
+
     if (prioridade) {
-      query += `, prioridade = ?`;
+      query += ', prioridade = ?';
       params.push(prioridade);
     }
-    
-    // Campos para quando finalizar
+
     if (status === 'Finalizado') {
-      query += `, relato_tecnico = ?, materiais_usados = ?, data_fechamento = datetime('now', 'localtime')`;
+      query += ", relato_tecnico = ?, materiais_usados = ?, data_fechamento = datetime('now', 'localtime')";
       params.push(relato_tecnico || null, materiais_usados || null);
     } else {
-      query += `, relato_tecnico = ?, materiais_usados = ?`;
+      query += ', relato_tecnico = ?, materiais_usados = ?';
       params.push(relato_tecnico || null, materiais_usados || null);
     }
-    
-    query += ` WHERE id = ?`;
+
+    query += ' WHERE id = ?';
     params.push(id);
-    
+
     console.log('📝 Query de atualização completa:', query);
     console.log('📋 Parâmetros:', params);
-    
-    db.run(query, params, function(err) {
+
+    db.run(query, params, function (err) {
       if (err) {
         console.error('❌ Erro ao atualizar OS completa:', err);
         return callback(err);
