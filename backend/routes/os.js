@@ -7,6 +7,21 @@ const { requireTechnical } = require('../middleware/auth');
 
 router.use(authMiddleware);
 
+// Função auxiliar para calcular horas entre datas
+function calcularHorasEntreDatas(dataInicio, dataFim) {
+  const inicio = new Date(dataInicio);
+  const fim = new Date(dataFim);
+
+  if (isNaN(inicio.getTime()) || isNaN(fim.getTime())) {
+    return 0;
+  }
+
+  const diferencaMs = fim.getTime() - inicio.getTime();
+  const diferencaHoras = diferencaMs / (1000 * 60 * 60);
+
+  return Number(diferencaHoras.toFixed(2));
+}
+
 // Listar todas as OS - somente técnico/admin
 router.get('/', requireTechnical, (req, res) => {
   OrdemServico.getAll((err, ordens) => {
@@ -31,6 +46,9 @@ router.post('/', (req, res) => {
     ...req.body,
     user_id: req.user_id
   };
+
+  // Garantir que data_abertura seja salva
+  osData.data_abertura = new Date().toISOString();
 
   OrdemServico.create(osData, (err, result) => {
     if (err) {
@@ -166,51 +184,120 @@ router.put('/:id/status', requireTechnical, (req, res) => {
     });
   }
 
-  let query = `UPDATE ordens_servico SET status = ?`;
-  const params = [status];
-
-  if (prioridade) {
-    query += `, prioridade = ?`;
-    params.push(prioridade);
-  }
-
-  query += `, relato_tecnico = ?, materiais_usados = ?`;
-  params.push(relato_tecnico || null, materiais_usados || null);
-
-  // grava data_fechamento real quando finalizar
+  // Se for finalizar, primeiro buscar a OS para calcular o tempo
   if (status === 'Finalizado') {
-    query += `, data_fechamento = datetime('now', 'localtime')`;
-  }
+    // Buscar dados da OS atual
+    const buscarOS = `SELECT data_abertura FROM ordens_servico WHERE id = ?`;
+    
+    db.get(buscarOS, [id], (err, os) => {
+      if (err) {
+        console.error('Erro ao buscar OS para cálculo de tempo:', err);
+        return res.status(500).json({
+          success: false,
+          message: 'Erro ao processar finalização da OS'
+        });
+      }
 
-  // se reabrir ou mudar para outro status, limpa data_fechamento
-  if (status !== 'Finalizado') {
-    query += `, data_fechamento = NULL`;
-  }
+      if (!os) {
+        return res.status(404).json({
+          success: false,
+          message: 'Ordem de serviço não encontrada'
+        });
+      }
 
-  query += ` WHERE id = ?`;
-  params.push(id);
+      const dataFechamento = new Date().toISOString();
+      const tempoResolucaoHoras = calcularHorasEntreDatas(os.data_abertura, dataFechamento);
 
-  db.run(query, params, function(err) {
-    if (err) {
-      console.error('Erro ao atualizar status:', err);
-      return res.status(500).json({
-        success: false,
-        message: 'Erro ao atualizar ordem de serviço'
-      });
-    }
+      // Atualizar com data_fechamento e tempo_resolucao_horas
+      const query = `
+        UPDATE ordens_servico 
+        SET status = ?, 
+            relato_tecnico = ?, 
+            materiais_usados = ?, 
+            prioridade = ?,
+            data_fechamento = ?,
+            tempo_resolucao_horas = ?
+        WHERE id = ?
+      `;
 
-    if (this.changes === 0) {
-      return res.status(404).json({
-        success: false,
-        message: 'Ordem de serviço não encontrada'
-      });
-    }
+      db.run(
+        query,
+        [
+          status,
+          relato_tecnico || null,
+          materiais_usados || null,
+          prioridade || 'Média',
+          dataFechamento,
+          tempoResolucaoHoras,
+          id
+        ],
+        function(err) {
+          if (err) {
+            console.error('Erro ao finalizar OS:', err);
+            return res.status(500).json({
+              success: false,
+              message: 'Erro ao finalizar ordem de serviço'
+            });
+          }
 
-    res.json({
-      success: true,
-      message: 'Status atualizado com sucesso!'
+          if (this.changes === 0) {
+            return res.status(404).json({
+              success: false,
+              message: 'Ordem de serviço não encontrada'
+            });
+          }
+
+          res.json({
+            success: true,
+            message: 'OS finalizada com sucesso!',
+            data_fechamento: dataFechamento,
+            tempo_resolucao_horas: tempoResolucaoHoras
+          });
+        }
+      );
     });
-  });
+  } else {
+    // Para outros status, não altera data_fechamento nem tempo_resolucao_horas
+    let query = `UPDATE ordens_servico SET status = ?`;
+    const params = [status];
+
+    if (prioridade) {
+      query += `, prioridade = ?`;
+      params.push(prioridade);
+    }
+
+    query += `, relato_tecnico = ?, materiais_usados = ?`;
+    params.push(relato_tecnico || null, materiais_usados || null);
+
+    // Se não for finalizado, limpa data_fechamento e tempo_resolucao_horas
+    // (caso esteja reabrindo uma OS finalizada)
+    query += `, data_fechamento = NULL, tempo_resolucao_horas = NULL`;
+    
+    query += ` WHERE id = ?`;
+    params.push(id);
+
+    db.run(query, params, function(err) {
+      if (err) {
+        console.error('Erro ao atualizar status:', err);
+        return res.status(500).json({
+          success: false,
+          message: 'Erro ao atualizar ordem de serviço'
+        });
+      }
+
+      if (this.changes === 0) {
+        return res.status(404).json({
+          success: false,
+          message: 'Ordem de serviço não encontrada'
+        });
+      }
+
+      res.json({
+        success: true,
+        message: 'Status atualizado com sucesso!'
+      });
+    });
+  }
 });
 
 // Atualizar OS completa - somente técnico/admin
@@ -225,43 +312,122 @@ router.put('/:id', requireTechnical, (req, res) => {
     });
   }
 
-  const query = `
-    UPDATE ordens_servico
-    SET status = ?, relato_tecnico = ?, materiais_usados = ?, prioridade = ?
-    WHERE id = ?
-  `;
-
-  db.run(
-    query,
-    [
-      status || 'Aberto',
-      relato_tecnico || null,
-      materiais_usados || null,
-      prioridade || 'Média',
-      id
-    ],
-    function(err) {
+  // Se o status for Finalizado, precisamos calcular o tempo
+  if (status === 'Finalizado') {
+    // Buscar dados da OS atual
+    const buscarOS = `SELECT data_abertura FROM ordens_servico WHERE id = ?`;
+    
+    db.get(buscarOS, [id], (err, os) => {
       if (err) {
-        console.error('Erro ao atualizar OS:', err);
+        console.error('Erro ao buscar OS para cálculo de tempo:', err);
         return res.status(500).json({
           success: false,
-          message: 'Erro ao atualizar OS'
+          message: 'Erro ao processar atualização da OS'
         });
       }
 
-      if (this.changes === 0) {
+      if (!os) {
         return res.status(404).json({
           success: false,
           message: 'OS não encontrada'
         });
       }
 
-      res.json({
-        success: true,
-        message: 'OS atualizada com sucesso'
-      });
-    }
-  );
+      const dataFechamento = new Date().toISOString();
+      const tempoResolucaoHoras = calcularHorasEntreDatas(os.data_abertura, dataFechamento);
+
+      const query = `
+        UPDATE ordens_servico
+        SET status = ?, 
+            relato_tecnico = ?, 
+            materiais_usados = ?, 
+            prioridade = ?,
+            data_fechamento = ?,
+            tempo_resolucao_horas = ?
+        WHERE id = ?
+      `;
+
+      db.run(
+        query,
+        [
+          status || 'Aberto',
+          relato_tecnico || null,
+          materiais_usados || null,
+          prioridade || 'Média',
+          dataFechamento,
+          tempoResolucaoHoras,
+          id
+        ],
+        function(err) {
+          if (err) {
+            console.error('Erro ao atualizar OS:', err);
+            return res.status(500).json({
+              success: false,
+              message: 'Erro ao atualizar OS'
+            });
+          }
+
+          if (this.changes === 0) {
+            return res.status(404).json({
+              success: false,
+              message: 'OS não encontrada'
+            });
+          }
+
+          res.json({
+            success: true,
+            message: 'OS atualizada com sucesso',
+            data_fechamento: dataFechamento,
+            tempo_resolucao_horas: tempoResolucaoHoras
+          });
+        }
+      );
+    });
+  } else {
+    // Para outros status, não altera data_fechamento nem tempo_resolucao_horas
+    const query = `
+      UPDATE ordens_servico
+      SET status = ?, 
+          relato_tecnico = ?, 
+          materiais_usados = ?, 
+          prioridade = ?,
+          data_fechamento = NULL,
+          tempo_resolucao_horas = NULL
+      WHERE id = ?
+    `;
+
+    db.run(
+      query,
+      [
+        status || 'Aberto',
+        relato_tecnico || null,
+        materiais_usados || null,
+        prioridade || 'Média',
+        id
+      ],
+      function(err) {
+        if (err) {
+          console.error('Erro ao atualizar OS:', err);
+          return res.status(500).json({
+            success: false,
+            message: 'Erro ao atualizar OS'
+          });
+        }
+
+        if (this.changes === 0) {
+          return res.status(404).json({
+            success: false,
+            message: 'OS não encontrada'
+          });
+        }
+
+        res.json({
+          success: true,
+          message: 'OS atualizada com sucesso'
+        });
+      }
+    );
+  }
 });
 
 module.exports = router;

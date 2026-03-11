@@ -1,6 +1,10 @@
 const express = require('express');
 const router = express.Router();
+const jwt = require('jsonwebtoken');
 const { db } = require('../db');
+const authMiddleware = require('../middleware/auth');
+
+const JWT_SECRET = process.env.JWT_SECRET || 'kronos_secret_dev';
 
 function definirTipoPorSetor(setor, tipoInformado) {
   if (
@@ -109,9 +113,18 @@ router.post('/login', (req, res) => {
     }
 
     const tipoFinal = definirTipoPorSetor(row.setor, row.tipo);
-    const token = Buffer.from(`${row.id}:${Date.now()}`).toString('base64');
 
-    console.log('✅ Login bem-sucedido:', row.nome);
+    const token = jwt.sign(
+      {
+        id: row.id,
+        email: row.email,
+        tipo: tipoFinal
+      },
+      JWT_SECRET,
+      { expiresIn: '8h' }
+    );
+
+    console.log('✅ Login bem-sucedido:', row.nome, '-', tipoFinal);
 
     res.json({
       success: true,
@@ -125,6 +138,22 @@ router.post('/login', (req, res) => {
       },
       token
     });
+  });
+});
+
+// Usuário autenticado atual
+router.get('/me', authMiddleware, (req, res) => {
+  const tipoFinal = definirTipoPorSetor(req.user.setor, req.user.tipo);
+
+  res.json({
+    success: true,
+    user: {
+      id: req.user.id,
+      nome: req.user.nome,
+      email: req.user.email,
+      setor: req.user.setor,
+      tipo: tipoFinal
+    }
   });
 });
 
@@ -183,7 +212,7 @@ router.get('/', (req, res) => {
 
     res.json({
       success: true,
-      users: (rows || []).map(user => ({
+      users: (rows || []).map((user) => ({
         ...user,
         tipo: definirTipoPorSetor(user.setor, user.tipo)
       }))

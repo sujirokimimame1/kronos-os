@@ -1,53 +1,50 @@
+const jwt = require('jsonwebtoken');
 const { db } = require('../db');
 
-function authMiddleware(req, res, next) {
-  const authHeader = req.header('Authorization');
-  const token = authHeader ? authHeader.replace('Bearer ', '') : req.query.token;
+const JWT_SECRET = process.env.JWT_SECRET || 'kronos_secret_dev';
 
-  if (!token) {
+function authMiddleware(req, res, next) {
+  const header = req.headers.authorization;
+
+  if (!header) {
     return res.status(401).json({
       success: false,
-      message: 'Token necessário'
+      message: 'Token não enviado'
     });
   }
 
+  const token = header.split(' ')[1];
+
   try {
-    const decoded = Buffer.from(token, 'base64').toString('ascii');
-    const [user_id] = decoded.split(':');
+    const decoded = jwt.verify(token, JWT_SECRET);
 
-    if (!user_id) {
-      return res.status(401).json({
-        success: false,
-        message: 'Token inválido'
-      });
-    }
+    const query = `
+      SELECT id, nome, email, setor, tipo
+      FROM usuarios
+      WHERE id = ?
+    `;
 
-    db.get(
-      'SELECT id, nome, email, setor, tipo FROM usuarios WHERE id = ?',
-      [user_id],
-      (err, row) => {
-        if (err) {
-          console.error('❌ Erro ao validar usuário:', err);
-          return res.status(500).json({
-            success: false,
-            message: 'Erro interno'
-          });
-        }
-
-        if (!row) {
-          return res.status(401).json({
-            success: false,
-            message: 'Usuário inválido'
-          });
-        }
-
-        req.user_id = row.id;
-        req.user = row;
-        next();
+    db.get(query, [decoded.id], (err, row) => {
+      if (err) {
+        return res.status(500).json({
+          success: false,
+          message: 'Erro ao verificar usuário'
+        });
       }
-    );
+
+      if (!row) {
+        return res.status(401).json({
+          success: false,
+          message: 'Usuário não encontrado'
+        });
+      }
+
+      req.user = row;
+      req.user_id = row.id;
+
+      next();
+    });
   } catch (err) {
-    console.error('❌ Erro ao processar token:', err);
     return res.status(401).json({
       success: false,
       message: 'Token inválido'
@@ -55,30 +52,23 @@ function authMiddleware(req, res, next) {
   }
 }
 
-function requireRole(...roles) {
-  return (req, res, next) => {
-    if (!req.user) {
-      return res.status(401).json({
-        success: false,
-        message: 'Usuário não autenticado'
-      });
-    }
-
-    if (!roles.includes(req.user.tipo)) {
-      return res.status(403).json({
-        success: false,
-        message: 'Acesso negado'
-      });
-    }
-
-    next();
-  };
-}
-
 function requireTechnical(req, res, next) {
-  return requireRole('tecnico', 'admin')(req, res, next);
+  if (!req.user) {
+    return res.status(401).json({
+      success: false,
+      message: 'Usuário não autenticado'
+    });
+  }
+
+  if (req.user.tipo !== 'tecnico' && req.user.tipo !== 'admin') {
+    return res.status(403).json({
+      success: false,
+      message: 'Acesso permitido apenas para técnicos e administradores'
+    });
+  }
+
+  next();
 }
 
 module.exports = authMiddleware;
-module.exports.requireRole = requireRole;
 module.exports.requireTechnical = requireTechnical;

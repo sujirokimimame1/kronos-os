@@ -11,12 +11,17 @@
   "dependencies": {
     "cors": "^2.8.5",
     "express": "^4.21.0",
+    "jsonwebtoken": "^9.0.3",
     "sqlite3": "^5.1.7"
   },
   "devDependencies": {
     "nodemon": "^3.1.4"
   },
-  "keywords": ["ordens-servico", "hospital", "api"],
+  "keywords": [
+    "ordens-servico",
+    "hospital",
+    "api"
+  ],
   "author": "Kronos OS",
   "license": "MIT"
 }
