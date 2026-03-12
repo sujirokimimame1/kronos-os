@@ -21,11 +21,12 @@ function authMiddleware(req, res, next) {
     const query = `
       SELECT id, nome, email, setor, tipo
       FROM usuarios
-      WHERE id = ?
+      WHERE id = $1
     `;
 
     db.get(query, [decoded.id], (err, row) => {
       if (err) {
+        console.error('❌ Erro ao verificar usuário:', err);
         return res.status(500).json({
           success: false,
           message: 'Erro ao verificar usuário'
