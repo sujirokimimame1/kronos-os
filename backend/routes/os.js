@@ -47,7 +47,6 @@ router.post('/', (req, res) => {
     user_id: req.user_id
   };
 
-  // Garantir que data_abertura seja salva
   osData.data_abertura = new Date().toISOString();
 
   OrdemServico.create(osData, (err, result) => {
@@ -100,7 +99,7 @@ router.get('/minhas', (req, res) => {
     SELECT os.*, u.nome as cliente_nome
     FROM ordens_servico os
     LEFT JOIN usuarios u ON os.user_id = u.id
-    WHERE os.user_id = ?
+    WHERE os.user_id = $1
     ORDER BY os.id DESC
   `;
 
@@ -184,11 +183,9 @@ router.put('/:id/status', requireTechnical, (req, res) => {
     });
   }
 
-  // Se for finalizar, primeiro buscar a OS para calcular o tempo
   if (status === 'Finalizado') {
-    // Buscar dados da OS atual
-    const buscarOS = `SELECT data_abertura FROM ordens_servico WHERE id = ?`;
-    
+    const buscarOS = `SELECT data_abertura FROM ordens_servico WHERE id = $1`;
+
     db.get(buscarOS, [id], (err, os) => {
       if (err) {
         console.error('Erro ao buscar OS para cálculo de tempo:', err);
@@ -208,16 +205,15 @@ router.put('/:id/status', requireTechnical, (req, res) => {
       const dataFechamento = new Date().toISOString();
       const tempoResolucaoHoras = calcularHorasEntreDatas(os.data_abertura, dataFechamento);
 
-      // Atualizar com data_fechamento e tempo_resolucao_horas
       const query = `
         UPDATE ordens_servico 
-        SET status = ?, 
-            relato_tecnico = ?, 
-            materiais_usados = ?, 
-            prioridade = ?,
-            data_fechamento = ?,
-            tempo_resolucao_horas = ?
-        WHERE id = ?
+        SET status = $1, 
+            relato_tecnico = $2, 
+            materiais_usados = $3, 
+            prioridade = $4,
+            data_fechamento = $5,
+            tempo_resolucao_horas = $6
+        WHERE id = $7
       `;
 
       db.run(
@@ -231,7 +227,7 @@ router.put('/:id/status', requireTechnical, (req, res) => {
           tempoResolucaoHoras,
           id
         ],
-        function(err) {
+        function (err) {
           if (err) {
             console.error('Erro ao finalizar OS:', err);
             return res.status(500).json({
@@ -257,26 +253,25 @@ router.put('/:id/status', requireTechnical, (req, res) => {
       );
     });
   } else {
-    // Para outros status, não altera data_fechamento nem tempo_resolucao_horas
-    let query = `UPDATE ordens_servico SET status = ?`;
+    let query = `UPDATE ordens_servico SET status = $1`;
     const params = [status];
+    let index = 2;
 
     if (prioridade) {
-      query += `, prioridade = ?`;
+      query += `, prioridade = $${index}`;
       params.push(prioridade);
+      index++;
     }
 
-    query += `, relato_tecnico = ?, materiais_usados = ?`;
+    query += `, relato_tecnico = $${index}, materiais_usados = $${index + 1}`;
     params.push(relato_tecnico || null, materiais_usados || null);
+    index += 2;
 
-    // Se não for finalizado, limpa data_fechamento e tempo_resolucao_horas
-    // (caso esteja reabrindo uma OS finalizada)
     query += `, data_fechamento = NULL, tempo_resolucao_horas = NULL`;
-    
-    query += ` WHERE id = ?`;
+    query += ` WHERE id = $${index}`;
     params.push(id);
 
-    db.run(query, params, function(err) {
+    db.run(query, params, function (err) {
       if (err) {
         console.error('Erro ao atualizar status:', err);
         return res.status(500).json({
@@ -312,11 +307,9 @@ router.put('/:id', requireTechnical, (req, res) => {
     });
   }
 
-  // Se o status for Finalizado, precisamos calcular o tempo
   if (status === 'Finalizado') {
-    // Buscar dados da OS atual
-    const buscarOS = `SELECT data_abertura FROM ordens_servico WHERE id = ?`;
-    
+    const buscarOS = `SELECT data_abertura FROM ordens_servico WHERE id = $1`;
+
     db.get(buscarOS, [id], (err, os) => {
       if (err) {
         console.error('Erro ao buscar OS para cálculo de tempo:', err);
@@ -338,13 +331,13 @@ router.put('/:id', requireTechnical, (req, res) => {
 
       const query = `
         UPDATE ordens_servico
-        SET status = ?, 
-            relato_tecnico = ?, 
-            materiais_usados = ?, 
-            prioridade = ?,
-            data_fechamento = ?,
-            tempo_resolucao_horas = ?
-        WHERE id = ?
+        SET status = $1, 
+            relato_tecnico = $2, 
+            materiais_usados = $3, 
+            prioridade = $4,
+            data_fechamento = $5,
+            tempo_resolucao_horas = $6
+        WHERE id = $7
       `;
 
       db.run(
@@ -358,7 +351,7 @@ router.put('/:id', requireTechnical, (req, res) => {
           tempoResolucaoHoras,
           id
         ],
-        function(err) {
+        function (err) {
           if (err) {
             console.error('Erro ao atualizar OS:', err);
             return res.status(500).json({
@@ -384,16 +377,15 @@ router.put('/:id', requireTechnical, (req, res) => {
       );
     });
   } else {
-    // Para outros status, não altera data_fechamento nem tempo_resolucao_horas
     const query = `
       UPDATE ordens_servico
-      SET status = ?, 
-          relato_tecnico = ?, 
-          materiais_usados = ?, 
-          prioridade = ?,
+      SET status = $1, 
+          relato_tecnico = $2, 
+          materiais_usados = $3, 
+          prioridade = $4,
           data_fechamento = NULL,
           tempo_resolucao_horas = NULL
-      WHERE id = ?
+      WHERE id = $5
     `;
 
     db.run(
@@ -405,7 +397,7 @@ router.put('/:id', requireTechnical, (req, res) => {
         prioridade || 'Média',
         id
       ],
-      function(err) {
+      function (err) {
         if (err) {
           console.error('Erro ao atualizar OS:', err);
           return res.status(500).json({
