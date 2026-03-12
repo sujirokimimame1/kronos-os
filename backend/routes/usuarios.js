@@ -40,7 +40,7 @@ router.post('/', (req, res) => {
 
   const query = `
     INSERT INTO usuarios (nome, email, senha, setor, tipo)
-    VALUES (?, ?, ?, ?, ?)
+    VALUES ($1, $2, $3, $4, $5)
   `;
 
   db.run(query, [nome, email, senha, setorFinal, tipoFinal], function (err) {
@@ -92,7 +92,7 @@ router.post('/login', (req, res) => {
   const query = `
     SELECT id, nome, email, setor, tipo
     FROM usuarios
-    WHERE email = ? AND senha = ?
+    WHERE email = $1 AND senha = $2
   `;
 
   db.get(query, [email, senha], (err, row) => {
@@ -164,7 +164,7 @@ router.get('/:id', (req, res) => {
   const query = `
     SELECT id, nome, email, setor, tipo
     FROM usuarios
-    WHERE id = ?
+    WHERE id = $1
   `;
 
   db.get(query, [id], (err, row) => {
