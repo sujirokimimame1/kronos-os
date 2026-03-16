@@ -2487,9 +2487,11 @@
         document.getElementById('formNovaOS').addEventListener('submit', async function(e) {
             e.preventDefault();
             const token = localStorage.getItem('kronos_token');
+            const usuario = JSON.parse(localStorage.getItem('kronos_user') || '{}');
             const btnSubmit = document.getElementById('btnSubmitOS');
 
             const novaOS = {
+                user_id: usuario.id,
                 setor_origem: document.getElementById('setor_origem').value,
                 setor_destino: document.getElementById('setor_destino').value,
                 categoria: document.getElementById('categoria').value,
