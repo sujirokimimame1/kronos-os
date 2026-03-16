@@ -1,6 +1,5 @@
 const db = require('../db');
 
-// ✅ VERSÃO CORRIGIDA - COM FILTRO DE DATA E INDICADORES POR TIPO DE OS
 exports.getRelatorios = async (req, res) => {
   try {
     const { periodo, setor, status, prioridade, data_inicio, data_fim } = req.query;
@@ -27,47 +26,55 @@ exports.getRelatorios = async (req, res) => {
         data_abertura,
         data_fechamento,
         relato_tecnico
-      FROM ordens_servico 
+      FROM ordens_servico
       WHERE 1=1
     `;
 
     const params = [];
+    let index = 1;
 
     const intervaloCustomizado = construirIntervaloDatas(data_inicio, data_fim);
 
     if (intervaloCustomizado) {
       if (intervaloCustomizado.inicio) {
-        query += ` AND datetime(data_abertura) >= datetime(?)`;
+        query += ` AND data_abertura >= $${index}`;
         params.push(intervaloCustomizado.inicio);
+        index++;
       }
+
       if (intervaloCustomizado.fim) {
-        query += ` AND datetime(data_abertura) <= datetime(?)`;
+        query += ` AND data_abertura <= $${index}`;
         params.push(intervaloCustomizado.fim);
+        index++;
       }
     } else if (periodo && periodo !== 'todos') {
       const dias = parseInt(periodo, 10);
       if (!isNaN(dias) && dias > 0) {
-        query += ` AND datetime(data_abertura) >= datetime('now', 'localtime', ?)`;
-        params.push(`-${dias} days`);
+        query += ` AND data_abertura >= NOW() - ($${index} * INTERVAL '1 day')`;
+        params.push(dias);
+        index++;
       }
     }
 
     if (setor && setor !== 'todos') {
-      query += ` AND setor_destino = ?`;
+      query += ` AND setor_destino = $${index}`;
       params.push(setor);
+      index++;
     }
 
     if (status && status !== 'todos') {
-      query += ` AND status = ?`;
+      query += ` AND status = $${index}`;
       params.push(status);
+      index++;
     }
 
     if (prioridade && prioridade !== 'todos') {
-      query += ` AND prioridade = ?`;
+      query += ` AND prioridade = $${index}`;
       params.push(prioridade);
+      index++;
     }
 
-    query += ` ORDER BY datetime(data_abertura) DESC, id DESC`;
+    query += ` ORDER BY data_abertura DESC, id DESC`;
 
     console.log('🔍 Query:', query);
     console.log('📋 Parâmetros:', params);
@@ -77,7 +84,8 @@ exports.getRelatorios = async (req, res) => {
         console.error('❌ Erro no banco:', err.message);
         return res.status(500).json({
           success: false,
-          message: 'Erro no banco de dados'
+          message: 'Erro no banco de dados',
+          error: err.message
         });
       }
 
@@ -112,12 +120,12 @@ exports.getRelatorios = async (req, res) => {
         : 0;
 
       const tempoMedioSetor = {
-        'TI': 0,
+        TI: 0,
         'Manutenção': 0
       };
 
       const contagemSetor = {
-        'TI': 0,
+        TI: 0,
         'Manutenção': 0
       };
 
@@ -131,12 +139,14 @@ exports.getRelatorios = async (req, res) => {
         }
       });
 
-      if (contagemSetor['TI'] > 0) {
-        tempoMedioSetor['TI'] = Math.round(tempoMedioSetor['TI'] / contagemSetor['TI']);
+      if (contagemSetor.TI > 0) {
+        tempoMedioSetor.TI = Math.round(tempoMedioSetor.TI / contagemSetor.TI);
       }
 
       if (contagemSetor['Manutenção'] > 0) {
-        tempoMedioSetor['Manutenção'] = Math.round(tempoMedioSetor['Manutenção'] / contagemSetor['Manutenção']);
+        tempoMedioSetor['Manutenção'] = Math.round(
+          tempoMedioSetor['Manutenção'] / contagemSetor['Manutenção']
+        );
       }
 
       const estatisticas = calcularEstatisticas(
@@ -154,7 +164,6 @@ exports.getRelatorios = async (req, res) => {
           const dentroSLA = calcularSLA(os);
 
           let sla_status = 'Em aberto';
-
           if (tempo !== null) {
             sla_status = dentroSLA ? 'Dentro do SLA' : 'Fora do SLA';
           }
@@ -182,17 +191,16 @@ exports.getRelatorios = async (req, res) => {
         dados: responseData
       });
     });
-
   } catch (error) {
     console.error('❌ Erro geral no relatório:', error);
     res.status(500).json({
       success: false,
-      message: 'Erro interno do servidor'
+      message: 'Erro interno do servidor',
+      error: error.message
     });
   }
 };
 
-// Relatório de técnicos
 exports.getRelatorioTecnicos = async (req, res) => {
   try {
     const query = `
@@ -200,7 +208,7 @@ exports.getRelatorioTecnicos = async (req, res) => {
         setor_destino as setor,
         COUNT(*) as total,
         SUM(CASE WHEN status = 'Finalizado' THEN 1 ELSE 0 END) as finalizadas
-      FROM ordens_servico 
+      FROM ordens_servico
       WHERE setor_destino IS NOT NULL
       GROUP BY setor_destino
       ORDER BY total DESC
@@ -208,19 +216,20 @@ exports.getRelatorioTecnicos = async (req, res) => {
 
     db.all(query, [], (err, rows) => {
       if (err) {
-        console.error('❌ Erro no relatório de setores:', err);
+        console.error('❌ Erro no relatório de técnicos:', err);
         return res.status(500).json({
           success: false,
-          message: 'Erro no banco de dados'
+          message: 'Erro no banco de dados',
+          error: err.message
         });
       }
 
       const relatorioSetores = rows.map(row => ({
         setor: row.setor,
-        totalOS: row.total,
-        finalizadas: row.finalizadas,
-        taxaSucesso: row.total > 0
-          ? parseFloat(((row.finalizadas / row.total) * 100).toFixed(1))
+        totalOS: Number(row.total) || 0,
+        finalizadas: Number(row.finalizadas) || 0,
+        taxaSucesso: Number(row.total) > 0
+          ? parseFloat(((Number(row.finalizadas) / Number(row.total)) * 100).toFixed(1))
           : 0,
         tempoMedio: '24h'
       }));
@@ -230,23 +239,22 @@ exports.getRelatorioTecnicos = async (req, res) => {
         data: relatorioSetores
       });
     });
-
   } catch (error) {
-    console.error('❌ Erro no relatório de setores:', error);
+    console.error('❌ Erro no relatório de técnicos:', error);
     res.status(500).json({
       success: false,
-      message: 'Erro interno do servidor'
+      message: 'Erro interno do servidor',
+      error: error.message
     });
   }
 };
 
-// Listar setores disponíveis
 exports.getSetores = async (req, res) => {
   try {
     const query = `
-      SELECT DISTINCT setor_destino as nome 
-      FROM ordens_servico 
-      WHERE setor_destino IS NOT NULL AND setor_destino != ''
+      SELECT DISTINCT setor_destino as nome
+      FROM ordens_servico
+      WHERE setor_destino IS NOT NULL AND setor_destino <> ''
       ORDER BY nome
     `;
 
@@ -266,12 +274,12 @@ exports.getSetores = async (req, res) => {
         data: setores
       });
     });
-
   } catch (error) {
     console.error('❌ Erro ao buscar setores:', error);
     res.status(500).json({
       success: false,
-      message: 'Erro interno do servidor'
+      message: 'Erro interno do servidor',
+      error: error.message
     });
   }
 };
@@ -281,7 +289,6 @@ function calcularTempoResolucao(os) {
 
   const abertura = new Date(os.data_abertura);
   const fechamento = new Date(os.data_fechamento);
-
   const diff = fechamento - abertura;
 
   return Math.round(diff / (1000 * 60 * 60));
@@ -289,18 +296,16 @@ function calcularTempoResolucao(os) {
 
 function calcularSLA(os) {
   const tempo = calcularTempoResolucao(os);
-
   if (tempo === null) return false;
 
   const limites = {
-    'Baixa': 72,
-    'Média': 48,
-    'Alta': 24,
-    'Crítica': 8
+    Baixa: 72,
+    Média: 48,
+    Alta: 24,
+    Crítica: 8
   };
 
   const limite = limites[os.prioridade] || 48;
-
   return tempo <= limite;
 }
 
@@ -332,15 +337,10 @@ function obterTopCategoriaPorSetor(ordens, setorDestino) {
 
   const categorias = Object.keys(contagem);
   if (categorias.length === 0) {
-    return {
-      categoria: 'Sem dados',
-      quantidade: 0
-    };
+    return { categoria: 'Sem dados', quantidade: 0 };
   }
 
-  const categoriaTop = categorias.reduce((a, b) =>
-    contagem[a] >= contagem[b] ? a : b
-  );
+  const categoriaTop = categorias.reduce((a, b) => contagem[a] >= contagem[b] ? a : b);
 
   return {
     categoria: categoriaTop,
@@ -409,7 +409,7 @@ function calcularAgrupamentos(ordens, tempoMedioSetor) {
 
   const categoriaPorSetor = {
     TI: {},
-    'Manutenção': {}
+    Manutenção: {}
   };
 
   ordens.forEach(os => {
@@ -439,7 +439,7 @@ function calcularAgrupamentos(ordens, tempoMedioSetor) {
         const data = new Date(os.data_abertura);
         const mes = data.toLocaleDateString('pt-BR', { month: 'short' });
         mensalCount[mes] = (mensalCount[mes] || 0) + 1;
-      } catch (e) {}
+      } catch (_) {}
     }
   });
 
