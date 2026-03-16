@@ -1,11 +1,18 @@
-const { db } = require('../db');
+const db = require('../db');
 
 // ✅ VERSÃO CORRIGIDA - COM FILTRO DE DATA E INDICADORES POR TIPO DE OS
 exports.getRelatorios = async (req, res) => {
   try {
     const { periodo, setor, status, prioridade, data_inicio, data_fim } = req.query;
-    
-    console.log('📊 Buscando relatórios com filtros:', { periodo, setor, status, prioridade, data_inicio, data_fim });
+
+    console.log('📊 Buscando relatórios com filtros:', {
+      periodo,
+      setor,
+      status,
+      prioridade,
+      data_inicio,
+      data_fim
+    });
 
     let query = `
       SELECT 
@@ -23,7 +30,7 @@ exports.getRelatorios = async (req, res) => {
       FROM ordens_servico 
       WHERE 1=1
     `;
-    
+
     const params = [];
 
     const intervaloCustomizado = construirIntervaloDatas(data_inicio, data_fim);
@@ -49,7 +56,7 @@ exports.getRelatorios = async (req, res) => {
       query += ` AND setor_destino = ?`;
       params.push(setor);
     }
-    
+
     if (status && status !== 'todos') {
       query += ` AND status = ?`;
       params.push(status);
@@ -68,9 +75,9 @@ exports.getRelatorios = async (req, res) => {
     db.all(query, params, (err, rows) => {
       if (err) {
         console.error('❌ Erro no banco:', err.message);
-        return res.status(500).json({ 
-          success: false, 
-          message: 'Erro no banco de dados' 
+        return res.status(500).json({
+          success: false,
+          message: 'Erro no banco de dados'
         });
       }
 
@@ -90,7 +97,6 @@ exports.getRelatorios = async (req, res) => {
         relato_tecnico: os.relato_tecnico || null
       }));
 
-      // Calcular estatísticas de tempo e SLA
       const tempos = chamados
         .map(c => calcularTempoResolucao(c))
         .filter(t => t !== null);
@@ -100,22 +106,21 @@ exports.getRelatorios = async (req, res) => {
         : 0;
 
       const slaCumprido = chamados.filter(c => calcularSLA(c)).length;
-      
+
       const taxaSLACumprido = chamados.length > 0
         ? Math.round((slaCumprido / chamados.length) * 100)
         : 0;
 
-      // Calcular tempo médio por setor
       const tempoMedioSetor = {
         'TI': 0,
         'Manutenção': 0
       };
-      
+
       const contagemSetor = {
         'TI': 0,
         'Manutenção': 0
       };
-      
+
       chamados.forEach(os => {
         if (os.status === 'Finalizado' && os.data_fechamento && os.setor_destino) {
           const tempo = calcularTempoResolucao(os);
@@ -125,19 +130,24 @@ exports.getRelatorios = async (req, res) => {
           }
         }
       });
-      
+
       if (contagemSetor['TI'] > 0) {
         tempoMedioSetor['TI'] = Math.round(tempoMedioSetor['TI'] / contagemSetor['TI']);
       }
-      
+
       if (contagemSetor['Manutenção'] > 0) {
         tempoMedioSetor['Manutenção'] = Math.round(tempoMedioSetor['Manutenção'] / contagemSetor['Manutenção']);
       }
 
-      const estatisticas = calcularEstatisticas(chamados, tempoMedioResolucao, slaCumprido, taxaSLACumprido);
+      const estatisticas = calcularEstatisticas(
+        chamados,
+        tempoMedioResolucao,
+        slaCumprido,
+        taxaSLACumprido
+      );
+
       const agrupamentos = calcularAgrupamentos(chamados, tempoMedioSetor);
 
-      // ✅ MELHORIA: Adicionar status de SLA para cada chamado
       const responseData = {
         chamados: chamados.map(os => {
           const tempo = calcularTempoResolucao(os);
@@ -209,7 +219,9 @@ exports.getRelatorioTecnicos = async (req, res) => {
         setor: row.setor,
         totalOS: row.total,
         finalizadas: row.finalizadas,
-        taxaSucesso: row.total > 0 ? parseFloat(((row.finalizadas / row.total) * 100).toFixed(1)) : 0,
+        taxaSucesso: row.total > 0
+          ? parseFloat(((row.finalizadas / row.total) * 100).toFixed(1))
+          : 0,
         tempoMedio: '24h'
       }));
 
@@ -248,7 +260,7 @@ exports.getSetores = async (req, res) => {
       }
 
       const setores = rows.map(row => row.nome);
-      
+
       res.json({
         success: true,
         data: setores
@@ -264,7 +276,6 @@ exports.getSetores = async (req, res) => {
   }
 };
 
-// ✅ FUNÇÃO: Calcular tempo de resolução em horas
 function calcularTempoResolucao(os) {
   if (!os.data_fechamento) return null;
 
@@ -273,14 +284,12 @@ function calcularTempoResolucao(os) {
 
   const diff = fechamento - abertura;
 
-  return Math.round(diff / (1000 * 60 * 60)); // horas
+  return Math.round(diff / (1000 * 60 * 60));
 }
 
-// ✅ FUNÇÃO: Calcular se a OS cumpriu o SLA (CORRIGIDA)
 function calcularSLA(os) {
   const tempo = calcularTempoResolucao(os);
 
-  // ✅ CORREÇÃO: Verificar explicitamente null em vez de usar !tempo
   if (tempo === null) return false;
 
   const limites = {
@@ -329,7 +338,9 @@ function obterTopCategoriaPorSetor(ordens, setorDestino) {
     };
   }
 
-  const categoriaTop = categorias.reduce((a, b) => contagem[a] >= contagem[b] ? a : b);
+  const categoriaTop = categorias.reduce((a, b) =>
+    contagem[a] >= contagem[b] ? a : b
+  );
 
   return {
     categoria: categoriaTop,
@@ -343,7 +354,7 @@ function calcularEstatisticas(ordens, tempoMedioResolucao, slaCumprido, taxaSLAC
   const osAbertas = ordens.filter(os => os.status === 'Aberto').length;
   const osAndamento = ordens.filter(os => os.status === 'Em Andamento').length;
   const osAguardando = ordens.filter(os => os.status === 'Aguardando Peças').length;
-  
+
   const taxaConclusao = totalOS > 0 ? ((osFinalizadas / totalOS) * 100) : 0;
 
   const setoresCount = {};
@@ -351,15 +362,14 @@ function calcularEstatisticas(ordens, tempoMedioResolucao, slaCumprido, taxaSLAC
     const setor = os.setor_origem || 'Não informado';
     setoresCount[setor] = (setoresCount[setor] || 0) + 1;
   });
-  
-  const setorTop = Object.keys(setoresCount).length > 0 
+
+  const setorTop = Object.keys(setoresCount).length > 0
     ? Object.keys(setoresCount).reduce((a, b) => setoresCount[a] > setoresCount[b] ? a : b)
     : 'Nenhum';
 
   const topCategoriaTI = obterTopCategoriaPorSetor(ordens, 'TI');
   const topCategoriaManutencao = obterTopCategoriaPorSetor(ordens, 'Manutenção');
 
-  // Calcular eficiência geral (média entre taxa de conclusão e cumprimento de SLA)
   const eficienciaGeral = totalOS > 0 && osFinalizadas > 0
     ? parseFloat(((taxaConclusao + taxaSLACumprido) / 2).toFixed(1))
     : 0;
@@ -372,13 +382,13 @@ function calcularEstatisticas(ordens, tempoMedioResolucao, slaCumprido, taxaSLAC
     osAguardando,
     taxaConclusao: parseFloat(taxaConclusao.toFixed(1)),
     tempoMedio: tempoMedioResolucao,
-    tempoMedioResolucao: tempoMedioResolucao,
-    slaCumprido: slaCumprido,
-    taxaSLACumprido: taxaSLACumprido,
+    tempoMedioResolucao,
+    slaCumprido,
+    taxaSLACumprido,
     setorTop,
     osDentroSLA: slaCumprido,
     totalOSFinalizadas: osFinalizadas,
-    eficienciaGeral: eficienciaGeral,
+    eficienciaGeral,
     topCategoriaTI,
     topCategoriaManutencao
   };
@@ -440,8 +450,6 @@ function calcularAgrupamentos(ordens, tempoMedioSetor) {
     setoresSolicitantes: setorSolicitanteCount,
     setoresExecutantes: setorExecutanteCount,
     mensal: mensalCount,
-    tempoMedioSetor: tempoMedioSetor
+    tempoMedioSetor
   };
 }
-
-  
