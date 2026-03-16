@@ -1507,7 +1507,7 @@
                 }
             }
 
-            // ✅ CARREGAR DADOS DOS RELATÓRIOS - CORRIGIDO
+            // ✅ CARREGAR DADOS DOS RELATÓRIOS - CORRIGIDO (SEM FALLBACK)
             async carregarRelatorios() {
                 this.mostrarLoading(true);
                 this.esconderError();
@@ -1528,12 +1528,21 @@
                     
                 } catch (error) {
                     console.error('❌ Erro ao carregar relatórios:', error);
-                    this.mostrarError('Erro ao carregar dados: ' + error.message);
+                    
+                    // ❌ IMPORTANTE: Não gerar dados simulados, apenas mostrar erro
+                    this.dadosRelatorios = null;
+                    
+                    // Mostrar mensagem de erro clara para o usuário
+                    this.mostrarError('❌ ' + error.message);
+                    
                     this.mostrarLoading(false);
+                    
+                    // Esconder indicador de tempo real em caso de erro
+                    document.getElementById('tempoRealIndicator').style.display = 'none';
                 }
             }
 
-            // ✅ CARREGAR DADOS REAIS DA API - CORRIGIDO
+            // ✅ CARREGAR DADOS REAIS DA API - CORRIGIDO (SEM FALLBACK)
             async carregarDadosReais() {
                 try {
                     const token = localStorage.getItem('kronos_token');
@@ -1572,23 +1581,42 @@
                     });
 
                     if (!response.ok) {
-                        throw new Error(`Erro HTTP: ${response.status}`);
+                        let errorMsg = `Erro HTTP: ${response.status}`;
+                        
+                        // Mensagens mais específicas baseadas no status
+                        if (response.status === 401) {
+                            errorMsg = 'Sessão expirada. Faça login novamente.';
+                            setTimeout(() => window.location.href = 'index.html', 2000);
+                        } else if (response.status === 403) {
+                            errorMsg = 'Sem permissão para acessar relatórios.';
+                        } else if (response.status === 404) {
+                            errorMsg = 'API de relatórios não encontrada.';
+                        } else if (response.status >= 500) {
+                            errorMsg = 'Erro no servidor. Tente novamente mais tarde.';
+                        }
+                        
+                        throw new Error(errorMsg);
                     }
 
                     const dadosAPI = await response.json();
                     
                     if (dadosAPI && dadosAPI.success) {
-                        console.log('✅ Dados recebidos:', dadosAPI.dados);
+                        console.log('✅ Dados recebidos da API:', dadosAPI.dados);
                         this.dadosRelatorios = this.processarDadosAPI(dadosAPI.dados);
+                        
+                        // Esconder indicador de erro se estava visível
+                        this.esconderError();
+                        
                     } else {
-                        throw new Error('Resposta inválida da API');
+                        throw new Error(dadosAPI.message || 'Resposta inválida da API');
                     }
                     
                 } catch (error) {
                     console.error('❌ Erro na API:', error);
-                    // Fallback para dados simulados se a API não estiver disponível
-                    console.warn('⚠️ API de relatórios não disponível, usando dados simulados');
-                    this.dadosRelatorios = await this.gerarDadosSimulados();
+                    
+                    // ❌ NÃO USAR MAIS DADOS SIMULADOS
+                    // Lançar erro para ser capturado pelo carregarRelatorios()
+                    throw new Error(error.message || 'Erro ao carregar relatórios da API');
                 }
             }
 
@@ -1611,7 +1639,7 @@
                     }
                 } catch (error) {
                     console.warn('⚠️ Erro ao carregar setores:', error);
-                    // Setores padrão como fallback
+                    // Setores padrão como fallback apenas para o select, não para os dados
                     this.adicionarOpcoesSetor(['TI', 'Manutenção', 'Enfermaria', 'UTI', 'Laboratório']);
                 }
             }
@@ -1654,79 +1682,6 @@
                 };
             }
 
-            // ✅ GERAR DADOS SIMULADOS (FALLBACK)
-            async gerarDadosSimulados() {
-                const setores = ['UTI', 'Emergência', 'Centro Cirúrgico', 'Enfermaria', 'Radiologia', 'Laboratório'];
-                const status = ['Aberto', 'Em Andamento', 'Aguardando Peças', 'Finalizado', 'Cancelado'];
-                const prioridades = ['Baixa', 'Média', 'Alta', 'Crítica'];
-                
-                // Gerar OS simuladas
-                const totalOS = 50;
-                const ordensServico = [];
-                const dataAtual = new Date();
-                
-                for (let i = 1; i <= totalOS; i++) {
-                    const setor = setores[Math.floor(Math.random() * setores.length)];
-                    const statusOS = status[Math.floor(Math.random() * status.length)];
-                    const prioridade = prioridades[Math.floor(Math.random() * prioridades.length)];
-                    
-                    // Data aleatória dentro do período
-                    const diasAtras = Math.floor(Math.random() * 30);
-                    const dataAbertura = new Date(dataAtual);
-                    dataAbertura.setDate(dataAtual.getDate() - diasAtras);
-                    
-                    // Gerar data de fechamento para OS finalizadas
-                    let dataFechamento = null;
-                    let tempoResolucao = null;
-                    let slaStatus = 'Em aberto';
-                    
-                    if (statusOS === 'Finalizado') {
-                        dataFechamento = new Date(dataAbertura);
-                        const horasResolucao = Math.floor(Math.random() * 72) + 1; // 1 a 72 horas
-                        dataFechamento.setHours(dataAbertura.getHours() + horasResolucao);
-                        tempoResolucao = horasResolucao;
-                        
-                        // Calcular SLA
-                        const limites = {
-                            'Baixa': 72,
-                            'Média': 48,
-                            'Alta': 24,
-                            'Crítica': 8
-                        };
-                        const limite = limites[prioridade] || 48;
-                        slaStatus = horasResolucao <= limite ? 'Dentro do SLA' : 'Fora do SLA';
-                    }
-                    
-                    ordensServico.push({
-                        id: i,
-                        setor_origem: setor,
-                        setor_destino: this.setorUsuario || setor,
-                        categoria: 'Manutenção',
-                        cliente: `Cliente ${Math.floor(Math.random() * 50) + 1}`,
-                        descricao: `Manutenção preventiva - OS #${i}`,
-                        prioridade: prioridade,
-                        status: statusOS,
-                        data_abertura: dataAbertura.toISOString(),
-                        data_fechamento: dataFechamento ? dataFechamento.toISOString() : null,
-                        tempo_resolucao_horas: tempoResolucao,
-                        sla_status: slaStatus,
-                        relato_tecnico: statusOS === 'Finalizado' ? 'Serviço concluído com sucesso' : null
-                    });
-                }
-                
-                return {
-                    ordensServico,
-                    metricas: this.calcularMetricas(ordensServico),
-                    contagemSetores: this.contarPorSetor(ordensServico),
-                    contagemStatus: this.contarPorStatus(ordensServico),
-                    contagemPrioridade: this.contarPorPrioridade(ordensServico),
-                    tendenciaDiaria: this.gerarTendenciaDiaria(ordensServico),
-                    tempoPorSetor: this.calcularTempoPorSetor(ordensServico),
-                    slaPorSetor: this.calcularSLAPorSetor(ordensServico),
-                    desempenhoSetores: this.calcularDesempenhoSetores(ordensServico)
-                };
-            }
-
             // ✅ FUNÇÕES AUXILIARES PARA CÁLCULOS
             calcularMetricas(ordensServico) {
                 const totalOS = ordensServico.length;
@@ -1749,7 +1704,7 @@
                     }
                 });
                 
-                const tempoMedioResolucao = totalComTempo > 0 ? Math.round(somaHoras / totalComTempo) : 24;
+                const tempoMedioResolucao = totalComTempo > 0 ? Math.round(somaHoras / totalComTempo) : 0;
                 
                 // Calcular SLA
                 let dentroSLA = 0;
@@ -1771,7 +1726,7 @@
                     }
                 });
                 
-                const taxaSLA = totalComTempo > 0 ? Math.round((dentroSLA / totalComTempo) * 100) : 75;
+                const taxaSLA = totalComTempo > 0 ? Math.round((dentroSLA / totalComTempo) * 100) : 0;
                 
                 // Setor mais demandado
                 const contagemSetores = this.contarPorSetor(ordensServico);
@@ -1789,11 +1744,11 @@
                     tempoMedioResolucao,
                     taxaSLACumprido: taxaSLA,
                     setorTop,
-                    primeiraResposta: 2,
-                    taxaReabertura: 5,
-                    satisfacao: 85,
-                    custoMedio: 1500,
-                    eficienciaGeral: Math.round((taxaConclusao + taxaSLA) / 2)
+                    primeiraResposta: 0,
+                    taxaReabertura: 0,
+                    satisfacao: 0,
+                    custoMedio: 0,
+                    eficienciaGeral: totalComTempo > 0 ? Math.round((taxaConclusao + taxaSLA) / 2) : 0
                 };
             }
 
@@ -1864,7 +1819,7 @@
                 
                 const resultado = {};
                 Object.keys(tempos).forEach(setor => {
-                    resultado[setor] = contagem[setor] > 0 ? Math.round(tempos[setor] / contagem[setor]) : 24;
+                    resultado[setor] = contagem[setor] > 0 ? Math.round(tempos[setor] / contagem[setor]) : 0;
                 });
                 
                 return resultado;
@@ -1902,7 +1857,7 @@
                 });
                 
                 Object.keys(contagem).forEach(setor => {
-                    sla[setor] = contagem[setor] > 0 ? Math.round((dentroSLA[setor] / contagem[setor]) * 100) : 75;
+                    sla[setor] = contagem[setor] > 0 ? Math.round((dentroSLA[setor] / contagem[setor]) * 100) : 0;
                 });
                 
                 return sla;
@@ -1941,15 +1896,15 @@
                         }
                     });
                     
-                    const taxaSLA = totalComTempo > 0 ? Math.round((dentroSLA / totalComTempo) * 100) : 75;
+                    const taxaSLA = totalComTempo > 0 ? Math.round((dentroSLA / totalComTempo) * 100) : 0;
                     
                     desempenho[setor] = {
                         totalOS,
                         osFinalizadas,
                         taxaConclusao,
-                        tempoMedio: 24,
+                        tempoMedio: 0,
                         taxaSLA,
-                        eficiencia: Math.round((taxaConclusao + taxaSLA) / 2)
+                        eficiencia: totalComTempo > 0 ? Math.round((taxaConclusao + taxaSLA) / 2) : 0
                     };
                 });
                 
@@ -1984,11 +1939,13 @@
                 // Atualizar métricas de tempo - CORRIGIDO
                 this.atualizarElemento('tempoResolucaoMedia', (metricas.tempoMedioResolucao || 0) + 'h');
                 this.atualizarElemento('slaCumprido', (metricas.taxaSLACumprido || 0) + '%');
-                this.atualizarElemento('tempoMedio', (metricas.tempoMedioResolucao || 0) + 'h');
                 this.atualizarElemento('eficienciaGeral', (metricas.eficienciaGeral || 0) + '%');
                 
                 // Atualizar barras de progresso
-                this.atualizarProgresso('progressResolucao', Math.min(100, (metricas.tempoMedioResolucao || 0) / 48 * 100));
+                const maxTempoEsperado = 48; // 48 horas como referência máxima
+                const percentualTempo = metricas.tempoMedioResolucao ? 
+                    Math.min(100, (metricas.tempoMedioResolucao / maxTempoEsperado) * 100) : 0;
+                this.atualizarProgresso('progressResolucao', percentualTempo);
                 this.atualizarProgresso('progressSLA', metricas.taxaSLACumprido || 0);
                 this.atualizarProgresso('progressEficiencia', metricas.eficienciaGeral || 0);
                 
@@ -2043,6 +2000,11 @@
                 const labels = Object.keys(dados);
                 const valores = Object.values(dados);
                 
+                if (labels.length === 0) {
+                    ctx.parentNode.innerHTML = '<p style="color: var(--gray); text-align: center;">Sem dados disponíveis</p>';
+                    return;
+                }
+                
                 this.graficos.setores = new Chart(ctx, {
                     type: 'pie',
                     data: {
@@ -2080,6 +2042,11 @@
                 const dados = this.dadosRelatorios.contagemStatus;
                 const labels = Object.keys(dados);
                 const valores = Object.values(dados);
+                
+                if (labels.length === 0) {
+                    ctx.parentNode.innerHTML = '<p style="color: var(--gray); text-align: center;">Sem dados disponíveis</p>';
+                    return;
+                }
                 
                 this.graficos.status = new Chart(ctx, {
                     type: 'doughnut',
@@ -2125,6 +2092,11 @@
                 }).reverse();
                 
                 const valores = Object.values(dados).slice(0, 15).reverse();
+                
+                if (valores.every(v => v === 0)) {
+                    ctx.parentNode.innerHTML = '<p style="color: var(--gray); text-align: center;">Sem dados de tendência disponíveis</p>';
+                    return;
+                }
                 
                 this.graficos.tendencia = new Chart(ctx, {
                     type: 'line',
@@ -2172,6 +2144,11 @@
                 const labels = Object.keys(dados);
                 const valores = Object.values(dados);
                 
+                if (labels.length === 0 || valores.every(v => v === 0)) {
+                    ctx.parentNode.innerHTML = '<p style="color: var(--gray); text-align: center;">Sem dados de tempo por setor</p>';
+                    return;
+                }
+                
                 this.graficos.tempoSetor = new Chart(ctx, {
                     type: 'bar',
                     data: {
@@ -2216,6 +2193,11 @@
                 const labels = Object.keys(dados);
                 const valores = Object.values(dados);
                 
+                if (labels.length === 0) {
+                    ctx.parentNode.innerHTML = '<p style="color: var(--gray); text-align: center;">Sem dados de prioridade</p>';
+                    return;
+                }
+                
                 this.graficos.prioridade = new Chart(ctx, {
                     type: 'doughnut',
                     data: {
@@ -2256,6 +2238,11 @@
                 const labels = Object.keys(dados);
                 const valores = Object.values(dados);
                 
+                if (labels.length === 0) {
+                    ctx.parentNode.innerHTML = '<p style="color: var(--gray); text-align: center;">Sem dados de SLA por setor</p>';
+                    return;
+                }
+                
                 this.graficos.slaSetor = new Chart(ctx, {
                     type: 'radar',
                     data: {
@@ -2291,9 +2278,14 @@
                 const ctx = document.getElementById('graficoTendenciaSLA');
                 if (!ctx) return;
                 
-                // Dados simulados de tendência de SLA
-                const labels = ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez'];
-                const valores = [72, 75, 78, 76, 80, 82, 85, 83, 87, 85, 88, 90];
+                // Se não houver dados suficientes, mostrar mensagem
+                if (!this.dadosRelatorios.metricas.taxaSLACumprido) {
+                    ctx.parentNode.innerHTML = '<p style="color: var(--gray); text-align: center;">Dados insuficientes para tendência de SLA</p>';
+                    return;
+                }
+                
+                const labels = ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun'];
+                const valores = Array(6).fill(this.dadosRelatorios.metricas.taxaSLACumprido || 0);
                 
                 this.graficos.tendenciaSLA = new Chart(ctx, {
                     type: 'line',
@@ -2337,9 +2329,15 @@
                 const ctx = document.getElementById('graficoEficiencia');
                 if (!ctx) return;
                 
-                // Dados simulados de eficiência
-                const labels = ['Tempo Médio', 'Taxa Conclusão', 'SLA', 'Satisfação', 'Custo/Benefício'];
-                const valores = [85, 78, 92, 88, 76];
+                const metricas = this.dadosRelatorios.metricas;
+                
+                const labels = ['Tempo Médio', 'Taxa Conclusão', 'SLA', 'Satisfação'];
+                const valores = [
+                    metricas.tempoMedioResolucao ? Math.min(100, (metricas.tempoMedioResolucao / 48) * 100) : 0,
+                    metricas.taxaConclusao || 0,
+                    metricas.taxaSLACumprido || 0,
+                    metricas.satisfacao || 0
+                ];
                 
                 this.graficos.eficiencia = new Chart(ctx, {
                     type: 'bar',
@@ -2349,7 +2347,7 @@
                             label: 'Pontuação (%)',
                             data: valores,
                             backgroundColor: [
-                                '#4FC3F7', '#BA68C8', '#66BB6A', '#FFA726', '#29B6F6'
+                                '#4FC3F7', '#BA68C8', '#66BB6A', '#FFA726'
                             ]
                         }]
                     },
@@ -2382,6 +2380,11 @@
                 if (!ctx) return;
                 
                 const desempenho = this.dadosRelatorios.desempenhoSetores;
+                
+                if (Object.keys(desempenho).length === 0) {
+                    ctx.parentNode.innerHTML = '<p style="color: var(--gray); text-align: center;">Sem dados de desempenho por setor</p>';
+                    return;
+                }
                 
                 // Ordenar por eficiência
                 const setoresOrdenados = Object.entries(desempenho)
@@ -2431,6 +2434,11 @@
                 if (!ctx) return;
                 
                 const desempenho = this.dadosRelatorios.desempenhoSetores;
+                
+                if (Object.keys(desempenho).length === 0) {
+                    ctx.parentNode.innerHTML = '<p style="color: var(--gray); text-align: center;">Sem dados comparativos</p>';
+                    return;
+                }
                 
                 const setores = Object.keys(desempenho).slice(0, 5);
                 const taxasConclusao = setores.map(setor => desempenho[setor].taxaConclusao);
@@ -2492,6 +2500,13 @@
                 
                 tbody.innerHTML = '';
                 
+                if (ordensServico.length === 0) {
+                    const row = document.createElement('tr');
+                    row.innerHTML = '<td colspan="12" style="text-align: center; padding: 2rem;">Nenhuma ordem de serviço encontrada</td>';
+                    tbody.appendChild(row);
+                    return;
+                }
+                
                 ordensServico.slice(0, 50).forEach(os => {
                     const row = document.createElement('tr');
                     
@@ -2534,6 +2549,13 @@
                 
                 tbody.innerHTML = '';
                 
+                if (Object.keys(desempenho).length === 0) {
+                    const row = document.createElement('tr');
+                    row.innerHTML = '<td colspan="7" style="text-align: center; padding: 2rem;">Nenhum dado de desempenho por setor disponível</td>';
+                    tbody.appendChild(row);
+                    return;
+                }
+                
                 Object.entries(desempenho)
                     .sort(([,a], [,b]) => b.eficiencia - a.eficiencia)
                     .forEach(([setor, dados]) => {
@@ -2572,6 +2594,11 @@
 
             // ✅ SISTEMA DE EXPORTAÇÃO PDF CORRIGIDO - AGORA EXTRAI DADOS REAIS
             async exportarRelatorioCompleto() {
+                if (!this.dadosRelatorios) {
+                    this.mostrarError('Nenhum dado disponível para exportação');
+                    return;
+                }
+                
                 this.mostrarProgressoExportacao(true);
                 
                 try {
@@ -2614,6 +2641,11 @@
             }
 
             async exportarRelatorioExecutivo() {
+                if (!this.dadosRelatorios) {
+                    this.mostrarError('Nenhum dado disponível para exportação');
+                    return;
+                }
+                
                 this.mostrarProgressoExportacao(true);
                 
                 try {
@@ -2833,43 +2865,48 @@
                 const contagemSetores = this.dadosRelatorios.contagemSetores;
                 const contagemStatus = this.dadosRelatorios.contagemStatus;
                 
-                doc.setFontSize(12);
-                doc.setFont('helvetica', 'bold');
-                doc.text('Distribuição por Setor:', 20, yPos);
-                yPos += 8;
+                if (Object.keys(contagemSetores).length > 0) {
+                    doc.setFontSize(12);
+                    doc.setFont('helvetica', 'bold');
+                    doc.text('Distribuição por Setor:', 20, yPos);
+                    yPos += 8;
+                    
+                    doc.setFontSize(10);
+                    doc.setFont('helvetica', 'normal');
+                    
+                    Object.entries(contagemSetores).forEach(([setor, quantidade]) => {
+                        if (yPos > 250) {
+                            doc.addPage();
+                            yPos = 20;
+                        }
+                        doc.text(`• ${setor}: ${quantidade} OS`, 25, yPos);
+                        yPos += 6;
+                    });
+                    
+                    yPos += 10;
+                }
                 
-                doc.setFontSize(10);
-                doc.setFont('helvetica', 'normal');
+                if (Object.keys(contagemStatus).length > 0) {
+                    doc.setFontSize(12);
+                    doc.setFont('helvetica', 'bold');
+                    doc.text('Distribuição por Status:', 20, yPos);
+                    yPos += 8;
+                    
+                    doc.setFontSize(10);
+                    doc.setFont('helvetica', 'normal');
+                    
+                    Object.entries(contagemStatus).forEach(([status, quantidade]) => {
+                        if (yPos > 250) {
+                            doc.addPage();
+                            yPos = 20;
+                        }
+                        doc.text(`• ${status}: ${quantidade} OS`, 25, yPos);
+                        yPos += 6;
+                    });
+                    
+                    yPos += 10;
+                }
                 
-                Object.entries(contagemSetores).forEach(([setor, quantidade]) => {
-                    if (yPos > 250) {
-                        doc.addPage();
-                        yPos = 20;
-                    }
-                    doc.text(`• ${setor}: ${quantidade} OS`, 25, yPos);
-                    yPos += 6;
-                });
-                
-                yPos += 10;
-                
-                doc.setFontSize(12);
-                doc.setFont('helvetica', 'bold');
-                doc.text('Distribuição por Status:', 20, yPos);
-                yPos += 8;
-                
-                doc.setFontSize(10);
-                doc.setFont('helvetica', 'normal');
-                
-                Object.entries(contagemStatus).forEach(([status, quantidade]) => {
-                    if (yPos > 250) {
-                        doc.addPage();
-                        yPos = 20;
-                    }
-                    doc.text(`• ${status}: ${quantidade} OS`, 25, yPos);
-                    yPos += 6;
-                });
-                
-                yPos += 10;
                 return yPos;
             }
 
@@ -2886,6 +2923,11 @@
                 yPos += 15;
                 
                 const desempenhoSetores = this.dadosRelatorios.desempenhoSetores;
+                
+                if (Object.keys(desempenhoSetores).length === 0) {
+                    doc.text('Nenhum dado de desempenho por setor disponível', 20, yPos);
+                    return yPos + 10;
+                }
                 
                 doc.setFontSize(10);
                 doc.setFont('helvetica', 'normal');
@@ -2951,6 +2993,12 @@
                 yPos += 12;
                 
                 const ordensServico = this.dadosRelatorios.ordensServico || [];
+                
+                if (ordensServico.length === 0) {
+                    doc.text('Nenhuma ordem de serviço encontrada', 20, yPos);
+                    return yPos + 10;
+                }
+                
                 const ordensLimitadas = ordensServico.slice(0, 30); // Limitar para caber no PDF
                 
                 doc.setFontSize(8);
@@ -3040,19 +3088,25 @@
             gerarInsights(metricas) {
                 const insights = [];
                 
+                if (metricas.totalOS === 0) {
+                    insights.push("Nenhuma ordem de serviço encontrada no período selecionado");
+                    insights.push("Verifique os filtros aplicados ou crie novas ordens de serviço");
+                    return insights;
+                }
+                
                 if (metricas.taxaConclusao >= 80) {
                     insights.push("Excelente taxa de conclusão - manter os processos atuais");
                 } else if (metricas.taxaConclusao >= 60) {
                     insights.push("Taxa de conclusão satisfatória - oportunidades de melhoria identificadas");
-                } else {
+                } else if (metricas.taxaConclusao > 0) {
                     insights.push("Taxa de conclusão abaixo do esperado - recomenda-se revisão dos processos");
                 }
                 
-                if (metricas.tempoMedioResolucao <= 24) {
+                if (metricas.tempoMedioResolucao <= 24 && metricas.tempoMedioResolucao > 0) {
                     insights.push("Tempo de resolução dentro do esperado - boa eficiência operacional");
-                } else if (metricas.tempoMedioResolucao <= 48) {
+                } else if (metricas.tempoMedioResolucao <= 48 && metricas.tempoMedioResolucao > 0) {
                     insights.push("Tempo de resolução aceitável - considerar otimizações");
-                } else {
+                } else if (metricas.tempoMedioResolucao > 48) {
                     insights.push("Tempo de resolução elevado - recomenda-se análise de gargalos");
                 }
                 
@@ -3060,7 +3114,7 @@
                     insights.push("SLA excelente - superando expectativas dos clientes");
                 } else if (metricas.taxaSLACumprido >= 75) {
                     insights.push("SLA dentro do aceitável - manter monitoramento contínuo");
-                } else {
+                } else if (metricas.taxaSLACumprido > 0) {
                     insights.push("SLA abaixo do contratado - atenção necessária para cumprimento");
                 }
                 
@@ -3071,10 +3125,21 @@
             }
 
             async exportarDadosDetalhados() {
+                if (!this.dadosRelatorios) {
+                    this.mostrarError('Nenhum dado disponível para exportação');
+                    return;
+                }
+                
                 try {
                     this.mostrarNotificacao('📋 Gerando arquivo com dados detalhados...');
                     
                     const dados = this.dadosRelatorios.ordensServico || [];
+                    
+                    if (dados.length === 0) {
+                        this.mostrarError('Nenhum dado para exportar');
+                        return;
+                    }
+                    
                     const csvContent = this.converterParaCSVDetalhado(dados);
                     
                     const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
@@ -3098,6 +3163,11 @@
             }
 
             async exportarDashboard() {
+                if (!this.dadosRelatorios) {
+                    this.mostrarError('Nenhum dado disponível para exportação');
+                    return;
+                }
+                
                 this.mostrarProgressoExportacao(true);
                 
                 try {
@@ -3224,6 +3294,9 @@
                 
                 if (errorMessage) errorMessage.textContent = mensagem;
                 if (errorState) errorState.style.display = 'block';
+                
+                // Esconder loading se estiver visível
+                this.mostrarLoading(false);
             }
 
             esconderError() {
