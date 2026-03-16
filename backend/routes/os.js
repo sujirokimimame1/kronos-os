@@ -1,37 +1,14 @@
 const express = require('express');
 const router = express.Router();
 const db = require('../db');
-const authMiddleware = require('../middleware/auth');
-const { requireTechnical } = require('../middleware/auth');
 
-router.use(authMiddleware);
-
-// LISTAR TODAS AS OS - técnico/admin
-router.get('/', requireTechnical, async (req, res) => {
-  try {
-    const result = await db.query(`
-      SELECT *
-      FROM ordens_servico
-      ORDER BY data_abertura DESC, id DESC
-    `);
-
-    res.json({
-      success: true,
-      data: result.rows || []
-    });
-  } catch (error) {
-    console.error('Erro ao listar OS:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Erro ao buscar ordens de serviço'
-    });
-  }
-});
-
-// LISTAR MINHAS OS - solicitante/autenticado
+// ✅ ROTA NOVA: Listar minhas OS - PARA SOLICITANTES
+// Esta rota DEVE vir antes de router.get('/:id', ...)
 router.get('/minhas', async (req, res) => {
   try {
-    const userId = req.user_id || req.user?.id;
+    // Obtém o ID do usuário autenticado
+    // Pode vir de diferentes lugares dependendo do middleware de autenticação
+    const userId = req.user_id || req.user?.id || req.query.user_id;
 
     if (!userId) {
       return res.status(401).json({
@@ -39,6 +16,8 @@ router.get('/minhas', async (req, res) => {
         message: 'Usuário não autenticado'
       });
     }
+
+    console.log(`📋 Buscando OS para usuário: ${userId}`);
 
     const result = await db.query(`
       SELECT *
@@ -51,8 +30,9 @@ router.get('/minhas', async (req, res) => {
       success: true,
       data: result.rows || []
     });
+
   } catch (error) {
-    console.error('Erro ao buscar minhas OS:', error);
+    console.error('❌ Erro ao buscar minhas OS:', error);
     res.status(500).json({
       success: false,
       message: 'Erro ao carregar suas ordens de serviço'
@@ -60,35 +40,80 @@ router.get('/minhas', async (req, res) => {
   }
 });
 
-// OS POR SETOR - técnico
-router.get('/setor/:setor', requireTechnical, async (req, res) => {
+// LISTAR TODAS OS
+router.get('/', async (req, res) => {
+  try {
+    const result = await db.query(`
+      SELECT *
+      FROM ordens_servico
+      ORDER BY data_abertura DESC
+    `);
+
+    res.json({
+      success: true,
+      data: result.rows
+    });
+
+  } catch (error) {
+    console.error('❌ Erro ao listar OS:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Erro ao buscar ordens de serviço'
+    });
+  }
+});
+
+// OS POR SETOR (TÉCNICO)
+router.get('/setor/:setor', async (req, res) => {
   try {
     const { setor } = req.params;
+
+    console.log(`🔧 Buscando OS para setor: ${setor}`);
 
     const result = await db.query(`
       SELECT *
       FROM ordens_servico
       WHERE setor_destino = $1
-      ORDER BY data_abertura DESC, id DESC
+      ORDER BY 
+        CASE 
+          WHEN prioridade = 'Crítica' THEN 1
+          WHEN prioridade = 'Alta' THEN 2
+          WHEN prioridade = 'Média' THEN 3
+          WHEN prioridade = 'Baixa' THEN 4
+          ELSE 5
+        END,
+        data_abertura ASC
     `, [setor]);
 
     res.json({
       success: true,
-      data: result.rows || []
+      data: result.rows
     });
+
   } catch (error) {
-    console.error('Erro ao buscar OS por setor:', error);
+    console.error('❌ Erro ao buscar OS por setor:', error);
     res.status(500).json({
       success: false,
-      message: 'Erro ao buscar ordens de serviço do setor'
+      message: 'Erro ao buscar ordens de serviço'
     });
   }
 });
 
-// BUSCAR OS POR ID
+// ✅ ROTA ESPECÍFICA: Buscar OS por ID
+// Esta rota DEVE vir depois de /minhas e /setor/:setor
 router.get('/:id', async (req, res) => {
   try {
     const { id } = req.params;
+
+    // Verificar se é um número válido
+    if (isNaN(id)) {
+      return res.status(400).json({
+        success: false,
+        message: 'ID inválido'
+      });
+    }
+
+    console.log(`🔍 Buscando OS com ID: ${id}`);
 
     const result = await db.query(`
       SELECT *
@@ -96,7 +121,7 @@ router.get('/:id', async (req, res) => {
       WHERE id = $1
     `, [id]);
 
-    if (!result.rows || result.rows.length === 0) {
+    if (result.rows.length === 0) {
       return res.status(404).json({
         success: false,
         message: 'Ordem de serviço não encontrada'
@@ -107,8 +132,9 @@ router.get('/:id', async (req, res) => {
       success: true,
       data: result.rows[0]
     });
+
   } catch (error) {
-    console.error('Erro ao buscar OS por ID:', error);
+    console.error('❌ Erro ao buscar OS por ID:', error);
     res.status(500).json({
       success: false,
       message: 'Erro ao buscar ordem de serviço'
@@ -119,9 +145,8 @@ router.get('/:id', async (req, res) => {
 // CRIAR OS
 router.post('/', async (req, res) => {
   try {
-    const userId = req.user_id || req.user?.id;
-
     const {
+      user_id,
       setor_origem,
       setor_destino,
       categoria,
@@ -130,27 +155,46 @@ router.post('/', async (req, res) => {
       prioridade
     } = req.body;
 
+    // Validação básica
+    if (!user_id || !setor_origem || !setor_destino || !descricao || !prioridade) {
+      return res.status(400).json({
+        success: false,
+        message: 'Campos obrigatórios: user_id, setor_origem, setor_destino, descricao, prioridade'
+      });
+    }
+
+    console.log('📝 Criando nova OS:', {
+      user_id,
+      setor_origem,
+      setor_destino,
+      categoria,
+      cliente,
+      prioridade
+    });
+
     const result = await db.query(`
       INSERT INTO ordens_servico
       (user_id, setor_origem, setor_destino, categoria, cliente, descricao, prioridade, status, data_abertura)
       VALUES ($1, $2, $3, $4, $5, $6, $7, 'Aberto', NOW())
       RETURNING *
-    `, [
-      userId,
+    `,
+    [
+      user_id,
       setor_origem,
       setor_destino,
-      categoria,
-      cliente,
+      categoria || 'Geral',
+      cliente || 'Não informado',
       descricao,
       prioridade
     ]);
 
-    res.status(201).json({
+    res.json({
       success: true,
       data: result.rows[0]
     });
+
   } catch (error) {
-    console.error('Erro ao criar OS:', error);
+    console.error('❌ Erro ao criar OS:', error);
     res.status(500).json({
       success: false,
       message: 'Erro ao criar ordem de serviço'
@@ -159,22 +203,49 @@ router.post('/', async (req, res) => {
 });
 
 // ATUALIZAR STATUS
-router.put('/:id/status', requireTechnical, async (req, res) => {
+router.put('/:id/status', async (req, res) => {
   try {
     const { id } = req.params;
-    const { status } = req.body;
+    const { status, relato_tecnico } = req.body;
 
-    const result = await db.query(`
+    // Validar status permitido
+    const statusPermitidos = ['Aberto', 'Em Andamento', 'Aguardando Peças', 'Finalizado', 'Cancelado'];
+    if (!statusPermitidos.includes(status)) {
+      return res.status(400).json({
+        success: false,
+        message: `Status inválido. Permitidos: ${statusPermitidos.join(', ')}`
+      });
+    }
+
+    console.log(`🔄 Atualizando OS ${id} para status: ${status}`);
+
+    // Se for finalizado, adicionar data de fechamento
+    let query = `
       UPDATE ordens_servico
       SET status = $1
-      WHERE id = $2
-      RETURNING *
-    `, [status, id]);
+    `;
+    const params = [status];
+    let paramIndex = 2;
 
-    if (!result.rows || result.rows.length === 0) {
+    if (status === 'Finalizado') {
+      query += `, data_fechamento = NOW()`;
+    }
+
+    if (relato_tecnico) {
+      query += `, relato_tecnico = $${paramIndex}`;
+      params.push(relato_tecnico);
+      paramIndex++;
+    }
+
+    query += ` WHERE id = $${paramIndex} RETURNING *`;
+    params.push(id);
+
+    const result = await db.query(query, params);
+
+    if (result.rows.length === 0) {
       return res.status(404).json({
         success: false,
-        message: 'OS não encontrada'
+        message: 'Ordem de serviço não encontrada'
       });
     }
 
@@ -182,11 +253,147 @@ router.put('/:id/status', requireTechnical, async (req, res) => {
       success: true,
       data: result.rows[0]
     });
+
   } catch (error) {
-    console.error('Erro ao atualizar status da OS:', error);
+    console.error('❌ Erro ao atualizar OS:', error);
     res.status(500).json({
       success: false,
       message: 'Erro ao atualizar OS'
+    });
+  }
+});
+
+// ATUALIZAR OS COMPLETA
+router.put('/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const {
+      setor_origem,
+      setor_destino,
+      categoria,
+      cliente,
+      descricao,
+      prioridade,
+      status,
+      relato_tecnico
+    } = req.body;
+
+    console.log(`📝 Atualizando OS ${id}`);
+
+    // Construir query dinamicamente baseada nos campos fornecidos
+    const updates = [];
+    const params = [];
+    let paramIndex = 1;
+
+    if (setor_origem !== undefined) {
+      updates.push(`setor_origem = $${paramIndex++}`);
+      params.push(setor_origem);
+    }
+    if (setor_destino !== undefined) {
+      updates.push(`setor_destino = $${paramIndex++}`);
+      params.push(setor_destino);
+    }
+    if (categoria !== undefined) {
+      updates.push(`categoria = $${paramIndex++}`);
+      params.push(categoria);
+    }
+    if (cliente !== undefined) {
+      updates.push(`cliente = $${paramIndex++}`);
+      params.push(cliente);
+    }
+    if (descricao !== undefined) {
+      updates.push(`descricao = $${paramIndex++}`);
+      params.push(descricao);
+    }
+    if (prioridade !== undefined) {
+      updates.push(`prioridade = $${paramIndex++}`);
+      params.push(prioridade);
+    }
+    if (status !== undefined) {
+      updates.push(`status = $${paramIndex++}`);
+      params.push(status);
+      
+      // Se for finalizado, adicionar data de fechamento
+      if (status === 'Finalizado') {
+        updates.push(`data_fechamento = NOW()`);
+      }
+    }
+    if (relato_tecnico !== undefined) {
+      updates.push(`relato_tecnico = $${paramIndex++}`);
+      params.push(relato_tecnico);
+    }
+
+    if (updates.length === 0) {
+      return res.status(400).json({
+        success: false,
+        message: 'Nenhum campo para atualizar'
+      });
+    }
+
+    params.push(id);
+    const query = `
+      UPDATE ordens_servico
+      SET ${updates.join(', ')}
+      WHERE id = $${paramIndex}
+      RETURNING *
+    `;
+
+    const result = await db.query(query, params);
+
+    if (result.rows.length === 0) {
+      return res.status(404).json({
+        success: false,
+        message: 'Ordem de serviço não encontrada'
+      });
+    }
+
+    res.json({
+      success: true,
+      data: result.rows[0]
+    });
+
+  } catch (error) {
+    console.error('❌ Erro ao atualizar OS:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Erro ao atualizar ordem de serviço'
+    });
+  }
+});
+
+// DELETAR OS (apenas para admin)
+router.delete('/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    // Verificar se o usuário é admin (você pode adicionar essa lógica)
+    // Por enquanto, apenas deleta
+
+    console.log(`🗑️ Deletando OS ${id}`);
+
+    const result = await db.query(`
+      DELETE FROM ordens_servico
+      WHERE id = $1
+      RETURNING id
+    `, [id]);
+
+    if (result.rows.length === 0) {
+      return res.status(404).json({
+        success: false,
+        message: 'Ordem de serviço não encontrada'
+      });
+    }
+
+    res.json({
+      success: true,
+      message: 'Ordem de serviço deletada com sucesso'
+    });
+
+  } catch (error) {
+    console.error('❌ Erro ao deletar OS:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Erro ao deletar ordem de serviço'
     });
   }
 });
