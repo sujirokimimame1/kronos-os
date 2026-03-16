@@ -107,9 +107,9 @@ app.use(express.static(path.join(__dirname, '../frontend'), {
   }
 }));
 
-// ✅ Health check melhorado para Fly.io / Render
+// ✅ Health check melhorado para Fly.io / Render - CORRIGIDO
 app.get('/health', (req, res) => {
-  const { db } = require('./db');
+  const db = require('./db');
 
   db.get('SELECT COUNT(*) as user_count FROM usuarios', (err, row) => {
     const dbStatus = err ? 'ERROR' : 'HEALTHY';
@@ -131,9 +131,9 @@ app.get('/health', (req, res) => {
   });
 });
 
-// ✅ Rota de status do sistema
+// ✅ Rota de status do sistema - CORRIGIDO
 app.get('/api/status', (req, res) => {
-  const { db } = require('./db');
+  const db = require('./db');
 
   Promise.all([
     new Promise(resolve => {
@@ -257,7 +257,7 @@ app.get('/tecnico', (req, res) => {
   res.redirect('/tecnico-selecao-setor');
 });
 
-// ✅ Rota para debug do banco
+// ✅ Rota para debug do banco - CORRIGIDO
 app.get('/api/debug/db', (req, res) => {
   if (process.env.NODE_ENV === 'production' && !req.headers['x-debug-key']) {
     return res.status(403).json({
@@ -266,7 +266,7 @@ app.get('/api/debug/db', (req, res) => {
     });
   }
 
-  const { db } = require('./db');
+  const db = require('./db');
 
   db.all("SELECT name FROM sqlite_master WHERE type='table'", (err, tables) => {
     if (err) {
