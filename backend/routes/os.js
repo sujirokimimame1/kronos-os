@@ -1,14 +1,13 @@
 const express = require('express');
 const router = express.Router();
 const db = require('../db');
+const authMiddleware = require('../middleware/auth');
 
 // ✅ ROTA NOVA: Listar minhas OS - PARA SOLICITANTES
 // Esta rota DEVE vir antes de router.get('/:id', ...)
-router.get('/minhas', async (req, res) => {
+router.get('/minhas', authMiddleware, async (req, res) => {
   try {
-    // Obtém o ID do usuário autenticado
-    // Pode vir de diferentes lugares dependendo do middleware de autenticação
-    const userId = req.user_id || req.user?.id || req.query.user_id;
+    const userId = req.user_id || req.user?.id;
 
     if (!userId) {
       return res.status(401).json({
@@ -105,7 +104,6 @@ router.get('/:id', async (req, res) => {
   try {
     const { id } = req.params;
 
-    // Verificar se é um número válido
     if (isNaN(id)) {
       return res.status(400).json({
         success: false,
@@ -155,7 +153,6 @@ router.post('/', async (req, res) => {
       prioridade
     } = req.body;
 
-    // Validação básica
     if (!user_id || !setor_origem || !setor_destino || !descricao || !prioridade) {
       return res.status(400).json({
         success: false,
@@ -208,7 +205,6 @@ router.put('/:id/status', async (req, res) => {
     const { id } = req.params;
     const { status, relato_tecnico } = req.body;
 
-    // Validar status permitido
     const statusPermitidos = ['Aberto', 'Em Andamento', 'Aguardando Peças', 'Finalizado', 'Cancelado'];
     if (!statusPermitidos.includes(status)) {
       return res.status(400).json({
@@ -219,7 +215,6 @@ router.put('/:id/status', async (req, res) => {
 
     console.log(`🔄 Atualizando OS ${id} para status: ${status}`);
 
-    // Se for finalizado, adicionar data de fechamento
     let query = `
       UPDATE ordens_servico
       SET status = $1
@@ -263,118 +258,15 @@ router.put('/:id/status', async (req, res) => {
   }
 });
 
-// ATUALIZAR OS COMPLETA
-router.put('/:id', async (req, res) => {
-  try {
-    const { id } = req.params;
-    const {
-      setor_origem,
-      setor_destino,
-      categoria,
-      cliente,
-      descricao,
-      prioridade,
-      status,
-      relato_tecnico
-    } = req.body;
-
-    console.log(`📝 Atualizando OS ${id}`);
-
-    // Construir query dinamicamente baseada nos campos fornecidos
-    const updates = [];
-    const params = [];
-    let paramIndex = 1;
-
-    if (setor_origem !== undefined) {
-      updates.push(`setor_origem = $${paramIndex++}`);
-      params.push(setor_origem);
-    }
-    if (setor_destino !== undefined) {
-      updates.push(`setor_destino = $${paramIndex++}`);
-      params.push(setor_destino);
-    }
-    if (categoria !== undefined) {
-      updates.push(`categoria = $${paramIndex++}`);
-      params.push(categoria);
-    }
-    if (cliente !== undefined) {
-      updates.push(`cliente = $${paramIndex++}`);
-      params.push(cliente);
-    }
-    if (descricao !== undefined) {
-      updates.push(`descricao = $${paramIndex++}`);
-      params.push(descricao);
-    }
-    if (prioridade !== undefined) {
-      updates.push(`prioridade = $${paramIndex++}`);
-      params.push(prioridade);
-    }
-    if (status !== undefined) {
-      updates.push(`status = $${paramIndex++}`);
-      params.push(status);
-      
-      // Se for finalizado, adicionar data de fechamento
-      if (status === 'Finalizado') {
-        updates.push(`data_fechamento = NOW()`);
-      }
-    }
-    if (relato_tecnico !== undefined) {
-      updates.push(`relato_tecnico = $${paramIndex++}`);
-      params.push(relato_tecnico);
-    }
-
-    if (updates.length === 0) {
-      return res.status(400).json({
-        success: false,
-        message: 'Nenhum campo para atualizar'
-      });
-    }
-
-    params.push(id);
-    const query = `
-      UPDATE ordens_servico
-      SET ${updates.join(', ')}
-      WHERE id = $${paramIndex}
-      RETURNING *
-    `;
-
-    const result = await db.query(query, params);
-
-    if (result.rows.length === 0) {
-      return res.status(404).json({
-        success: false,
-        message: 'Ordem de serviço não encontrada'
-      });
-    }
-
-    res.json({
-      success: true,
-      data: result.rows[0]
-    });
-
-  } catch (error) {
-    console.error('❌ Erro ao atualizar OS:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Erro ao atualizar ordem de serviço'
-    });
-  }
-});
-
-// DELETAR OS (apenas para admin)
+// EXCLUIR OS
 router.delete('/:id', async (req, res) => {
   try {
     const { id } = req.params;
 
-    // Verificar se o usuário é admin (você pode adicionar essa lógica)
-    // Por enquanto, apenas deleta
-
-    console.log(`🗑️ Deletando OS ${id}`);
-
     const result = await db.query(`
       DELETE FROM ordens_servico
       WHERE id = $1
-      RETURNING id
+      RETURNING *
     `, [id]);
 
     if (result.rows.length === 0) {
@@ -386,14 +278,15 @@ router.delete('/:id', async (req, res) => {
 
     res.json({
       success: true,
-      message: 'Ordem de serviço deletada com sucesso'
+      message: 'Ordem de serviço excluída com sucesso',
+      data: result.rows[0]
     });
 
   } catch (error) {
-    console.error('❌ Erro ao deletar OS:', error);
+    console.error('❌ Erro ao excluir OS:', error);
     res.status(500).json({
       success: false,
-      message: 'Erro ao deletar ordem de serviço'
+      message: 'Erro ao excluir ordem de serviço'
     });
   }
 });
