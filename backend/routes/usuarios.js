@@ -1,7 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const jwt = require('jsonwebtoken');
-const { db } = require('../db');
+const db = require('../db');
 const authMiddleware = require('../middleware/auth');
 
 const JWT_SECRET = process.env.JWT_SECRET || 'kronos_secret_dev';
@@ -41,13 +41,17 @@ router.post('/', (req, res) => {
   const query = `
     INSERT INTO usuarios (nome, email, senha, setor, tipo)
     VALUES ($1, $2, $3, $4, $5)
+    RETURNING id
   `;
 
   db.run(query, [nome, email, senha, setorFinal, tipoFinal], function (err) {
     if (err) {
       console.error('❌ Erro ao criar usuário:', err);
 
-      if (err.message && err.message.includes('UNIQUE constraint failed')) {
+      if (err.message && (
+        err.message.includes('UNIQUE constraint failed') ||
+        err.message.includes('duplicate key value')
+      )) {
         return res.status(400).json({
           success: false,
           message: 'Email já cadastrado'
