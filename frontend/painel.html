@@ -1,0 +1,589 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Kronos - Painel Operacional</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        :root {
+            --primary: #4FC3F7;
+            --primary-dark: #29B6F6;
+            --primary-light: #81D4FA;
+            --primary-glow: rgba(79, 195, 247, 0.35);
+            --secondary: #BA68C8;
+            --secondary-glow: rgba(186, 104, 200, 0.25);
+            --success: #22C55E;
+            --warning: #F59E0B;
+            --danger: #EF4444;
+            --muted: #64748B;
+            --black: #0F172A;
+            --black-light: #1E293B;
+            --black-lighter: #334155;
+            --light: #FFFFFF;
+            --gray: #94A3B8;
+            --card-bg: rgba(15, 23, 42, 0.65);
+            --card-border: rgba(79, 195, 247, 0.2);
+            --shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+            --glow: 0 0 12px var(--primary-glow), 0 0 20px var(--primary-glow);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+        }
+
+        body {
+            background: linear-gradient(135deg, var(--black) 0%, var(--black-light) 50%, var(--black-lighter) 100%);
+            color: var(--light);
+            min-height: 100vh;
+            line-height: 1.6;
+            overflow-x: hidden;
+            position: relative;
+        }
+
+        body::before {
+            content: '';
+            position: fixed;
+            inset: 0;
+            background:
+                radial-gradient(circle at 15% 85%, var(--primary-glow) 0%, transparent 60%),
+                radial-gradient(circle at 85% 15%, var(--secondary-glow) 0%, transparent 60%),
+                radial-gradient(circle at 50% 40%, rgba(186, 104, 200, 0.08) 0%, transparent 70%);
+            z-index: -1;
+            pointer-events: none;
+        }
+
+        .dashboard-container {
+            width: 100%;
+            min-height: 100vh;
+            padding: 1.5rem;
+        }
+
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 1rem;
+            margin-bottom: 1.5rem;
+            padding: 1.25rem 1.5rem;
+            background: var(--card-bg);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border-radius: 24px;
+            border: 1px solid var(--card-border);
+            box-shadow: var(--shadow);
+        }
+
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .logo-icon {
+            width: 50px;
+            height: 50px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .cross-circle {
+            width: 45px;
+            height: 45px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, var(--primary), var(--primary-dark));
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+            box-shadow: 0 0 20px var(--primary-glow);
+            animation: neonPulse 3s infinite;
+        }
+
+        .cross {
+            position: relative;
+            width: 25px;
+            height: 25px;
+        }
+
+        .cross::before,
+        .cross::after {
+            content: '';
+            position: absolute;
+            background: var(--black);
+            border-radius: 2px;
+        }
+
+        .cross::before { width: 25px; height: 5px; top: 10px; left: 0; }
+        .cross::after { width: 5px; height: 25px; top: 0; left: 10px; }
+
+        .logo-text h1 {
+            font-size: 1.85rem;
+            font-weight: 700;
+            background: linear-gradient(135deg, var(--primary), var(--primary-light));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            text-shadow: 0 0 10px var(--primary-glow);
+        }
+
+        .logo-text p,
+        .header-meta,
+        .column-subtitle,
+        .os-meta,
+        .empty-state,
+        .loading-state,
+        .error-state {
+            color: var(--gray);
+        }
+
+        .header-right {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            flex-wrap: wrap;
+            justify-content: flex-end;
+        }
+
+        .mini-stat {
+            min-width: 120px;
+            padding: 0.85rem 1rem;
+            border-radius: 18px;
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255,255,255,0.08);
+            text-align: center;
+        }
+
+        .mini-stat strong {
+            display: block;
+            font-size: 1.6rem;
+            color: var(--light);
+        }
+
+        .mini-stat span {
+            font-size: 0.85rem;
+            color: var(--gray);
+        }
+
+        .board-grid {
+            display: grid;
+            grid-template-columns: repeat(3, minmax(0, 1fr));
+            gap: 1.25rem;
+            min-height: calc(100vh - 180px);
+        }
+
+        .board-column {
+            display: flex;
+            flex-direction: column;
+            background: var(--card-bg);
+            border: 1px solid var(--card-border);
+            border-radius: 24px;
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            box-shadow: var(--shadow);
+            min-height: 0;
+            overflow: hidden;
+        }
+
+        .column-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 1rem 1.2rem;
+            border-bottom: 1px solid rgba(255,255,255,0.06);
+            position: sticky;
+            top: 0;
+            background: rgba(15, 23, 42, 0.85);
+            z-index: 2;
+        }
+
+        .column-title-wrap {
+            display: flex;
+            align-items: center;
+            gap: 0.85rem;
+        }
+
+        .column-icon {
+            width: 42px;
+            height: 42px;
+            border-radius: 14px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.1rem;
+            box-shadow: inset 0 0 0 1px rgba(255,255,255,0.12);
+        }
+
+        .icon-aberto { background: rgba(79, 195, 247, 0.18); color: var(--primary-light); }
+        .icon-andamento { background: rgba(245, 158, 11, 0.16); color: #FBBF24; }
+        .icon-pecas { background: rgba(186, 104, 200, 0.18); color: #D8B4FE; }
+
+        .column-title { font-size: 1.15rem; font-weight: 700; }
+        .column-count {
+            min-width: 48px;
+            height: 48px;
+            padding: 0 0.8rem;
+            border-radius: 16px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.2rem;
+            font-weight: 700;
+            color: var(--light);
+            background: rgba(255,255,255,0.07);
+            border: 1px solid rgba(255,255,255,0.08);
+        }
+
+        .column-body {
+            padding: 1rem;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 0.85rem;
+        }
+
+        .os-card {
+            background: rgba(255, 255, 255, 0.045);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            border-radius: 18px;
+            padding: 1rem;
+            transition: transform 0.25s ease, border-color 0.25s ease, box-shadow 0.25s ease;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .os-card:hover {
+            transform: translateY(-2px);
+            border-color: rgba(79, 195, 247, 0.35);
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.28);
+        }
+
+        .os-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 4px;
+            height: 100%;
+            background: var(--primary);
+        }
+
+        .os-card.andamento::before { background: var(--warning); }
+        .os-card.pecas::before { background: var(--secondary); }
+
+        .os-header {
+            display: flex;
+            justify-content: space-between;
+            gap: 0.8rem;
+            margin-bottom: 0.7rem;
+        }
+
+        .os-id {
+            font-size: 1rem;
+            font-weight: 700;
+            color: var(--light);
+        }
+
+        .priority-badge {
+            white-space: nowrap;
+            font-size: 0.75rem;
+            font-weight: 700;
+            padding: 0.35rem 0.65rem;
+            border-radius: 999px;
+            border: 1px solid rgba(255,255,255,0.1);
+        }
+
+        .priority-critica { background: rgba(239, 68, 68, 0.18); color: #FCA5A5; }
+        .priority-alta { background: rgba(245, 158, 11, 0.18); color: #FCD34D; }
+        .priority-media { background: rgba(79, 195, 247, 0.18); color: #BAE6FD; }
+        .priority-baixa { background: rgba(34, 197, 94, 0.18); color: #86EFAC; }
+
+        .os-desc {
+            color: #E2E8F0;
+            font-size: 0.97rem;
+            margin-bottom: 0.8rem;
+            display: -webkit-box;
+            -webkit-line-clamp: 4;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+        }
+
+        .os-meta {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 0.35rem;
+            font-size: 0.86rem;
+        }
+
+        .os-meta strong { color: #CBD5E1; }
+
+        .status-line {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 0.75rem;
+            margin-top: 0.85rem;
+            padding-top: 0.75rem;
+            border-top: 1px solid rgba(255,255,255,0.06);
+            font-size: 0.82rem;
+            color: var(--gray);
+        }
+
+        .status-badge {
+            padding: 0.35rem 0.65rem;
+            border-radius: 999px;
+            font-weight: 700;
+            font-size: 0.72rem;
+            text-transform: uppercase;
+            letter-spacing: 0.04em;
+        }
+
+        .status-aberto { background: rgba(79, 195, 247, 0.18); color: #BAE6FD; }
+        .status-andamento { background: rgba(245, 158, 11, 0.18); color: #FCD34D; }
+        .status-pecas { background: rgba(186, 104, 200, 0.18); color: #E9D5FF; }
+
+        .panel-message {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 180px;
+            text-align: center;
+            padding: 1rem;
+            border: 1px dashed rgba(255,255,255,0.08);
+            border-radius: 18px;
+            background: rgba(255,255,255,0.02);
+        }
+
+        .footer-note {
+            margin-top: 1rem;
+            text-align: center;
+            color: var(--gray);
+            font-size: 0.88rem;
+        }
+
+        @keyframes neonPulse {
+            0%, 100% { box-shadow: 0 0 15px var(--primary-glow), 0 0 25px var(--primary-glow); }
+            50% { box-shadow: 0 0 22px var(--primary-glow), 0 0 32px var(--primary-glow); }
+        }
+
+        @media (max-width: 1200px) {
+            .board-grid { grid-template-columns: 1fr; }
+            .dashboard-container { padding: 1rem; }
+        }
+
+        @media (max-width: 768px) {
+            .header { flex-direction: column; align-items: stretch; }
+            .header-right { justify-content: stretch; }
+            .mini-stat { flex: 1; }
+            .logo-text h1 { font-size: 1.45rem; }
+        }
+    </style>
+</head>
+<body>
+    <div class="dashboard-container">
+        <header class="header">
+            <div class="logo">
+                <div class="logo-icon">
+                    <div class="cross-circle"><div class="cross"></div></div>
+                </div>
+                <div class="logo-text">
+                    <h1>Kronos OS • Painel Operacional</h1>
+                    <p>Acompanhamento em tempo real das ordens de serviço</p>
+                </div>
+            </div>
+
+            <div class="header-right">
+                <div class="mini-stat">
+                    <strong id="total-os">0</strong>
+                    <span>Total exibido</span>
+                </div>
+                <div class="mini-stat">
+                    <strong id="ultima-atualizacao">--:--:--</strong>
+                    <span>Última atualização</span>
+                </div>
+            </div>
+        </header>
+
+        <main class="board-grid">
+            <section class="board-column">
+                <div class="column-header">
+                    <div class="column-title-wrap">
+                        <div class="column-icon icon-aberto"><i class="fas fa-inbox"></i></div>
+                        <div>
+                            <div class="column-title">Abertas</div>
+                            <div class="column-subtitle">Ordens recém-recebidas</div>
+                        </div>
+                    </div>
+                    <div class="column-count" id="count-aberto">0</div>
+                </div>
+                <div class="column-body" id="aberto"></div>
+            </section>
+
+            <section class="board-column">
+                <div class="column-header">
+                    <div class="column-title-wrap">
+                        <div class="column-icon icon-andamento"><i class="fas fa-screwdriver-wrench"></i></div>
+                        <div>
+                            <div class="column-title">Em andamento</div>
+                            <div class="column-subtitle">Atendimento técnico ativo</div>
+                        </div>
+                    </div>
+                    <div class="column-count" id="count-andamento">0</div>
+                </div>
+                <div class="column-body" id="andamento"></div>
+            </section>
+
+            <section class="board-column">
+                <div class="column-header">
+                    <div class="column-title-wrap">
+                        <div class="column-icon icon-pecas"><i class="fas fa-box-open"></i></div>
+                        <div>
+                            <div class="column-title">Aguardando peças</div>
+                            <div class="column-subtitle">Dependem de material ou item</div>
+                        </div>
+                    </div>
+                    <div class="column-count" id="count-pecas">0</div>
+                </div>
+                <div class="column-body" id="pecas"></div>
+            </section>
+        </main>
+
+        <div class="footer-note">Atualização automática a cada 5 segundos • ideal para exibição em TV</div>
+    </div>
+
+    <script>
+        const API = `${window.location.origin}/api/os`;
+        const REFRESH_INTERVAL = 5000;
+
+        const columns = {
+            aberto: document.getElementById('aberto'),
+            andamento: document.getElementById('andamento'),
+            pecas: document.getElementById('pecas')
+        };
+
+        function normalizarStatus(status = '') {
+            const mapa = {
+                'aberto': 'aberto',
+                'em andamento': 'andamento',
+                'em_andamento': 'andamento',
+                'emandamento': 'andamento',
+                'aguardando peças': 'pecas',
+                'aguardando pecas': 'pecas'
+            };
+
+            return mapa[String(status).trim().toLowerCase()] || null;
+        }
+
+        function classePrioridade(prioridade = '') {
+            const valor = String(prioridade).trim().toLowerCase();
+            if (valor === 'crítica' || valor === 'critica') return 'priority-critica';
+            if (valor === 'alta') return 'priority-alta';
+            if (valor === 'média' || valor === 'media') return 'priority-media';
+            if (valor === 'baixa') return 'priority-baixa';
+            return 'priority-media';
+        }
+
+        function formatarData(data) {
+            if (!data) return 'Sem data';
+            const dt = new Date(data);
+            if (Number.isNaN(dt.getTime())) return 'Sem data';
+            return dt.toLocaleString('pt-BR');
+        }
+
+        function escapeHtml(texto = '') {
+            return String(texto)
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;')
+                .replace(/'/g, '&#039;');
+        }
+
+        function criarCard(os, tipoColuna) {
+            return `
+                <article class="os-card ${tipoColuna}">
+                    <div class="os-header">
+                        <div class="os-id">#${escapeHtml(os.id)} • ${escapeHtml(os.setor_origem || 'Sem origem')}</div>
+                        <span class="priority-badge ${classePrioridade(os.prioridade)}">${escapeHtml(os.prioridade || 'Sem prioridade')}</span>
+                    </div>
+
+                    <div class="os-desc">${escapeHtml(os.descricao || 'Sem descrição informada')}</div>
+
+                    <div class="os-meta">
+                        <div><strong>Destino:</strong> ${escapeHtml(os.setor_destino || 'Não informado')}</div>
+                        <div><strong>Categoria:</strong> ${escapeHtml(os.categoria || 'Não informada')}</div>
+                        <div><strong>Cliente:</strong> ${escapeHtml(os.cliente || 'Não informado')}</div>
+                    </div>
+
+                    <div class="status-line">
+                        <span class="status-badge status-${tipoColuna}">${escapeHtml(os.status || 'Sem status')}</span>
+                        <span>${formatarData(os.data_abertura)}</span>
+                    </div>
+                </article>
+            `;
+        }
+
+        function renderizarMensagem(coluna, texto, classe = 'empty-state') {
+            coluna.innerHTML = `<div class="panel-message ${classe}">${escapeHtml(texto)}</div>`;
+        }
+
+        async function carregarOS() {
+            try {
+                Object.values(columns).forEach((coluna) => {
+                    if (!coluna.dataset.loaded) renderizarMensagem(coluna, 'Carregando ordens de serviço...', 'loading-state');
+                });
+
+                const response = await fetch(API, { cache: 'no-store' });
+                const payload = await response.json();
+
+                if (!response.ok || !payload.success) {
+                    throw new Error(payload.message || 'Erro ao carregar ordens de serviço');
+                }
+
+                const lista = Array.isArray(payload.data) ? payload.data : [];
+                const grupos = { aberto: [], andamento: [], pecas: [] };
+
+                lista.forEach((os) => {
+                    const grupo = normalizarStatus(os.status);
+                    if (grupo) grupos[grupo].push(os);
+                });
+
+                const counts = {
+                    aberto: grupos.aberto.length,
+                    andamento: grupos.andamento.length,
+                    pecas: grupos.pecas.length
+                };
+
+                document.getElementById('count-aberto').textContent = counts.aberto;
+                document.getElementById('count-andamento').textContent = counts.andamento;
+                document.getElementById('count-pecas').textContent = counts.pecas;
+                document.getElementById('total-os').textContent = counts.aberto + counts.andamento + counts.pecas;
+                document.getElementById('ultima-atualizacao').textContent = new Date().toLocaleTimeString('pt-BR');
+
+                for (const [tipo, coluna] of Object.entries(columns)) {
+                    const itens = grupos[tipo];
+                    coluna.dataset.loaded = 'true';
+                    if (!itens.length) {
+                        renderizarMensagem(coluna, 'Nenhuma O.S. nesta coluna no momento.');
+                        continue;
+                    }
+                    coluna.innerHTML = itens.map((os) => criarCard(os, tipo)).join('');
+                }
+            } catch (error) {
+                console.error('Erro ao carregar painel:', error);
+                Object.values(columns).forEach((coluna) => {
+                    coluna.dataset.loaded = 'true';
+                    renderizarMensagem(coluna, error.message || 'Erro ao carregar painel.', 'error-state');
+                });
+            }
+        }
+
+        carregarOS();
+        setInterval(carregarOS, REFRESH_INTERVAL);
+    </script>
+</body>
+</html>
