@@ -3,19 +3,33 @@ const db = require('../db');
 
 const JWT_SECRET = process.env.JWT_SECRET || 'kronos_secret_dev';
 
-function authMiddleware(req, res, next) {
-  const header = req.headers.authorization;
-
-  if (!header) {
-    return res.status(401).json({
-      success: false,
-      message: 'Token não enviado'
-    });
-  }
-
-  const token = header.split(' ')[1];
-
+async function authMiddleware(req, res, next) {
   try {
+    const header = req.headers.authorization;
+
+    if (!header) {
+      return res.status(401).json({
+        success: false,
+        message: 'Token não enviado'
+      });
+    }
+
+    if (!header.startsWith('Bearer ')) {
+      return res.status(401).json({
+        success: false,
+        message: 'Formato de token inválido'
+      });
+    }
+
+    const token = header.split(' ')[1];
+
+    if (!token) {
+      return res.status(401).json({
+        success: false,
+        message: 'Token não enviado'
+      });
+    }
+
     const decoded = jwt.verify(token, JWT_SECRET);
 
     const query = `
@@ -24,31 +38,25 @@ function authMiddleware(req, res, next) {
       WHERE id = $1
     `;
 
-    db.get(query, [decoded.id], (err, row) => {
-      if (err) {
-        console.error('❌ Erro ao verificar usuário:', err);
-        return res.status(500).json({
-          success: false,
-          message: 'Erro ao verificar usuário'
-        });
-      }
+    const row = await db.get(query, [decoded.id]);
 
-      if (!row) {
-        return res.status(401).json({
-          success: false,
-          message: 'Usuário não encontrado'
-        });
-      }
+    if (!row) {
+      return res.status(401).json({
+        success: false,
+        message: 'Usuário não encontrado'
+      });
+    }
 
-      req.user = row;
-      req.user_id = row.id;
+    req.user = row;
+    req.user_id = row.id;
 
-      next();
-    });
+    return next();
   } catch (err) {
+    console.error('❌ Erro no auth middleware:', err);
+
     return res.status(401).json({
       success: false,
-      message: 'Token inválido'
+      message: 'Token inválido ou expirado'
     });
   }
 }
@@ -68,7 +76,7 @@ function requireTechnical(req, res, next) {
     });
   }
 
-  next();
+  return next();
 }
 
 module.exports = authMiddleware;

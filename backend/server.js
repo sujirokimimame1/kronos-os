@@ -108,58 +108,62 @@ app.use(express.static(path.join(__dirname, '../frontend'), {
 }));
 
 // ✅ Health check melhorado para Fly.io / Render - CORRIGIDO
-app.get('/health', (req, res) => {
-  const db = require('./db');
+app.get('/health', async (req, res) => {
+  try {
+    const db = require('./db');
+    const row = await db.get('SELECT COUNT(*) as user_count FROM usuarios', []);
+    const totalUsuarios = row ? Number(row.user_count || 0) : 0;
 
-  db.get('SELECT COUNT(*) as user_count FROM usuarios', (err, row) => {
-    const dbStatus = err ? 'ERROR' : 'HEALTHY';
-    const dbError = err ? err.message : null;
-
-    res.status(200).json({
+    return res.status(200).json({
       status: 'OK',
       timestamp: new Date().toISOString(),
       environment: process.env.NODE_ENV || 'development',
       timezone: process.env.TZ || 'UTC',
       database: {
-        status: dbStatus,
-        error: dbError,
-        users: row ? row.user_count : 0
+        status: 'HEALTHY',
+        error: null,
+        users: totalUsuarios
       },
       memory: process.memoryUsage(),
       uptime: process.uptime()
     });
-  });
+  } catch (err) {
+    console.error('❌ Erro no health check:', err);
+
+    return res.status(500).json({
+      status: 'ERROR',
+      timestamp: new Date().toISOString(),
+      environment: process.env.NODE_ENV || 'development',
+      timezone: process.env.TZ || 'UTC',
+      database: {
+        status: 'ERROR',
+        error: err.message,
+        users: 0
+      },
+      memory: process.memoryUsage(),
+      uptime: process.uptime()
+    });
+  }
 });
 
 // ✅ Rota de status do sistema - CORRIGIDO
-app.get('/api/status', (req, res) => {
-  const db = require('./db');
+app.get('/api/status', async (req, res) => {
+  try {
+    const db = require('./db');
 
-  Promise.all([
-    new Promise(resolve => {
-      db.get('SELECT COUNT(*) as total FROM ordens_servico', (err, row) => {
-        resolve({ total_os: err ? 0 : row.total });
-      });
-    }),
-    new Promise(resolve => {
-      db.get('SELECT COUNT(*) as total FROM usuarios', (err, row) => {
-        resolve({ total_usuarios: err ? 0 : row.total });
-      });
-    }),
-    new Promise(resolve => {
-      db.get(`SELECT COUNT(*) as em_aberto FROM ordens_servico WHERE status = 'Aberto'`, (err, row) => {
-        resolve({ os_abertas: err ? 0 : row.em_aberto });
-      });
-    }),
-    new Promise(resolve => {
-      db.get(`SELECT COUNT(*) as aguardando_pecas FROM ordens_servico WHERE status = 'Aguardando Peças'`, (err, row) => {
-        resolve({ os_aguardando_pecas: err ? 0 : row.aguardando_pecas });
-      });
-    })
-  ]).then(results => {
-    const status = Object.assign({}, ...results);
+    const [
+      totalOS,
+      totalUsuarios,
+      osAbertas,
+      osAguardandoPecas
+    ] = await Promise.all([
+      db.get('SELECT COUNT(*) as total FROM ordens_servico', []),
+      db.get('SELECT COUNT(*) as total FROM usuarios', []),
+      db.get(`SELECT COUNT(*) as em_aberto FROM ordens_servico WHERE status = 'Aberto'`, []),
+      db.get(`SELECT COUNT(*) as aguardando_pecas FROM ordens_servico WHERE status = 'Aguardando Peças'`, [])
+    ]);
 
-    res.json({
+    return res.json({
       success: true,
       system: {
         status: 'operational',
@@ -167,9 +171,21 @@ app.get('/api/status', (req, res) => {
         version: '1.0.0',
         features: ['Aguardando Peças']
       },
-      statistics: status
+      statistics: {
+        total_os: Number(totalOS?.total || 0),
+        total_usuarios: Number(totalUsuarios?.total || 0),
+        os_abertas: Number(osAbertas?.em_aberto || 0),
+        os_aguardando_pecas: Number(osAguardandoPecas?.aguardando_pecas || 0)
+      }
     });
-  });
+  } catch (error) {
+    console.error('❌ Erro ao carregar /api/status:', error);
+
+    return res.status(500).json({
+      success: false,
+      message: error?.message || 'Erro ao carregar status do sistema'
+    });
+  }
 });
 
 // ✅ Middleware de logging aprimorado

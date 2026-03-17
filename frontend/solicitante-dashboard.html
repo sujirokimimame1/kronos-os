@@ -2487,11 +2487,9 @@
         document.getElementById('formNovaOS').addEventListener('submit', async function(e) {
             e.preventDefault();
             const token = localStorage.getItem('kronos_token');
-            const usuario = JSON.parse(localStorage.getItem('kronos_user') || '{}');
             const btnSubmit = document.getElementById('btnSubmitOS');
 
             const novaOS = {
-                user_id: usuario.id,
                 setor_origem: document.getElementById('setor_origem').value,
                 setor_destino: document.getElementById('setor_destino').value,
                 categoria: document.getElementById('categoria').value,
@@ -2513,21 +2511,32 @@
                     body: JSON.stringify(novaOS)
                 });
 
-                const data = await response.json();
-                if (data.success) {
-                    // ✅ TOCAR SOM COMPATÍVEL PARA CRIAÇÃO DE OS
-                    sistemaAudio.tocarSomCriacaoOS();
-                    
-                    showToast('✅ OS criada com sucesso!', 'success');
-                    document.getElementById('modalNovaOS').style.display = 'none';
-                    document.getElementById('formNovaOS').reset();
-                    carregarMinhasOS();
-                } else {
-                    showToast('❌ Erro: ' + (data.message || 'Erro ao criar OS'), 'error');
+                let data = null;
+                const rawText = await response.text();
+
+                try {
+                    data = rawText ? JSON.parse(rawText) : {};
+                } catch (parseError) {
+                    data = {
+                        success: false,
+                        message: rawText || `Erro HTTP ${response.status}`
+                    };
                 }
+
+                if (!response.ok || !data.success) {
+                    showToast('❌ Erro: ' + (data.message || `Erro HTTP ${response.status}`), 'error');
+                    return;
+                }
+
+                sistemaAudio.tocarSomCriacaoOS();
+
+                showToast('✅ OS criada com sucesso!', 'success');
+                document.getElementById('modalNovaOS').style.display = 'none';
+                document.getElementById('formNovaOS').reset();
+                carregarMinhasOS();
             } catch (error) {
                 console.error('Erro:', error);
-                showToast('❌ Erro de conexão', 'error');
+                showToast('❌ Erro de conexão ao criar OS', 'error');
             } finally {
                 btnSubmit.disabled = false;
                 btnSubmit.innerHTML = '<i class="fas fa-check-circle"></i> Criar Ordem de Serviço';

@@ -141,10 +141,11 @@ router.get('/:id', async (req, res) => {
 });
 
 // CRIAR OS
-router.post('/', async (req, res) => {
+router.post('/', authMiddleware, async (req, res) => {
   try {
+    const user_id = req.user_id || req.user?.id;
+
     const {
-      user_id,
       setor_origem,
       setor_destino,
       categoria,
@@ -153,10 +154,17 @@ router.post('/', async (req, res) => {
       prioridade
     } = req.body;
 
-    if (!user_id || !setor_origem || !setor_destino || !descricao || !prioridade) {
+    if (!user_id) {
+      return res.status(401).json({
+        success: false,
+        message: 'Usuário não autenticado'
+      });
+    }
+
+    if (!setor_origem || !setor_destino || !descricao || !prioridade) {
       return res.status(400).json({
         success: false,
-        message: 'Campos obrigatórios: user_id, setor_origem, setor_destino, descricao, prioridade'
+        message: 'Campos obrigatórios: setor_origem, setor_destino, descricao, prioridade'
       });
     }
 
@@ -185,16 +193,17 @@ router.post('/', async (req, res) => {
       prioridade
     ]);
 
-    res.json({
+    return res.status(201).json({
       success: true,
       data: result.rows[0]
     });
 
   } catch (error) {
     console.error('❌ Erro ao criar OS:', error);
-    res.status(500).json({
+
+    return res.status(500).json({
       success: false,
-      message: 'Erro ao criar ordem de serviço'
+      message: error?.detail || error?.message || 'Erro ao criar ordem de serviço'
     });
   }
 });
