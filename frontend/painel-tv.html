@@ -12,1063 +12,633 @@
       --primary-light: #81D4FA;
       --primary-glow: rgba(79, 195, 247, 0.35);
       --secondary: #BA68C8;
-      --secondary-glow: rgba(186, 104, 200, 0.22);
-      --amber: #fbbf24;
-      --amber-glow: rgba(251, 191, 36, 0.22);
-      --danger: #ef4444;
-      --danger-glow: rgba(239, 68, 68, 0.35);
-      --success: #22c55e;
+      --secondary-glow: rgba(186, 104, 200, 0.25);
       --black: #0F172A;
       --black-light: #1E293B;
       --black-lighter: #334155;
       --light: #FFFFFF;
       --gray: #94A3B8;
       --card-bg: rgba(15, 23, 42, 0.68);
-      --card-bg-soft: rgba(30, 41, 59, 0.72);
-      --card-border: rgba(79, 195, 247, 0.2);
-      --shadow: 0 18px 50px rgba(0, 0, 0, 0.38);
-      --radius: 24px;
+      --card-border: rgba(79, 195, 247, 0.22);
+      --shadow: 0 10px 30px rgba(0, 0, 0, 0.45);
+      --success: #22c55e;
+      --warning: #f59e0b;
+      --danger: #ef4444;
+      --danger-2: #f87171;
+      --purple: #a855f7;
     }
-
-    * {
-      margin: 0;
-      padding: 0;
-      box-sizing: border-box;
-      font-family: 'Segoe UI', system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
-    }
-
+    * { box-sizing: border-box; margin: 0; padding: 0; }
     body {
-      background: linear-gradient(135deg, var(--black) 0%, var(--black-light) 48%, var(--black-lighter) 100%);
+      font-family: 'Segoe UI', system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+      background: linear-gradient(135deg, var(--black) 0%, var(--black-light) 52%, var(--black-lighter) 100%);
       color: var(--light);
       min-height: 100vh;
       overflow-x: hidden;
       position: relative;
     }
-
     body::before {
       content: '';
       position: fixed;
       inset: 0;
       background:
-        radial-gradient(circle at 12% 82%, var(--primary-glow) 0%, transparent 40%),
-        radial-gradient(circle at 85% 12%, var(--secondary-glow) 0%, transparent 35%),
-        radial-gradient(circle at 55% 45%, rgba(79, 195, 247, 0.08) 0%, transparent 55%);
+        radial-gradient(circle at 12% 88%, rgba(79, 195, 247, 0.24) 0%, transparent 44%),
+        radial-gradient(circle at 88% 12%, rgba(186, 104, 200, 0.22) 0%, transparent 38%),
+        radial-gradient(circle at 60% 40%, rgba(248, 113, 113, 0.08) 0%, transparent 30%);
       pointer-events: none;
-      z-index: 0;
+      z-index: -1;
     }
-
-    .page {
-      position: relative;
-      z-index: 1;
-      width: min(1800px, 100%);
+    .dashboard-container {
+      max-width: 1600px;
       margin: 0 auto;
-      padding: 24px;
+      padding: 1.4rem;
     }
-
     .header {
-      display: grid;
-      grid-template-columns: 1fr auto;
-      gap: 20px;
+      display: flex;
+      justify-content: space-between;
       align-items: center;
-      padding: 20px 24px;
-      border-radius: 28px;
-      border: 1px solid var(--card-border);
+      gap: 1rem;
+      margin-bottom: 1.2rem;
+      padding: 1.4rem 1.5rem;
       background: var(--card-bg);
       backdrop-filter: blur(20px);
+      border-radius: 24px;
+      border: 1px solid var(--card-border);
       box-shadow: var(--shadow);
-      margin-bottom: 24px;
     }
-
-    .branding {
-      display: flex;
-      align-items: center;
-      gap: 16px;
-    }
-
-    .logo-circle {
-      width: 54px;
-      height: 54px;
-      border-radius: 50%;
-      display: flex;
-      align-items: center;
-      justify-content: center;
+    .logo { display: flex; align-items: center; gap: 1rem; }
+    .cross-circle {
+      width: 48px; height: 48px; border-radius: 50%;
       background: linear-gradient(135deg, var(--primary), var(--primary-dark));
-      box-shadow: 0 0 26px var(--primary-glow);
+      display: flex; align-items: center; justify-content: center;
+      box-shadow: 0 0 20px var(--primary-glow);
       color: var(--black);
-      font-size: 28px;
+      font-size: 1.2rem;
       font-weight: 900;
     }
-
-    .title h1 {
-      font-size: clamp(1.8rem, 3vw, 2.4rem);
+    .logo-text h1 {
+      font-size: 2rem;
       background: linear-gradient(135deg, var(--primary), var(--primary-light));
       -webkit-background-clip: text;
       -webkit-text-fill-color: transparent;
       background-clip: text;
-      margin-bottom: 4px;
     }
-
-    .title p {
-      color: var(--gray);
-      font-size: 1.05rem;
-    }
-
-    .header-stats {
-      display: flex;
-      gap: 16px;
-      flex-wrap: wrap;
-      justify-content: flex-end;
-    }
-
-    .mini-stat {
-      min-width: 132px;
-      padding: 16px 18px;
-      border-radius: 22px;
-      border: 1px solid rgba(255,255,255,0.08);
-      background: rgba(255,255,255,0.04);
+    .logo-text p { color: var(--gray); margin-top: .2rem; }
+    .header-stats { display: flex; gap: 1rem; }
+    .header-stat {
+      min-width: 140px;
+      padding: 1rem 1.2rem;
       text-align: center;
+      background: rgba(255,255,255,.04);
+      border: 1px solid rgba(255,255,255,.08);
+      border-radius: 20px;
     }
-
-    .mini-stat .value {
-      font-size: 2rem;
-      font-weight: 800;
-      margin-bottom: 4px;
+    .header-stat strong { display:block; font-size: 2rem; }
+    .header-stat span { color: var(--gray); font-size: .95rem; }
+    .sector-tabs {
+      display:flex; gap:1rem; margin-bottom: 1rem; flex-wrap: wrap;
     }
-
-    .mini-stat .label {
-      color: var(--gray);
-      font-size: .95rem;
-    }
-
-    .sector-grid {
-      display: grid;
-      grid-template-columns: repeat(2, minmax(0, 1fr));
-      gap: 24px;
-      align-items: start;
-    }
-
-    .sector-panel {
-      border-radius: 28px;
+    .sector-tab {
+      flex: 1 1 250px;
       border: 1px solid var(--card-border);
-      background: var(--card-bg);
+      background: rgba(15,23,42,.55);
+      color: var(--light);
+      border-radius: 20px;
+      padding: 1rem 1.2rem;
+      cursor: pointer;
+      display:flex; align-items:center; justify-content:space-between; gap:.8rem;
+      transition: all .25s ease;
       backdrop-filter: blur(18px);
       box-shadow: var(--shadow);
-      overflow: hidden;
     }
-
-    .sector-head {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      gap: 16px;
-      padding: 22px 24px;
-      background: linear-gradient(180deg, rgba(255,255,255,0.04), rgba(255,255,255,0));
-      border-bottom: 1px solid rgba(255,255,255,0.06);
+    .sector-tab:hover { transform: translateY(-2px); box-shadow: var(--shadow), 0 0 15px var(--primary-glow); }
+    .sector-tab.active { border-color: var(--primary); box-shadow: var(--shadow), 0 0 18px var(--primary-glow); }
+    .sector-tab .left { display:flex; align-items:center; gap:1rem; }
+    .icon-badge {
+      width: 52px; height: 52px; border-radius: 16px;
+      display:flex; align-items:center; justify-content:center; font-size:1.2rem;
+      background: rgba(79, 195, 247, .15); color: var(--primary);
+      border: 1px solid rgba(79, 195, 247, .18);
     }
-
-    .sector-title {
-      display: flex;
-      align-items: center;
-      gap: 14px;
-    }
-
-    .sector-icon {
-      width: 46px;
-      height: 46px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      border-radius: 16px;
-      background: rgba(79, 195, 247, 0.12);
-      color: var(--primary);
-      box-shadow: inset 0 0 0 1px rgba(79, 195, 247, 0.18);
-    }
-
-    .sector-head h2 {
-      font-size: 1.6rem;
-      margin-bottom: 2px;
-    }
-
-    .sector-head p {
-      color: var(--gray);
-      font-size: .95rem;
-    }
-
+    .sector-tab h2 { font-size: 2rem; }
+    .sector-tab p { color: var(--gray); }
     .sector-total {
-      min-width: 92px;
-      padding: 14px 16px;
-      border-radius: 20px;
-      background: rgba(255,255,255,0.05);
-      border: 1px solid rgba(255,255,255,0.06);
-      text-align: center;
+      min-width: 92px; text-align:center; padding: .85rem 1rem;
+      border-radius: 18px; background: rgba(255,255,255,.05); border: 1px solid rgba(255,255,255,.07);
     }
-
-    .sector-total strong {
-      display: block;
-      font-size: 1.8rem;
-      margin-bottom: 2px;
+    .sector-total strong { font-size: 2.2rem; display:block; }
+    .sector-total span { color: var(--gray); }
+    .status-grid {
+      display:grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap:1rem; margin-bottom:1rem;
     }
-
-    .sector-total span {
-      font-size: .9rem;
-      color: var(--gray);
+    .status-card {
+      background: var(--card-bg); border: 1px solid var(--card-border); border-radius: 24px;
+      padding: 1.2rem; box-shadow: var(--shadow); cursor:pointer; transition: all .25s ease;
+      min-height: 150px; position:relative; overflow:hidden;
     }
-
-    .status-actions {
-      display: grid;
-      grid-template-columns: repeat(3, minmax(0, 1fr));
-      gap: 14px;
-      padding: 20px 24px 10px;
+    .status-card:hover { transform: translateY(-3px); }
+    .status-card.active { border-color: var(--primary); box-shadow: var(--shadow), 0 0 18px var(--primary-glow); }
+    .status-top { display:flex; justify-content:space-between; align-items:flex-start; gap:.8rem; }
+    .status-title-wrap { display:flex; gap:1rem; align-items:flex-start; }
+    .status-title-wrap h3 { font-size: 1.8rem; line-height:1.1; margin-bottom: .35rem; }
+    .status-title-wrap p { color: var(--gray); font-size: 1rem; }
+    .status-pill {
+      min-width: 72px; min-height:72px; border-radius: 20px; display:flex; align-items:center; justify-content:center;
+      font-size: 2rem; font-weight: 800; background: rgba(255,255,255,.05); border:1px solid rgba(255,255,255,.08);
     }
-
-    .status-button {
-      border: 1px solid rgba(255,255,255,0.08);
-      background: var(--card-bg-soft);
-      color: var(--light);
-      border-radius: 22px;
-      padding: 18px 16px;
-      display: flex;
-      align-items: center;
-      gap: 14px;
-      cursor: pointer;
-      text-align: left;
-      transition: transform .22s ease, box-shadow .22s ease, border-color .22s ease;
-      min-height: 100px;
+    .status-card.aberto .icon-badge { background: rgba(79,195,247,.18); color: #7dd3fc; }
+    .status-card.andamento .icon-badge { background: rgba(245, 158, 11, .18); color: #fbbf24; }
+    .status-card.pecas .icon-badge { background: rgba(168,85,247,.18); color: #d8b4fe; }
+    .selected-banner {
+      display:flex; justify-content:space-between; align-items:center; gap:1rem;
+      margin-bottom: 1rem; background: var(--card-bg); border:1px solid var(--card-border);
+      border-radius: 22px; padding: 1rem 1.2rem; box-shadow: var(--shadow);
     }
-
-    .status-button:hover {
-      transform: translateY(-4px);
-      border-color: rgba(79, 195, 247, 0.35);
-      box-shadow: 0 14px 35px rgba(0,0,0,0.28), 0 0 18px rgba(79,195,247,0.12);
-    }
-
-    .status-button.active {
-      border-color: rgba(79, 195, 247, 0.4);
-      box-shadow: 0 0 0 1px rgba(79,195,247,0.18), 0 0 26px rgba(79,195,247,0.16);
-    }
-
-    .status-icon {
-      width: 42px;
-      height: 42px;
-      flex: 0 0 42px;
-      border-radius: 14px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 1rem;
-    }
-
-    .status-button.aberto .status-icon {
-      background: rgba(79, 195, 247, 0.16);
-      color: var(--primary-light);
-    }
-    .status-button.andamento .status-icon {
-      background: rgba(251, 191, 36, 0.16);
-      color: var(--amber);
-    }
-    .status-button.pecas .status-icon {
-      background: rgba(186, 104, 200, 0.16);
-      color: #d8b4fe;
-    }
-
-    .status-text {
-      flex: 1;
-      min-width: 0;
-    }
-
-    .status-text .name {
-      font-size: 1.05rem;
-      font-weight: 700;
-      margin-bottom: 4px;
-    }
-
-    .status-text .desc {
-      color: var(--gray);
-      font-size: .88rem;
-      line-height: 1.35;
-    }
-
-    .status-count {
-      min-width: 54px;
-      height: 54px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      border-radius: 18px;
-      background: rgba(255,255,255,0.05);
-      font-size: 1.45rem;
-      font-weight: 800;
-      border: 1px solid rgba(255,255,255,0.06);
-    }
-
-    .preview {
-      padding: 14px 24px 24px;
-    }
-
-    .preview-title {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      gap: 12px;
-      margin-bottom: 14px;
-    }
-
-    .preview-title h3 {
-      font-size: 1.05rem;
-    }
-
-    .preview-title span {
-      color: var(--gray);
-      font-size: .9rem;
-    }
-
-    .preview-list {
-      display: grid;
-      gap: 12px;
-    }
-
+    .selected-banner h3 { font-size: 1.5rem; color: var(--primary); }
+    .selected-banner p { color: var(--gray); }
+    .selected-meta { text-align:right; color: var(--gray); }
+    .list-grid { display:grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
     .os-card {
-      border-radius: 22px;
-      border: 1px solid rgba(255,255,255,0.07);
-      background: rgba(255,255,255,0.04);
-      padding: 16px;
-      box-shadow: inset 0 1px 0 rgba(255,255,255,0.02);
+      background: rgba(255,255,255,.04); border:1px solid rgba(255,255,255,.07); border-radius: 22px;
+      padding: 1rem; box-shadow: var(--shadow); position:relative; overflow:hidden;
     }
-
-    .os-card.critica {
-      border-color: rgba(239, 68, 68, 0.35);
-      box-shadow: 0 0 24px rgba(239,68,68,0.1), inset 0 1px 0 rgba(255,255,255,0.02);
+    .os-card.priority-alta { border-color: rgba(245,158,11,.45); }
+    .os-card.priority-critica {
+      border-color: rgba(239,68,68,.65);
+      box-shadow: var(--shadow), 0 0 22px rgba(239,68,68,.18);
     }
-
-    .os-card.alta {
-      border-color: rgba(251, 191, 36, 0.28);
+    .os-card.new-item { animation: pulseNew 1.6s ease; }
+    @keyframes pulseNew {
+      0% { transform: scale(.985); box-shadow: 0 0 0 rgba(79,195,247,0); }
+      35% { transform: scale(1.01); box-shadow: 0 0 22px rgba(79,195,247,.38); }
+      100% { transform: scale(1); }
     }
-
-    .os-top {
-      display: flex;
-      justify-content: space-between;
-      gap: 12px;
-      margin-bottom: 12px;
-      align-items: flex-start;
+    .os-header { display:flex; justify-content:space-between; gap:1rem; margin-bottom:1rem; align-items:flex-start; }
+    .os-title { font-size: 1.6rem; font-weight: 800; }
+    .priority-badge, .status-badge {
+      display:inline-flex; align-items:center; justify-content:center; padding:.42rem .85rem; border-radius:999px;
+      font-size: .95rem; font-weight: 800; border:1px solid transparent;
     }
-
-    .os-top h4 {
-      font-size: 1.12rem;
-      line-height: 1.2;
-    }
-
-    .os-desc {
-      color: #e5e7eb;
-      margin-bottom: 14px;
-      line-height: 1.55;
-      font-size: 1rem;
-      display: -webkit-box;
-      -webkit-line-clamp: 3;
-      -webkit-box-orient: vertical;
-      overflow: hidden;
-    }
-
-    .meta-grid {
-      display: grid;
-      grid-template-columns: repeat(2, minmax(0, 1fr));
-      gap: 10px 14px;
-      font-size: .93rem;
-      color: var(--gray);
-      margin-bottom: 14px;
-    }
-
-    .meta-grid strong {
-      color: #e2e8f0;
-      font-weight: 600;
-    }
-
+    .priority-baixa { background: rgba(34,197,94,.16); color:#86efac; }
+    .priority-media { background: rgba(59,130,246,.15); color:#93c5fd; }
+    .priority-alta { background: rgba(245,158,11,.18); color:#fde68a; }
+    .priority-critica { background: rgba(239,68,68,.22); color:#fecaca; border-color: rgba(239,68,68,.3); }
+    .status-aberto { background: rgba(79,195,247,.18); color:#7dd3fc; }
+    .status-andamento { background: rgba(245,158,11,.16); color:#fcd34d; }
+    .status-pecas { background: rgba(168,85,247,.18); color:#e9d5ff; }
+    .status-finalizado { background: rgba(34,197,94,.16); color:#bbf7d0; }
+    .os-description { font-size: 1.15rem; line-height: 1.6; color: #e2e8f0; margin-bottom: 1rem; }
+    .os-meta { display:grid; grid-template-columns: 1fr 1fr; gap:.6rem 1rem; color: var(--gray); margin-bottom: 1rem; }
+    .os-meta strong { color: #e2e8f0; }
     .os-footer {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      gap: 12px;
-      border-top: 1px solid rgba(255,255,255,0.06);
-      padding-top: 12px;
-      font-size: .9rem;
-      color: var(--gray);
+      display:flex; justify-content:space-between; align-items:center; gap:1rem; padding-top:.85rem;
+      border-top:1px solid rgba(255,255,255,.08); color: var(--gray);
     }
-
-    .badge {
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      min-width: 92px;
-      padding: 7px 12px;
-      border-radius: 999px;
-      font-size: .86rem;
-      font-weight: 800;
-      text-transform: uppercase;
-      letter-spacing: .02em;
-    }
-
-    .badge.status-aberto { background: rgba(79, 195, 247, 0.16); color: var(--primary-light); }
-    .badge.status-andamento { background: rgba(251, 191, 36, 0.18); color: var(--amber); }
-    .badge.status-pecas { background: rgba(186, 104, 200, 0.18); color: #e9d5ff; }
-
-    .priority {
-      padding: 8px 12px;
-      border-radius: 999px;
-      font-size: .82rem;
-      font-weight: 800;
-      letter-spacing: .02em;
-      white-space: nowrap;
-    }
-
-    .priority.baixa { background: rgba(34, 197, 94, 0.18); color: #86efac; }
-    .priority.media { background: rgba(59, 130, 246, 0.18); color: #93c5fd; }
-    .priority.alta { background: rgba(251, 191, 36, 0.18); color: #fde68a; }
-    .priority.critica { background: rgba(239, 68, 68, 0.18); color: #fca5a5; }
-
     .empty-state {
-      border: 1px dashed rgba(255,255,255,0.08);
-      border-radius: 22px;
-      background: rgba(255,255,255,0.03);
-      padding: 28px 18px;
-      text-align: center;
-      color: var(--gray);
+      background: var(--card-bg); border:1px dashed var(--card-border); border-radius: 24px; padding: 2rem;
+      text-align:center; color: var(--gray);
     }
-
-    .toolbar {
-      display: flex;
-      justify-content: space-between;
-      gap: 14px;
-      align-items: center;
-      margin-top: 18px;
-      color: var(--gray);
-      font-size: .95rem;
+    .empty-state i { font-size: 2.4rem; margin-bottom: .8rem; color: var(--primary); }
+    .alert-container {
+      position: fixed; top: 20px; right: 20px; z-index: 9999; display:flex; flex-direction:column; gap:.8rem;
+      width: min(420px, calc(100vw - 40px));
     }
-
-    .chip {
-      display: inline-flex;
-      align-items: center;
-      gap: 8px;
-      padding: 9px 14px;
-      border-radius: 999px;
-      border: 1px solid rgba(255,255,255,0.08);
-      background: rgba(255,255,255,0.03);
+    .alert-card {
+      border-radius: 18px; padding: 1rem 1.1rem; border:1px solid rgba(255,255,255,.1);
+      box-shadow: var(--shadow); backdrop-filter: blur(18px); color: #fff;
+      animation: slideIn .35s ease;
     }
-
+    .alert-card.critica { background: rgba(127, 29, 29, .95); border-color: rgba(248,113,113,.45); }
+    .alert-card.alta { background: rgba(120, 53, 15, .95); border-color: rgba(251,191,36,.35); }
+    .alert-card.normal { background: rgba(15,23,42,.95); border-color: rgba(79,195,247,.28); }
+    @keyframes slideIn { from { opacity:0; transform: translateX(24px); } to { opacity:1; transform: translateX(0); } }
+    .screen-flash {
+      position: fixed; inset: 0; pointer-events:none; z-index: 9998; opacity:0; transition: opacity .25s ease;
+      background: rgba(239,68,68,.18);
+    }
+    .screen-flash.show { opacity: 1; }
     .modal {
-      position: fixed;
-      inset: 0;
-      display: none;
-      align-items: center;
-      justify-content: center;
-      padding: 20px;
-      background: rgba(2, 6, 23, 0.76);
-      backdrop-filter: blur(10px);
-      z-index: 9998;
+      position: fixed; inset: 0; z-index: 10000; display:none; align-items:center; justify-content:center;
+      background: rgba(2,6,23,.72); padding: 1rem;
     }
-
-    .modal.show { display: flex; }
-
+    .modal.show { display:flex; }
     .modal-box {
-      width: min(1180px, 100%);
-      max-height: 90vh;
-      overflow: auto;
-      border-radius: 28px;
-      border: 1px solid rgba(255,255,255,0.08);
-      background: linear-gradient(180deg, rgba(15,23,42,0.96), rgba(30,41,59,0.96));
-      box-shadow: 0 26px 70px rgba(0,0,0,0.45);
+      width:min(1200px, 100%); max-height: 88vh; overflow:auto;
+      background: rgba(15,23,42,.98); border:1px solid var(--card-border); border-radius: 28px; padding:1.3rem;
+      box-shadow: var(--shadow), 0 0 18px var(--primary-glow);
     }
-
-    .modal-header {
-      position: sticky;
-      top: 0;
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      gap: 14px;
-      padding: 20px 24px;
-      background: rgba(15, 23, 42, 0.95);
-      border-bottom: 1px solid rgba(255,255,255,0.08);
-      z-index: 2;
-    }
-
-    .modal-header h3 {
-      font-size: 1.4rem;
-    }
-
+    .modal-head { display:flex; justify-content:space-between; gap:1rem; align-items:center; margin-bottom:1rem; }
+    .modal-head h2 { color: var(--primary); font-size:1.7rem; }
     .close-btn {
-      width: 42px;
-      height: 42px;
-      border: 0;
-      border-radius: 14px;
-      background: rgba(255,255,255,0.08);
-      color: var(--light);
-      cursor: pointer;
-      font-size: 1rem;
+      width:44px; height:44px; border-radius: 14px; border:1px solid rgba(255,255,255,.1); background: rgba(255,255,255,.04);
+      color:#fff; cursor:pointer; font-size:1.1rem;
     }
-
-    .modal-content {
-      padding: 22px 24px 26px;
-      display: grid;
-      gap: 14px;
+    @media (max-width: 1100px) {
+      .status-grid, .list-grid { grid-template-columns: 1fr; }
+      .header { flex-direction: column; align-items: stretch; }
+      .header-stats { justify-content: stretch; }
     }
-
-    .toast-wrap {
-      position: fixed;
-      top: 22px;
-      right: 22px;
-      display: grid;
-      gap: 12px;
-      z-index: 9999;
-      width: min(420px, calc(100vw - 32px));
-    }
-
-    .toast {
-      padding: 16px 18px;
-      border-radius: 22px;
-      color: white;
-      border: 1px solid rgba(255,255,255,0.14);
-      background: linear-gradient(135deg, rgba(15,23,42,0.94), rgba(30,41,59,0.94));
-      box-shadow: 0 20px 45px rgba(0,0,0,0.35);
-      animation: slideIn .28s ease;
-      overflow: hidden;
-      position: relative;
-    }
-
-    .toast::before {
-      content: '';
-      position: absolute;
-      left: 0;
-      top: 0;
-      bottom: 0;
-      width: 6px;
-      background: var(--primary);
-    }
-
-    .toast.alta::before { background: var(--amber); }
-    .toast.critica::before { background: var(--danger); }
-    .toast.alta { box-shadow: 0 20px 45px rgba(0,0,0,0.35), 0 0 22px var(--amber-glow); }
-    .toast.critica { box-shadow: 0 20px 45px rgba(0,0,0,0.35), 0 0 26px var(--danger-glow); }
-
-    .toast-header {
-      display: flex;
-      justify-content: space-between;
-      gap: 12px;
-      margin-bottom: 8px;
-    }
-
-    .toast-title {
-      font-weight: 800;
-      font-size: 1rem;
-    }
-
-    .alert-overlay {
-      position: fixed;
-      inset: 0;
-      display: none;
-      align-items: center;
-      justify-content: center;
-      background: rgba(127, 29, 29, 0.18);
-      z-index: 9997;
-      pointer-events: none;
-      animation: pulseCritical .55s ease-in-out 4;
-    }
-
-    .alert-overlay.show { display: flex; }
-
-    .alert-overlay-box {
-      padding: 24px 34px;
-      border-radius: 28px;
-      border: 1px solid rgba(239,68,68,0.35);
-      background: rgba(127, 29, 29, 0.84);
-      color: #fff;
-      box-shadow: 0 0 36px rgba(239,68,68,0.45);
-      text-align: center;
-      min-width: min(720px, calc(100vw - 40px));
-    }
-
-    .alert-overlay-box strong {
-      display: block;
-      font-size: clamp(2rem, 5vw, 3.6rem);
-      letter-spacing: .05em;
-      margin-bottom: 10px;
-    }
-
-    .alert-overlay-box span {
-      font-size: clamp(1rem, 2vw, 1.4rem);
-      color: rgba(255,255,255,0.92);
-    }
-
-    @keyframes slideIn {
-      from { opacity: 0; transform: translateY(-10px) scale(.98); }
-      to { opacity: 1; transform: translateY(0) scale(1); }
-    }
-
-    @keyframes pulseCritical {
-      0%, 100% { opacity: 0; }
-      50% { opacity: 1; }
-    }
-
-    @media (max-width: 1180px) {
-      .sector-grid { grid-template-columns: 1fr; }
-    }
-
-    @media (max-width: 820px) {
-      .page { padding: 14px; }
-      .header { grid-template-columns: 1fr; }
-      .status-actions { grid-template-columns: 1fr; }
-      .header-stats { justify-content: flex-start; }
-      .meta-grid { grid-template-columns: 1fr; }
+    @media (max-width: 720px) {
+      .dashboard-container { padding: .9rem; }
+      .logo-text h1 { font-size: 1.45rem; }
+      .status-title-wrap h3 { font-size: 1.35rem; }
+      .os-title { font-size: 1.3rem; }
+      .header-stats { flex-direction: column; }
+      .os-meta { grid-template-columns: 1fr; }
     }
   </style>
 </head>
 <body>
-  <div class="page">
+  <div class="screen-flash" id="screenFlash"></div>
+  <div class="alert-container" id="alertContainer"></div>
+
+  <div class="dashboard-container">
     <header class="header">
-      <div class="branding">
-        <div class="logo-circle"><i class="fa-solid fa-plus"></i></div>
-        <div class="title">
-          <h1>Kronos OS • Painel Operacional TV</h1>
-          <p>Acompanhamento em tempo real das ordens de serviço por setor e por status.</p>
+      <div class="logo">
+        <div class="cross-circle"><i class="fa-solid fa-plus"></i></div>
+        <div class="logo-text">
+          <h1>Kronos OS • Painel TV</h1>
+          <p>Acompanhamento em tempo real por setor</p>
         </div>
       </div>
       <div class="header-stats">
-        <div class="mini-stat">
-          <div class="value" id="totalGeral">0</div>
-          <div class="label">Total exibido</div>
-        </div>
-        <div class="mini-stat">
-          <div class="value" id="ultimaAtualizacao">--:--:--</div>
-          <div class="label">Última atualização</div>
-        </div>
+        <div class="header-stat"><strong id="totalGeral">0</strong><span>Total geral</span></div>
+        <div class="header-stat"><strong id="ultimaAtualizacao">--:--:--</strong><span>Última atualização</span></div>
       </div>
     </header>
 
-    <main class="sector-grid">
-      <section class="sector-panel" id="panel-ti">
-        <div class="sector-head">
-          <div class="sector-title">
-            <div class="sector-icon"><i class="fa-solid fa-computer"></i></div>
+    <section class="sector-tabs">
+      <button class="sector-tab active" id="setorBtnTI" onclick="trocarSetor('TI')">
+        <div class="left">
+          <div class="icon-badge"><i class="fa-solid fa-computer"></i></div>
+          <div>
+            <h2>TI</h2>
+            <p>Chamados de tecnologia e sistemas</p>
+          </div>
+        </div>
+        <div class="sector-total"><strong id="totalTI">0</strong><span>Total</span></div>
+      </button>
+
+      <button class="sector-tab" id="setorBtnManutencao" onclick="trocarSetor('Manutenção')">
+        <div class="left">
+          <div class="icon-badge"><i class="fa-solid fa-screwdriver-wrench"></i></div>
+          <div>
+            <h2>Manutenção</h2>
+            <p>Chamados prediais, elétricos e equipamentos</p>
+          </div>
+        </div>
+        <div class="sector-total"><strong id="totalManutencao">0</strong><span>Total</span></div>
+      </button>
+    </section>
+
+    <section class="status-grid">
+      <div class="status-card aberto active" id="statusCardAberto" onclick="selecionarStatus('Aberto')">
+        <div class="status-top">
+          <div class="status-title-wrap">
+            <div class="icon-badge"><i class="fa-solid fa-inbox"></i></div>
             <div>
-              <h2>TI</h2>
-              <p>Chamados de tecnologia e sistemas</p>
+              <h3>Abertas</h3>
+              <p>Ordens recém-recebidas</p>
             </div>
           </div>
-          <div class="sector-total"><strong id="ti-total">0</strong><span>Total</span></div>
+          <div class="status-pill" id="countAberto">0</div>
         </div>
-
-        <div class="status-actions">
-          <button class="status-button aberto" type="button" data-sector="TI" data-status="Aberto">
-            <div class="status-icon"><i class="fa-solid fa-inbox"></i></div>
-            <div class="status-text">
-              <div class="name">Abertas</div>
-              <div class="desc">Ordens recém-recebidas</div>
-            </div>
-            <div class="status-count" id="ti-aberto-count">0</div>
-          </button>
-          <button class="status-button andamento" type="button" data-sector="TI" data-status="Em andamento">
-            <div class="status-icon"><i class="fa-solid fa-screwdriver-wrench"></i></div>
-            <div class="status-text">
-              <div class="name">Em andamento</div>
-              <div class="desc">Atendimento técnico ativo</div>
-            </div>
-            <div class="status-count" id="ti-andamento-count">0</div>
-          </button>
-          <button class="status-button pecas" type="button" data-sector="TI" data-status="Aguardando Peças">
-            <div class="status-icon"><i class="fa-solid fa-box-open"></i></div>
-            <div class="status-text">
-              <div class="name">Aguardando peças</div>
-              <div class="desc">Dependem de material ou item</div>
-            </div>
-            <div class="status-count" id="ti-pecas-count">0</div>
-          </button>
-        </div>
-
-        <div class="preview">
-          <div class="preview-title">
-            <h3>Últimas O.S. de TI</h3>
-            <span id="ti-preview-info">0 registradas</span>
-          </div>
-          <div class="preview-list" id="ti-preview-list"></div>
-        </div>
-      </section>
-
-      <section class="sector-panel" id="panel-manutencao">
-        <div class="sector-head">
-          <div class="sector-title">
-            <div class="sector-icon"><i class="fa-solid fa-screwdriver"></i></div>
-            <div>
-              <h2>Manutenção</h2>
-              <p>Chamados prediais, elétricos e equipamentos</p>
-            </div>
-          </div>
-          <div class="sector-total"><strong id="manutencao-total">0</strong><span>Total</span></div>
-        </div>
-
-        <div class="status-actions">
-          <button class="status-button aberto" type="button" data-sector="Manutenção" data-status="Aberto">
-            <div class="status-icon"><i class="fa-solid fa-inbox"></i></div>
-            <div class="status-text">
-              <div class="name">Abertas</div>
-              <div class="desc">Ordens recém-recebidas</div>
-            </div>
-            <div class="status-count" id="manutencao-aberto-count">0</div>
-          </button>
-          <button class="status-button andamento" type="button" data-sector="Manutenção" data-status="Em andamento">
-            <div class="status-icon"><i class="fa-solid fa-screwdriver-wrench"></i></div>
-            <div class="status-text">
-              <div class="name">Em andamento</div>
-              <div class="desc">Atendimento técnico ativo</div>
-            </div>
-            <div class="status-count" id="manutencao-andamento-count">0</div>
-          </button>
-          <button class="status-button pecas" type="button" data-sector="Manutenção" data-status="Aguardando Peças">
-            <div class="status-icon"><i class="fa-solid fa-box-open"></i></div>
-            <div class="status-text">
-              <div class="name">Aguardando peças</div>
-              <div class="desc">Dependem de material ou item</div>
-            </div>
-            <div class="status-count" id="manutencao-pecas-count">0</div>
-          </button>
-        </div>
-
-        <div class="preview">
-          <div class="preview-title">
-            <h3>Últimas O.S. de Manutenção</h3>
-            <span id="manutencao-preview-info">0 registradas</span>
-          </div>
-          <div class="preview-list" id="manutencao-preview-list"></div>
-        </div>
-      </section>
-    </main>
-
-    <div class="toolbar">
-      <div class="chip"><i class="fa-solid fa-rotate"></i> Atualização automática a cada 5 segundos</div>
-      <div class="chip"><i class="fa-solid fa-tv"></i> Link recomendado: <strong>/painel-tv</strong></div>
-    </div>
-  </div>
-
-  <div class="modal" id="osModal" aria-hidden="true">
-    <div class="modal-box">
-      <div class="modal-header">
-        <div>
-          <h3 id="modalTitle">Ordens de serviço</h3>
-          <div style="color: var(--gray); margin-top: 4px;" id="modalSubtitle">Clique fora para fechar.</div>
-        </div>
-        <button class="close-btn" type="button" onclick="fecharModal()"><i class="fa-solid fa-xmark"></i></button>
       </div>
-      <div class="modal-content" id="modalContent"></div>
+
+      <div class="status-card andamento" id="statusCardAndamento" onclick="selecionarStatus('Em andamento')">
+        <div class="status-top">
+          <div class="status-title-wrap">
+            <div class="icon-badge"><i class="fa-solid fa-screwdriver-wrench"></i></div>
+            <div>
+              <h3>Em andamento</h3>
+              <p>Atendimento técnico ativo</p>
+            </div>
+          </div>
+          <div class="status-pill" id="countAndamento">0</div>
+        </div>
+      </div>
+
+      <div class="status-card pecas" id="statusCardPecas" onclick="selecionarStatus('Aguardando Peças')">
+        <div class="status-top">
+          <div class="status-title-wrap">
+            <div class="icon-badge"><i class="fa-solid fa-box-open"></i></div>
+            <div>
+              <h3>Aguardando peças</h3>
+              <p>Dependem de material ou item</p>
+            </div>
+          </div>
+          <div class="status-pill" id="countPecas">0</div>
+        </div>
+      </div>
+    </section>
+
+    <section class="selected-banner">
+      <div>
+        <h3 id="tituloLista">O.S. de TI • Abertas</h3>
+        <p id="subtituloLista">Clique nos cards acima para trocar o status.</p>
+      </div>
+      <div class="selected-meta">
+        <div><strong id="quantidadeSelecionada">0</strong> exibidas</div>
+        <div id="legendaPrioridade">Alertas vermelhos para prioridade alta e crítica</div>
+      </div>
+    </section>
+
+    <section id="listaContainer" class="list-grid"></section>
+  </div>
+
+  <div class="modal" id="modalLista">
+    <div class="modal-box">
+      <div class="modal-head">
+        <h2 id="modalTitulo">Lista</h2>
+        <button class="close-btn" onclick="fecharModal()"><i class="fa-solid fa-xmark"></i></button>
+      </div>
+      <div id="modalConteudo" class="list-grid"></div>
     </div>
   </div>
 
-  <div class="toast-wrap" id="toastWrap"></div>
-
-  <div class="alert-overlay" id="criticalOverlay">
-    <div class="alert-overlay-box">
-      <strong id="criticalLabel">ALERTA CRÍTICO</strong>
-      <span id="criticalText">Nova ordem de serviço prioritária recebida.</span>
-    </div>
-  </div>
+  <audio id="audioAlerta" preload="auto">
+    <source src="https://actions.google.com/sounds/v1/alarms/beep_short.ogg" type="audio/ogg">
+    <source src="https://actions.google.com/sounds/v1/alarms/beep_short.ogg" type="audio/mpeg">
+  </audio>
 
   <script>
     const API_URL = `${window.location.origin}/api/os`;
-    const POLL_INTERVAL = 5000;
-    const sectorsConfig = {
-      TI: { key: 'ti', label: 'TI' },
-      MANUTENCAO: { key: 'manutencao', label: 'Manutenção' }
-    };
+    let todasOS = [];
+    let setorAtual = 'TI';
+    let statusAtual = 'Aberto';
+    let idsConhecidos = new Set();
+    let primeiroCarregamento = true;
 
-    let allOrders = [];
-    let knownIds = new Set();
-    let initialized = false;
-    let audioUnlocked = false;
-
-    function normalizeText(value) {
-      return String(value || '')
+    function normalizarTexto(valor) {
+      return String(valor || '')
         .normalize('NFD')
         .replace(/[\u0300-\u036f]/g, '')
         .trim()
         .toLowerCase();
     }
 
-    function normalizeSector(value) {
-      const text = normalizeText(value);
-      if (text.includes('ti')) return 'TI';
-      if (text.includes('manutenc')) return 'MANUTENCAO';
-      return '';
+    function normalizarSetor(setor) {
+      const texto = normalizarTexto(setor);
+      if (texto === 'ti') return 'TI';
+      if (texto === 'manutencao' || texto === 'manutenção') return 'Manutenção';
+      return setor || 'Não informado';
     }
 
-    function normalizeStatus(value) {
-      const text = normalizeText(value);
-      if (text === 'aberto' || text === 'aberta' || text === 'abertas') return 'Aberto';
-      if (text.includes('andamento')) return 'Em andamento';
-      if (text.includes('aguardando') && text.includes('peca')) return 'Aguardando Peças';
-      return value || '';
+    function normalizarStatus(status) {
+      const texto = normalizarTexto(status);
+      if (texto === 'aberto') return 'Aberto';
+      if (texto === 'em andamento' || texto === 'em_andamento') return 'Em andamento';
+      if (texto === 'aguardando pecas' || texto === 'aguardando peças') return 'Aguardando Peças';
+      if (texto === 'finalizado') return 'Finalizado';
+      return status || 'Aberto';
     }
 
-    function normalizePriority(value) {
-      const text = normalizeText(value);
-      if (text.includes('crit')) return 'Crítica';
-      if (text.includes('alta')) return 'Alta';
-      if (text.includes('med')) return 'Média';
-      return 'Baixa';
+    function normalizarPrioridade(prioridade) {
+      const texto = normalizarTexto(prioridade);
+      if (texto === 'critica' || texto === 'crítica') return 'Crítica';
+      if (texto === 'alta') return 'Alta';
+      if (texto === 'media' || texto === 'média') return 'Média';
+      if (texto === 'baixa') return 'Baixa';
+      return prioridade || 'Média';
     }
 
-    function formatDate(value) {
-      if (!value) return '--';
-      const date = new Date(value);
-      if (Number.isNaN(date.getTime())) return value;
-      return date.toLocaleString('pt-BR');
+    function classePrioridade(prioridade) {
+      const p = normalizarTexto(prioridade);
+      if (p.includes('crit')) return 'priority-critica';
+      if (p.includes('alta')) return 'priority-alta';
+      if (p.includes('baix')) return 'priority-baixa';
+      return 'priority-media';
     }
 
-    function escapeHtml(value) {
-      return String(value ?? '')
-        .replace(/&/g, '&amp;')
-        .replace(/</g, '&lt;')
-        .replace(/>/g, '&gt;')
-        .replace(/"/g, '&quot;')
-        .replace(/'/g, '&#039;');
+    function classeStatus(status) {
+      const s = normalizarStatus(status);
+      if (s === 'Aberto') return 'status-aberto';
+      if (s === 'Em andamento') return 'status-andamento';
+      if (s === 'Aguardando Peças') return 'status-pecas';
+      return 'status-finalizado';
     }
 
-    function priorityClass(priority) {
-      return normalizeText(priority).replace(/[^a-z]/g, '') || 'baixa';
+    function formatarData(data) {
+      if (!data) return 'Sem data';
+      const dt = new Date(data);
+      if (Number.isNaN(dt.getTime())) return data;
+      return dt.toLocaleString('pt-BR');
     }
 
-    function statusClass(status) {
-      const normalized = normalizeStatus(status);
-      if (normalized === 'Aberto') return 'status-aberto';
-      if (normalized === 'Em andamento') return 'status-andamento';
-      return 'status-pecas';
+    function ordenarPorPrioridadeEData(lista) {
+      const peso = { 'Crítica': 1, 'Alta': 2, 'Média': 3, 'Baixa': 4 };
+      return [...lista].sort((a, b) => {
+        const pa = peso[normalizarPrioridade(a.prioridade)] || 99;
+        const pb = peso[normalizarPrioridade(b.prioridade)] || 99;
+        if (pa !== pb) return pa - pb;
+        return new Date(b.data_abertura || 0) - new Date(a.data_abertura || 0);
+      });
     }
 
-    function buildCard(order) {
-      const priority = normalizePriority(order.prioridade);
-      const status = normalizeStatus(order.status);
-      const pClass = priorityClass(priority);
-      const extraClass = pClass === 'critica' ? 'critica' : (pClass === 'alta' ? 'alta' : '');
+    function getSetorList(setor) {
+      return ordenarPorPrioridadeEData(
+        todasOS.filter(os => normalizarSetor(os.setor_destino) === setor)
+      );
+    }
 
-      return `
-        <article class="os-card ${extraClass}">
-          <div class="os-top">
-            <h4>#${escapeHtml(order.id)} • ${escapeHtml(order.setor_origem || 'Sem setor')}</h4>
-            <span class="priority ${pClass}">${escapeHtml(priority)}</span>
+    function getStatusList(setor, status) {
+      return getSetorList(setor).filter(os => normalizarStatus(os.status) === status);
+    }
+
+    function atualizarCabecalho() {
+      const totalGeral = todasOS.length;
+      const totalTI = getSetorList('TI').length;
+      const totalManutencao = getSetorList('Manutenção').length;
+      document.getElementById('totalGeral').textContent = totalGeral;
+      document.getElementById('totalTI').textContent = totalTI;
+      document.getElementById('totalManutencao').textContent = totalManutencao;
+      document.getElementById('ultimaAtualizacao').textContent = new Date().toLocaleTimeString('pt-BR');
+    }
+
+    function atualizarSeletores() {
+      document.getElementById('setorBtnTI').classList.toggle('active', setorAtual === 'TI');
+      document.getElementById('setorBtnManutencao').classList.toggle('active', setorAtual === 'Manutenção');
+
+      document.getElementById('statusCardAberto').classList.toggle('active', statusAtual === 'Aberto');
+      document.getElementById('statusCardAndamento').classList.toggle('active', statusAtual === 'Em andamento');
+      document.getElementById('statusCardPecas').classList.toggle('active', statusAtual === 'Aguardando Peças');
+    }
+
+    function atualizarContadores() {
+      document.getElementById('countAberto').textContent = getStatusList(setorAtual, 'Aberto').length;
+      document.getElementById('countAndamento').textContent = getStatusList(setorAtual, 'Em andamento').length;
+      document.getElementById('countPecas').textContent = getStatusList(setorAtual, 'Aguardando Peças').length;
+
+      document.getElementById('tituloLista').textContent = `O.S. de ${setorAtual} • ${statusAtual}`;
+      document.getElementById('subtituloLista').textContent = `Setor selecionado: ${setorAtual}. Clique em um card de status para abrir a lista completa.`;
+      document.getElementById('quantidadeSelecionada').textContent = getStatusList(setorAtual, statusAtual).length;
+    }
+
+    function criarCardOS(os, extraClass = '') {
+      const prioridade = normalizarPrioridade(os.prioridade);
+      const status = normalizarStatus(os.status);
+      const card = document.createElement('article');
+      card.className = `os-card ${classePrioridade(prioridade)} ${extraClass}`.trim();
+      card.innerHTML = `
+        <div class="os-header">
+          <div>
+            <div class="os-title">#${os.id} • ${os.setor_origem || 'Sem origem'}</div>
           </div>
-          <div class="os-desc">${escapeHtml(order.descricao || 'Sem descrição.')}</div>
-          <div class="meta-grid">
-            <div><strong>Destino:</strong> ${escapeHtml(order.setor_destino || '--')}</div>
-            <div><strong>Categoria:</strong> ${escapeHtml(order.categoria || '--')}</div>
-            <div><strong>Cliente:</strong> ${escapeHtml(order.cliente || '--')}</div>
-            <div><strong>ID:</strong> #${escapeHtml(order.id)}</div>
-          </div>
-          <div class="os-footer">
-            <span class="badge ${statusClass(status)}">${escapeHtml(status)}</span>
-            <span>${escapeHtml(formatDate(order.data_abertura || order.created_at || order.data_criacao))}</span>
-          </div>
-        </article>
+          <span class="priority-badge ${classePrioridade(prioridade)}">${prioridade}</span>
+        </div>
+        <div class="os-description">${os.descricao || 'Sem descrição.'}</div>
+        <div class="os-meta">
+          <div><strong>Destino:</strong> ${normalizarSetor(os.setor_destino)}</div>
+          <div><strong>Categoria:</strong> ${os.categoria || 'Não informada'}</div>
+          <div><strong>Cliente:</strong> ${os.cliente || 'Não informado'}</div>
+          <div><strong>ID:</strong> #${os.id}</div>
+        </div>
+        <div class="os-footer">
+          <span class="status-badge ${classeStatus(status)}">${status.toUpperCase()}</span>
+          <span>${formatarData(os.data_abertura)}</span>
+        </div>
       `;
+      return card;
     }
 
-    function renderEmpty(container, message) {
-      container.innerHTML = `<div class="empty-state"><i class="fa-regular fa-folder-open" style="font-size:1.6rem; margin-bottom:10px;"></i><div>${message}</div></div>`;
-    }
+    function renderizarLista() {
+      const container = document.getElementById('listaContainer');
+      const lista = getStatusList(setorAtual, statusAtual);
+      container.innerHTML = '';
 
-    function getOrdersBySector(sectorCode) {
-      return allOrders.filter(order => normalizeSector(order.setor_destino) === sectorCode);
-    }
-
-    function getOrdersBySectorAndStatus(sectorCode, status) {
-      return getOrdersBySector(sectorCode)
-        .filter(order => normalizeStatus(order.status) === status)
-        .sort((a, b) => Number(b.id) - Number(a.id));
-    }
-
-    function updateCounters() {
-      const tiOrders = getOrdersBySector('TI');
-      const manutOrders = getOrdersBySector('MANUTENCAO');
-
-      document.getElementById('totalGeral').textContent = allOrders.length;
-      document.getElementById('ti-total').textContent = tiOrders.length;
-      document.getElementById('manutencao-total').textContent = manutOrders.length;
-
-      document.getElementById('ti-aberto-count').textContent = getOrdersBySectorAndStatus('TI', 'Aberto').length;
-      document.getElementById('ti-andamento-count').textContent = getOrdersBySectorAndStatus('TI', 'Em andamento').length;
-      document.getElementById('ti-pecas-count').textContent = getOrdersBySectorAndStatus('TI', 'Aguardando Peças').length;
-
-      document.getElementById('manutencao-aberto-count').textContent = getOrdersBySectorAndStatus('MANUTENCAO', 'Aberto').length;
-      document.getElementById('manutencao-andamento-count').textContent = getOrdersBySectorAndStatus('MANUTENCAO', 'Em andamento').length;
-      document.getElementById('manutencao-pecas-count').textContent = getOrdersBySectorAndStatus('MANUTENCAO', 'Aguardando Peças').length;
-
-      document.getElementById('ti-preview-info').textContent = `${tiOrders.length} registradas`;
-      document.getElementById('manutencao-preview-info').textContent = `${manutOrders.length} registradas`;
-    }
-
-    function renderPreview(sectorCode, containerId) {
-      const container = document.getElementById(containerId);
-      const items = getOrdersBySector(sectorCode).slice(0, 3);
-      if (!items.length) {
-        renderEmpty(container, 'Nenhuma ordem de serviço encontrada neste setor.');
+      if (!lista.length) {
+        container.innerHTML = `
+          <div class="empty-state" style="grid-column:1/-1;">
+            <i class="fa-regular fa-folder-open"></i>
+            <h3>Nenhuma O.S. encontrada</h3>
+            <p>Não há ordens em <strong>${statusAtual}</strong> para o setor <strong>${setorAtual}</strong>.</p>
+          </div>
+        `;
         return;
       }
-      container.innerHTML = items.map(buildCard).join('');
+
+      lista.forEach((os, index) => {
+        const isNew = !primeiroCarregamento && !idsConhecidos.has(String(os.id));
+        const card = criarCardOS(os, isNew ? 'new-item' : '');
+        card.addEventListener('click', () => abrirModal(setorAtual, statusAtual));
+        container.appendChild(card);
+      });
     }
 
-    function openModal(sectorCode, status) {
-      document.querySelectorAll('.status-button').forEach(btn => btn.classList.remove('active'));
-      const activeButton = document.querySelector(`.status-button[data-sector="${sectorCode === 'MANUTENCAO' ? 'Manutenção' : 'TI'}"][data-status="${status}"]`);
-      if (activeButton) activeButton.classList.add('active');
-
-      const list = getOrdersBySectorAndStatus(sectorCode, status);
-      const sectorLabel = sectorsConfig[sectorCode].label;
-
-      document.getElementById('modalTitle').textContent = `${sectorLabel} • ${status}`;
-      document.getElementById('modalSubtitle').textContent = `${list.length} O.S. encontradas`;
-
-      const content = document.getElementById('modalContent');
-      if (!list.length) {
-        renderEmpty(content, 'Não há O.S. neste status para este setor.');
+    function abrirModal(setor, status) {
+      const lista = getStatusList(setor, status);
+      document.getElementById('modalTitulo').textContent = `${setor} • ${status} (${lista.length})`;
+      const conteudo = document.getElementById('modalConteudo');
+      conteudo.innerHTML = '';
+      if (!lista.length) {
+        conteudo.innerHTML = `<div class="empty-state" style="grid-column:1/-1;"><i class="fa-regular fa-folder-open"></i><h3>Sem registros</h3></div>`;
       } else {
-        content.innerHTML = list.map(buildCard).join('');
+        lista.forEach(os => conteudo.appendChild(criarCardOS(os)));
       }
-
-      const modal = document.getElementById('osModal');
-      modal.classList.add('show');
-      modal.setAttribute('aria-hidden', 'false');
+      document.getElementById('modalLista').classList.add('show');
     }
 
     function fecharModal() {
-      document.getElementById('osModal').classList.remove('show');
-      document.getElementById('osModal').setAttribute('aria-hidden', 'true');
-      document.querySelectorAll('.status-button').forEach(btn => btn.classList.remove('active'));
+      document.getElementById('modalLista').classList.remove('show');
     }
 
-    function unlockAudio() {
-      if (audioUnlocked) return;
-      try {
-        const audioContext = new (window.AudioContext || window.webkitAudioContext)();
-        const oscillator = audioContext.createOscillator();
-        const gain = audioContext.createGain();
-        gain.gain.value = 0.0001;
-        oscillator.connect(gain);
-        gain.connect(audioContext.destination);
-        oscillator.start();
-        oscillator.stop(audioContext.currentTime + 0.01);
-        audioUnlocked = true;
-      } catch (e) {
-        audioUnlocked = true;
+    function trocarSetor(setor) {
+      setorAtual = setor;
+      atualizarSeletores();
+      atualizarContadores();
+      renderizarLista();
+    }
+
+    function selecionarStatus(status) {
+      statusAtual = status;
+      atualizarSeletores();
+      atualizarContadores();
+      renderizarLista();
+      abrirModal(setorAtual, statusAtual);
+    }
+
+    function mostrarFlashCritico() {
+      const flash = document.getElementById('screenFlash');
+      flash.classList.add('show');
+      setTimeout(() => flash.classList.remove('show'), 900);
+    }
+
+    function tocarSom() {
+      const audio = document.getElementById('audioAlerta');
+      if (audio) {
+        audio.currentTime = 0;
+        audio.play().catch(() => {});
       }
     }
 
-    function playAlert(priority) {
-      try {
-        const audioContext = new (window.AudioContext || window.webkitAudioContext)();
-        const duration = priority === 'Crítica' ? 0.5 : 0.32;
-        const frequency = priority === 'Crítica' ? 880 : (priority === 'Alta' ? 720 : 520);
-        const oscillator = audioContext.createOscillator();
-        const gain = audioContext.createGain();
-        oscillator.type = 'sine';
-        oscillator.frequency.value = frequency;
-        gain.gain.setValueAtTime(0.0001, audioContext.currentTime);
-        gain.gain.exponentialRampToValueAtTime(0.12, audioContext.currentTime + 0.02);
-        gain.gain.exponentialRampToValueAtTime(0.0001, audioContext.currentTime + duration);
-        oscillator.connect(gain);
-        gain.connect(audioContext.destination);
-        oscillator.start();
-        oscillator.stop(audioContext.currentTime + duration);
-      } catch (e) {}
-    }
-
-    function showCriticalOverlay(order) {
-      const overlay = document.getElementById('criticalOverlay');
-      document.getElementById('criticalLabel').textContent = normalizePriority(order.prioridade) === 'Crítica' ? 'ALERTA CRÍTICO' : 'ALERTA ALTA PRIORIDADE';
-      document.getElementById('criticalText').textContent = `OS #${order.id} • ${order.setor_destino || 'Setor'} • ${order.setor_origem || 'Origem'}`;
-      overlay.classList.add('show');
-      setTimeout(() => overlay.classList.remove('show'), 3500);
-    }
-
-    function showToast(order) {
-      const priority = normalizePriority(order.prioridade);
-      const wrap = document.getElementById('toastWrap');
-      const toast = document.createElement('div');
-      const pClass = priorityClass(priority);
-      toast.className = `toast ${pClass}`;
-      toast.innerHTML = `
-        <div class="toast-header">
-          <div class="toast-title">Nova O.S. #${escapeHtml(order.id)}</div>
-          <span class="priority ${pClass}">${escapeHtml(priority)}</span>
+    function mostrarAlerta(os) {
+      const prioridade = normalizarPrioridade(os.prioridade);
+      const tipo = prioridade === 'Crítica' ? 'critica' : prioridade === 'Alta' ? 'alta' : 'normal';
+      const container = document.getElementById('alertContainer');
+      const el = document.createElement('div');
+      el.className = `alert-card ${tipo}`;
+      el.innerHTML = `
+        <div style="display:flex;justify-content:space-between;gap:1rem;align-items:start;">
+          <div>
+            <strong style="font-size:1.1rem;display:block;margin-bottom:.35rem;">${prioridade === 'Crítica' ? '🚨 NOVA O.S. CRÍTICA' : prioridade === 'Alta' ? '⚠️ NOVA O.S. ALTA' : '🔔 Nova O.S. criada'}</strong>
+            <div>#${os.id} • ${os.setor_origem || 'Sem origem'}</div>
+            <div>Setor: ${normalizarSetor(os.setor_destino)} • Status: ${normalizarStatus(os.status)}</div>
+            <div style="margin-top:.3rem;color:#e2e8f0;">${os.descricao || ''}</div>
+          </div>
+          <button onclick="this.parentElement.parentElement.remove()" style="background:transparent;border:none;color:#fff;font-size:1rem;cursor:pointer;"><i class="fa-solid fa-xmark"></i></button>
         </div>
-        <div style="margin-bottom:8px; color:#e5e7eb;">${escapeHtml(order.setor_origem || 'Sem origem')} → ${escapeHtml(order.setor_destino || 'Sem destino')}</div>
-        <div style="font-size:.95rem; color:#cbd5e1; line-height:1.45;">${escapeHtml(order.descricao || 'Sem descrição')}</div>
       `;
-      wrap.prepend(toast);
-      setTimeout(() => toast.remove(), 7000);
-
-      if (priority === 'Alta' || priority === 'Crítica') {
-        showCriticalOverlay(order);
-      }
-      playAlert(priority);
+      container.prepend(el);
+      tocarSom();
+      if (prioridade === 'Crítica' || prioridade === 'Alta') mostrarFlashCritico();
+      setTimeout(() => el.remove(), prioridade === 'Crítica' ? 12000 : 8000);
     }
 
-    function detectNewOrders(freshOrders) {
-      const freshIds = new Set(freshOrders.map(order => Number(order.id)));
-      if (!initialized) {
-        knownIds = freshIds;
-        initialized = true;
-        return;
+    function verificarNovasOS(listaNova) {
+      const idsNovos = new Set(listaNova.map(os => String(os.id)));
+      if (!primeiroCarregamento) {
+        const novosItens = listaNova.filter(os => !idsConhecidos.has(String(os.id)));
+        novosItens.forEach(mostrarAlerta);
       }
-
-      const newOrders = freshOrders
-        .filter(order => !knownIds.has(Number(order.id)))
-        .sort((a, b) => Number(a.id) - Number(b.id));
-
-      knownIds = freshIds;
-
-      newOrders.forEach(showToast);
+      idsConhecidos = idsNovos;
+      primeiroCarregamento = false;
     }
 
-    async function loadOrders() {
+    async function carregarOS() {
       try {
         const response = await fetch(API_URL, { cache: 'no-store' });
         const payload = await response.json();
-        const list = Array.isArray(payload) ? payload : (payload.data || []);
-        allOrders = list
-          .filter(order => ['TI', 'MANUTENCAO'].includes(normalizeSector(order.setor_destino)))
-          .sort((a, b) => Number(b.id) - Number(a.id));
-
-        detectNewOrders(allOrders);
-        updateCounters();
-        renderPreview('TI', 'ti-preview-list');
-        renderPreview('MANUTENCAO', 'manutencao-preview-list');
-        document.getElementById('ultimaAtualizacao').textContent = new Date().toLocaleTimeString('pt-BR');
+        if (!response.ok || payload.success === false) throw new Error(payload.message || 'Erro ao carregar O.S.');
+        todasOS = Array.isArray(payload) ? payload : (payload.data || []);
+        todasOS = todasOS.map(os => ({
+          ...os,
+          setor_destino: normalizarSetor(os.setor_destino),
+          status: normalizarStatus(os.status),
+          prioridade: normalizarPrioridade(os.prioridade)
+        }));
+        verificarNovasOS(todasOS);
+        atualizarCabecalho();
+        atualizarSeletores();
+        atualizarContadores();
+        renderizarLista();
       } catch (error) {
-        console.error('Erro ao carregar painel:', error);
-        ['ti-preview-list', 'manutencao-preview-list'].forEach(id => {
-          renderEmpty(document.getElementById(id), 'Falha ao buscar dados da API.');
-        });
+        console.error(error);
+        const container = document.getElementById('listaContainer');
+        container.innerHTML = `
+          <div class="empty-state" style="grid-column:1/-1;">
+            <i class="fa-solid fa-triangle-exclamation"></i>
+            <h3>Falha ao buscar as O.S.</h3>
+            <p>${error.message || 'Verifique a API /api/os.'}</p>
+          </div>
+        `;
       }
     }
 
-    document.querySelectorAll('.status-button').forEach(button => {
-      button.addEventListener('click', () => {
-        unlockAudio();
-        const sectorCode = normalizeSector(button.dataset.sector);
-        const status = button.dataset.status;
-        openModal(sectorCode, status);
-      });
+    document.getElementById('modalLista').addEventListener('click', (event) => {
+      if (event.target.id === 'modalLista') fecharModal();
     });
 
-    document.getElementById('osModal').addEventListener('click', (event) => {
-      if (event.target.id === 'osModal') {
-        fecharModal();
-      }
-    });
-
-    window.addEventListener('keydown', (event) => {
-      if (event.key === 'Escape') fecharModal();
-    });
-
-    document.addEventListener('click', unlockAudio, { once: true });
-    document.addEventListener('keydown', unlockAudio, { once: true });
-
-    loadOrders();
-    setInterval(loadOrders, POLL_INTERVAL);
+    setInterval(carregarOS, 5000);
+    carregarOS();
   </script>
 </body>
 </html>
