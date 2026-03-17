@@ -1,915 +1,814 @@
 <!DOCTYPE html>
-<html lang="pt-BR">
+<html lang="pt-br">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Kronos - Painel Operacional</title>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <style>
-        :root {
-            --primary: #4FC3F7;
-            --primary-dark: #29B6F6;
-            --primary-light: #81D4FA;
-            --primary-glow: rgba(79, 195, 247, 0.35);
-            --secondary: #BA68C8;
-            --secondary-glow: rgba(186, 104, 200, 0.25);
-            --warning: #FBBF24;
-            --warning-glow: rgba(251, 191, 36, 0.25);
-            --danger: #F87171;
-            --danger-glow: rgba(248, 113, 113, 0.28);
-            --success: #4ADE80;
-            --success-glow: rgba(74, 222, 128, 0.22);
-            --black: #0F172A;
-            --black-light: #1E293B;
-            --black-lighter: #334155;
-            --light: #FFFFFF;
-            --gray: #94A3B8;
-            --card-bg: rgba(15, 23, 42, 0.68);
-            --card-border: rgba(79, 195, 247, 0.2);
-            --shadow: 0 10px 30px rgba(0, 0, 0, 0.45);
-            --glow: 0 0 12px var(--primary-glow), 0 0 20px var(--primary-glow);
-        }
-
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-            font-family: 'Segoe UI', system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
-        }
-
-        body {
-            background: linear-gradient(135deg, var(--black) 0%, var(--black-light) 50%, var(--black-lighter) 100%);
-            color: var(--light);
-            min-height: 100vh;
-            line-height: 1.5;
-            overflow-x: hidden;
-            position: relative;
-        }
-
-        body::before {
-            content: '';
-            position: fixed;
-            inset: 0;
-            background:
-                radial-gradient(circle at 15% 85%, var(--primary-glow) 0%, transparent 60%),
-                radial-gradient(circle at 85% 15%, var(--secondary-glow) 0%, transparent 60%),
-                radial-gradient(circle at 50% 40%, rgba(186, 104, 200, 0.08) 0%, transparent 70%);
-            z-index: -1;
-            pointer-events: none;
-        }
-
-        .dashboard-container {
-            width: min(1800px, 100%);
-            margin: 0 auto;
-            padding: 1.5rem;
-            min-height: 100vh;
-        }
-
-        .header {
-            display: grid;
-            grid-template-columns: 1fr auto;
-            gap: 1rem;
-            align-items: center;
-            margin-bottom: 1.5rem;
-            padding: 1.5rem;
-            background: var(--card-bg);
-            backdrop-filter: blur(20px);
-            -webkit-backdrop-filter: blur(20px);
-            border-radius: 24px;
-            border: 1px solid var(--card-border);
-            box-shadow: var(--shadow);
-        }
-
-        .logo {
-            display: flex;
-            align-items: center;
-            gap: 1rem;
-        }
-
-        .cross-circle {
-            width: 52px;
-            height: 52px;
-            border-radius: 50%;
-            background: linear-gradient(135deg, var(--primary), var(--primary-dark));
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            position: relative;
-            box-shadow: 0 0 20px var(--primary-glow);
-            animation: neonPulse 3s infinite;
-            color: var(--black);
-            font-size: 1.6rem;
-            font-weight: 700;
-        }
-
-        .logo-text h1 {
-            font-size: clamp(1.6rem, 2vw, 2.4rem);
-            font-weight: 700;
-            background: linear-gradient(135deg, var(--primary), var(--primary-light));
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            background-clip: text;
-            text-shadow: 0 0 10px var(--primary-glow);
-        }
-
-        .logo-text p {
-            color: var(--gray);
-            margin-top: 0.15rem;
-            font-size: 1.05rem;
-        }
-
-        .header-stats {
-            display: flex;
-            gap: 1rem;
-            flex-wrap: wrap;
-            justify-content: flex-end;
-        }
-
-        .stat-box {
-            min-width: 132px;
-            padding: 1rem 1.2rem;
-            border-radius: 20px;
-            background: rgba(255,255,255,0.04);
-            border: 1px solid rgba(255,255,255,0.08);
-            text-align: center;
-        }
-
-        .stat-box .number {
-            display: block;
-            font-size: clamp(1.7rem, 2vw, 2.2rem);
-            font-weight: 800;
-        }
-
-        .stat-box .label {
-            color: var(--gray);
-            font-size: 0.95rem;
-            margin-top: 0.25rem;
-        }
-
-        .status-grid {
-            display: grid;
-            grid-template-columns: repeat(3, minmax(0, 1fr));
-            gap: 1.25rem;
-        }
-
-        .status-column {
-            background: var(--card-bg);
-            border: 1px solid var(--card-border);
-            border-radius: 24px;
-            box-shadow: var(--shadow);
-            overflow: hidden;
-            min-height: 560px;
-        }
-
-        .column-header {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            gap: 0.85rem;
-            padding: 1.15rem 1.2rem;
-            border-bottom: 1px solid rgba(255,255,255,0.06);
-            cursor: pointer;
-            transition: background 0.25s ease, transform 0.25s ease;
-            user-select: none;
-        }
-
-        .column-header:hover {
-            background: rgba(255,255,255,0.04);
-        }
-
-        .header-left {
-            display: flex;
-            align-items: center;
-            gap: 0.9rem;
-            min-width: 0;
-        }
-
-        .header-icon {
-            width: 42px;
-            height: 42px;
-            border-radius: 14px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 1.1rem;
-            flex-shrink: 0;
-            border: 1px solid rgba(255,255,255,0.08);
-        }
-
-        .header-copy h2 {
-            font-size: 1.1rem;
-            margin-bottom: 0.15rem;
-        }
-
-        .header-copy p {
-            color: var(--gray);
-            font-size: 0.92rem;
-        }
-
-        .header-right {
-            display: flex;
-            align-items: center;
-            gap: 0.75rem;
-        }
-
-        .count-badge {
-            min-width: 50px;
-            height: 50px;
-            padding: 0 0.9rem;
-            border-radius: 18px;
-            background: rgba(255,255,255,0.06);
-            border: 1px solid rgba(255,255,255,0.1);
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 1.45rem;
-            font-weight: 800;
-        }
-
-        .header-right .hint {
-            color: var(--gray);
-            font-size: 0.85rem;
-            white-space: nowrap;
-        }
-
-        .column-preview {
-            padding: 1rem;
-            display: grid;
-            gap: 1rem;
-            max-height: 700px;
-            overflow: auto;
-        }
-
-        .empty-state {
-            min-height: 170px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            color: var(--gray);
-            border: 1px dashed rgba(255,255,255,0.08);
-            border-radius: 18px;
-            background: rgba(255,255,255,0.02);
-            text-align: center;
-            padding: 1rem;
-        }
-
-        .os-card {
-            background: rgba(255,255,255,0.035);
-            border: 1px solid rgba(255,255,255,0.08);
-            border-left: 4px solid var(--primary);
-            border-radius: 20px;
-            padding: 1rem;
-            box-shadow: 0 6px 20px rgba(0,0,0,0.22);
-        }
-
-        .os-card.andamento { border-left-color: var(--warning); }
-        .os-card.pecas { border-left-color: #C084FC; }
-        .os-card.alta { box-shadow: 0 0 0 1px rgba(251, 191, 36, 0.28), 0 10px 28px rgba(251, 191, 36, 0.12); }
-        .os-card.critica { box-shadow: 0 0 0 1px rgba(248, 113, 113, 0.35), 0 12px 30px rgba(248, 113, 113, 0.18); }
-
-        .os-top {
-            display: flex;
-            justify-content: space-between;
-            gap: 0.75rem;
-            align-items: flex-start;
-            margin-bottom: 0.8rem;
-        }
-
-        .os-title {
-            font-size: 1.05rem;
-            font-weight: 700;
-        }
-
-        .priority-badge,
-        .status-badge {
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-            padding: 0.38rem 0.75rem;
-            border-radius: 999px;
-            font-size: 0.83rem;
-            font-weight: 700;
-            white-space: nowrap;
-            border: 1px solid rgba(255,255,255,0.08);
-        }
-
-        .priority-baixa { background: rgba(74, 222, 128, 0.18); color: #9AE6B4; }
-        .priority-media { background: rgba(96, 165, 250, 0.18); color: #93C5FD; }
-        .priority-alta { background: rgba(251, 191, 36, 0.18); color: #FCD34D; }
-        .priority-critica { background: rgba(248, 113, 113, 0.2); color: #FCA5A5; }
-
-        .os-description {
-            font-size: 0.98rem;
-            color: rgba(255,255,255,0.95);
-            margin-bottom: 0.95rem;
-            line-height: 1.6;
-            display: -webkit-box;
-            -webkit-line-clamp: 3;
-            -webkit-box-orient: vertical;
-            overflow: hidden;
-        }
-
-        .os-meta {
-            display: grid;
-            gap: 0.35rem;
-            color: var(--gray);
-            font-size: 0.94rem;
-            margin-bottom: 0.85rem;
-        }
-
-        .os-meta strong { color: rgba(255,255,255,0.9); }
-
-        .os-footer {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            gap: 0.75rem;
-            margin-top: 0.9rem;
-            padding-top: 0.8rem;
-            border-top: 1px solid rgba(255,255,255,0.06);
-            color: var(--gray);
-            font-size: 0.88rem;
-        }
-
-        .status-aberto { background: rgba(79, 195, 247, 0.18); color: #A5E3FF; }
-        .status-andamento { background: rgba(251, 191, 36, 0.18); color: #FCD34D; }
-        .status-pecas { background: rgba(192, 132, 252, 0.18); color: #D8B4FE; }
-
-        .footer-note {
-            text-align: center;
-            color: var(--gray);
-            margin-top: 1rem;
-            font-size: 0.95rem;
-        }
-
-        .modal {
-            position: fixed;
-            inset: 0;
-            background: rgba(2, 6, 23, 0.82);
-            display: none;
-            align-items: center;
-            justify-content: center;
-            padding: 1.25rem;
-            z-index: 2000;
-        }
-
-        .modal.open { display: flex; }
-
-        .modal-content {
-            width: min(1400px, 100%);
-            max-height: 90vh;
-            overflow: hidden;
-            background: rgba(15, 23, 42, 0.94);
-            border: 1px solid var(--card-border);
-            border-radius: 28px;
-            box-shadow: 0 20px 60px rgba(0,0,0,0.55);
-            backdrop-filter: blur(18px);
-            -webkit-backdrop-filter: blur(18px);
-        }
-
-        .modal-header {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            gap: 1rem;
-            padding: 1.25rem 1.4rem;
-            border-bottom: 1px solid rgba(255,255,255,0.08);
-        }
-
-        .modal-title-wrap h2 {
-            font-size: 1.35rem;
-            margin-bottom: 0.2rem;
-        }
-
-        .modal-title-wrap p {
-            color: var(--gray);
-        }
-
-        .modal-actions {
-            display: flex;
-            gap: 0.75rem;
-            align-items: center;
-        }
-
-        .modal-count {
-            min-width: 54px;
-            height: 54px;
-            border-radius: 18px;
-            background: rgba(255,255,255,0.06);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-weight: 800;
-            font-size: 1.45rem;
-            border: 1px solid rgba(255,255,255,0.08);
-        }
-
-        .close-btn {
-            width: 46px;
-            height: 46px;
-            border-radius: 14px;
-            border: 1px solid rgba(255,255,255,0.12);
-            background: transparent;
-            color: var(--light);
-            font-size: 1.1rem;
-            cursor: pointer;
-        }
-
-        .modal-body {
-            padding: 1.2rem 1.35rem 1.4rem;
-            max-height: calc(90vh - 92px);
-            overflow: auto;
-        }
-
-        .modal-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
-            gap: 1rem;
-        }
-
-        .toast-stack {
-            position: fixed;
-            top: 1rem;
-            right: 1rem;
-            z-index: 3000;
-            display: grid;
-            gap: 0.75rem;
-            width: min(420px, calc(100vw - 2rem));
-        }
-
-        .toast {
-            background: rgba(15, 23, 42, 0.95);
-            border: 1px solid rgba(255,255,255,0.1);
-            border-left: 6px solid var(--primary);
-            border-radius: 20px;
-            padding: 1rem 1rem 1rem 1.1rem;
-            box-shadow: 0 20px 45px rgba(0,0,0,0.32);
-            animation: slideIn 0.35s ease;
-        }
-
-        .toast.alta {
-            border-left-color: var(--warning);
-            box-shadow: 0 0 0 1px rgba(251, 191, 36, 0.18), 0 20px 50px rgba(251, 191, 36, 0.18);
-        }
-
-        .toast.critica {
-            border-left-color: var(--danger);
-            box-shadow: 0 0 0 1px rgba(248, 113, 113, 0.28), 0 20px 55px rgba(248, 113, 113, 0.22);
-            animation: slideIn 0.35s ease, pulseDanger 1s ease 3;
-        }
-
-        .toast-top {
-            display: flex;
-            justify-content: space-between;
-            gap: 0.75rem;
-            margin-bottom: 0.65rem;
-        }
-
-        .toast-title {
-            font-size: 1rem;
-            font-weight: 800;
-        }
-
-        .toast-subtitle {
-            color: var(--gray);
-            font-size: 0.93rem;
-            margin-top: 0.2rem;
-        }
-
-        .toast-body {
-            font-size: 0.95rem;
-            line-height: 1.5;
-        }
-
-        .screen-alert {
-            position: fixed;
-            inset: 0;
-            pointer-events: none;
-            z-index: 2500;
-            opacity: 0;
-            transition: opacity 0.25s ease;
-            background: radial-gradient(circle at center, rgba(248, 113, 113, 0.14), rgba(248, 113, 113, 0.04) 45%, transparent 72%);
-        }
-
-        .screen-alert.show { opacity: 1; }
-
-        .screen-alert.alta {
-            background: radial-gradient(circle at center, rgba(251, 191, 36, 0.12), rgba(251, 191, 36, 0.04) 45%, transparent 72%);
-        }
-
-        .screen-alert.critica {
-            background: radial-gradient(circle at center, rgba(248, 113, 113, 0.18), rgba(248, 113, 113, 0.06) 45%, transparent 72%);
-        }
-
-        .clickable-text {
-            color: var(--gray);
-            font-size: 0.86rem;
-        }
-
-        .aberto-icon { background: rgba(79, 195, 247, 0.15); color: #8DDCFF; }
-        .andamento-icon { background: rgba(251, 191, 36, 0.15); color: #FCD34D; }
-        .pecas-icon { background: rgba(192, 132, 252, 0.15); color: #D8B4FE; }
-
-        @keyframes neonPulse {
-            0%, 100% { transform: scale(1); box-shadow: 0 0 18px var(--primary-glow); }
-            50% { transform: scale(1.03); box-shadow: 0 0 30px rgba(79, 195, 247, 0.48); }
-        }
-
-        @keyframes slideIn {
-            from { opacity: 0; transform: translateX(18px) translateY(-8px); }
-            to { opacity: 1; transform: translateX(0) translateY(0); }
-        }
-
-        @keyframes pulseDanger {
-            0%, 100% { transform: scale(1); }
-            50% { transform: scale(1.01); }
-        }
-
-        @media (max-width: 1200px) {
-            .status-grid { grid-template-columns: 1fr; }
-            .status-column { min-height: 420px; }
-        }
-
-        @media (max-width: 768px) {
-            .dashboard-container { padding: 1rem; }
-            .header { grid-template-columns: 1fr; }
-            .header-stats { justify-content: flex-start; }
-            .column-header { align-items: flex-start; }
-            .header-right { flex-direction: column; align-items: flex-end; }
-            .modal-grid { grid-template-columns: 1fr; }
-        }
-    </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Kronos OS • Painel Operacional</title>
+<style>
+:root {
+  --bg: #07111f;
+  --panel: rgba(12, 25, 49, 0.92);
+  --panel-soft: rgba(18, 35, 68, 0.82);
+  --border: rgba(90, 150, 255, 0.22);
+  --text: #eaf2ff;
+  --muted: #9db1cf;
+  --blue: #52c2ff;
+  --cyan: #6be6ff;
+  --ti: #2f80ed;
+  --manut: #8b5cf6;
+  --warn: #f59e0b;
+  --critical: #ef4444;
+  --success: #10b981;
+  --shadow: 0 18px 45px rgba(0,0,0,.35);
+}
+* { box-sizing: border-box; }
+html, body { height: 100%; }
+body {
+  margin: 0;
+  font-family: Arial, Helvetica, sans-serif;
+  color: var(--text);
+  background:
+    radial-gradient(circle at top left, rgba(32, 168, 255, .2), transparent 28%),
+    radial-gradient(circle at top right, rgba(139, 92, 246, .18), transparent 28%),
+    linear-gradient(135deg, #06101d 0%, #0d1730 55%, #141933 100%);
+}
+body.modal-open { overflow: hidden; }
+.container {
+  max-width: 1600px;
+  margin: 0 auto;
+  padding: 22px;
+}
+.header {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 18px;
+  background: linear-gradient(135deg, rgba(8,25,52,.95), rgba(28,30,74,.92));
+  border: 1px solid var(--border);
+  border-radius: 28px;
+  padding: 20px 24px;
+  box-shadow: var(--shadow);
+}
+.header-left {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+.logo {
+  width: 52px;
+  height: 52px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  font-size: 34px;
+  font-weight: 700;
+  background: linear-gradient(135deg, #4fd4ff, #2f80ed);
+  color: #04111f;
+  box-shadow: 0 0 28px rgba(82,194,255,.35);
+}
+.header h1 {
+  margin: 0;
+  color: var(--blue);
+  font-size: 28px;
+}
+.subtitle {
+  margin-top: 8px;
+  color: var(--muted);
+  font-size: 15px;
+}
+.header-right {
+  display: flex;
+  gap: 14px;
+}
+.info-box {
+  min-width: 140px;
+  border-radius: 20px;
+  border: 1px solid rgba(255,255,255,.08);
+  background: rgba(255,255,255,.04);
+  padding: 18px 16px;
+  text-align: center;
+}
+.info-number {
+  font-size: 24px;
+  font-weight: 700;
+}
+.info-label {
+  margin-top: 8px;
+  color: var(--muted);
+  font-size: 13px;
+}
+.alert-stack {
+  position: fixed;
+  top: 18px;
+  right: 18px;
+  z-index: 5000;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  max-width: 420px;
+}
+.alert {
+  border-radius: 18px;
+  padding: 14px 16px;
+  color: white;
+  box-shadow: var(--shadow);
+  border: 1px solid rgba(255,255,255,.12);
+  animation: slideIn .35s ease;
+}
+.alert.normal { background: linear-gradient(135deg, #0f766e, #0ea5e9); }
+.alert.high { background: linear-gradient(135deg, #b45309, #f59e0b); }
+.alert.critical { background: linear-gradient(135deg, #b91c1c, #ef4444); }
+.alert-title { font-weight: 700; margin-bottom: 6px; }
+.alert-sub { font-size: 13px; opacity: .95; }
+@keyframes slideIn {
+  from { transform: translateX(30px); opacity: 0; }
+  to { transform: translateX(0); opacity: 1; }
+}
+.board {
+  margin-top: 22px;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 20px;
+}
+.sector {
+  background: linear-gradient(180deg, rgba(10,20,43,.9), rgba(19,28,54,.84));
+  border: 1px solid var(--border);
+  border-radius: 28px;
+  overflow: hidden;
+  box-shadow: var(--shadow);
+}
+.sector.ti { box-shadow: 0 18px 45px rgba(47,128,237,.16); }
+.sector.manut { box-shadow: 0 18px 45px rgba(139,92,246,.16); }
+.sector-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 18px 20px;
+  border-bottom: 1px solid rgba(255,255,255,.06);
+  background: linear-gradient(135deg, rgba(10,23,44,.95), rgba(25,29,63,.82));
+}
+.sector-title {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.sector-badge {
+  width: 40px;
+  height: 40px;
+  border-radius: 14px;
+  display: grid;
+  place-items: center;
+  font-size: 20px;
+}
+.sector.ti .sector-badge { background: rgba(47,128,237,.18); color: #8ad6ff; }
+.sector.manut .sector-badge { background: rgba(139,92,246,.18); color: #d8b4fe; }
+.sector-name { font-size: 28px; font-weight: 700; }
+.sector-sub { color: var(--muted); margin-top: 4px; font-size: 14px; }
+.sector-total {
+  min-width: 84px;
+  text-align: center;
+  border-radius: 18px;
+  padding: 14px 12px;
+  background: rgba(255,255,255,.04);
+  border: 1px solid rgba(255,255,255,.07);
+}
+.sector-total .count { font-size: 28px; font-weight: 700; }
+.sector-total .label { color: var(--muted); font-size: 12px; margin-top: 6px; }
+.cards {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 16px;
+  padding: 18px;
+}
+.status-card {
+  cursor: pointer;
+  border-radius: 22px;
+  background: linear-gradient(180deg, rgba(31,49,85,.7), rgba(24,34,63,.92));
+  border: 1px solid rgba(255,255,255,.08);
+  min-height: 220px;
+  padding: 18px;
+  transition: transform .2s ease, border-color .2s ease, box-shadow .2s ease;
+  display: flex;
+  flex-direction: column;
+}
+.status-card:hover {
+  transform: translateY(-3px);
+  border-color: rgba(82,194,255,.45);
+  box-shadow: 0 16px 28px rgba(0,0,0,.24);
+}
+.status-head {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+}
+.status-title-wrap {
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+}
+.status-icon {
+  width: 40px;
+  height: 40px;
+  border-radius: 14px;
+  display: grid;
+  place-items: center;
+  font-size: 18px;
+  flex-shrink: 0;
+}
+.status-card.aberto .status-icon { background: rgba(82,194,255,.14); color: #9bddff; }
+.status-card.andamento .status-icon { background: rgba(245,158,11,.16); color: #ffd37f; }
+.status-card.pecas .status-icon { background: rgba(139,92,246,.16); color: #ddc1ff; }
+.status-name { font-size: 18px; font-weight: 700; }
+.status-desc { color: var(--muted); font-size: 13px; margin-top: 5px; }
+.count-pill {
+  min-width: 54px;
+  height: 54px;
+  border-radius: 18px;
+  display: grid;
+  place-items: center;
+  font-size: 28px;
+  font-weight: 700;
+  background: rgba(255,255,255,.05);
+  border: 1px solid rgba(255,255,255,.08);
+}
+.status-body {
+  margin-top: 16px;
+  flex: 1;
+  border-radius: 18px;
+  background: rgba(255,255,255,.03);
+  border: 1px dashed rgba(255,255,255,.07);
+  padding: 14px;
+}
+.empty {
+  height: 100%;
+  min-height: 92px;
+  display: grid;
+  place-items: center;
+  color: #aab8cf;
+  text-align: center;
+}
+.preview-card {
+  border-radius: 16px;
+  padding: 12px;
+  background: rgba(255,255,255,.04);
+  border-left: 4px solid transparent;
+}
+.preview-card + .preview-card { margin-top: 10px; }
+.preview-card.critica { border-left-color: var(--critical); }
+.preview-card.alta { border-left-color: var(--warn); }
+.preview-id { font-weight: 700; font-size: 18px; }
+.preview-text {
+  color: #dbe8ff;
+  margin-top: 8px;
+  line-height: 1.45;
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+.preview-meta {
+  margin-top: 12px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+  color: var(--muted);
+  font-size: 12px;
+}
+.badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 8px 12px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 700;
+}
+.badge.aberto { background: rgba(82,194,255,.18); color: #9bddff; }
+.badge.andamento { background: rgba(245,158,11,.2); color: #ffd37f; }
+.badge.pecas { background: rgba(139,92,246,.18); color: #ddc1ff; }
+.badge.alta { background: rgba(245,158,11,.2); color: #ffd37f; }
+.badge.critica { background: rgba(239,68,68,.22); color: #ffb3b3; }
+.footer-note {
+  text-align: center;
+  margin-top: 16px;
+  color: var(--muted);
+  font-size: 14px;
+}
+.modal {
+  position: fixed;
+  inset: 0;
+  background: rgba(4,10,22,.72);
+  backdrop-filter: blur(6px);
+  display: none;
+  align-items: center;
+  justify-content: center;
+  padding: 22px;
+  z-index: 4000;
+}
+.modal.show { display: flex; }
+.modal-card {
+  width: min(1200px, 100%);
+  max-height: 90vh;
+  overflow: hidden;
+  border-radius: 28px;
+  background: linear-gradient(180deg, rgba(11,20,40,.98), rgba(20,28,54,.96));
+  border: 1px solid rgba(82,194,255,.18);
+  box-shadow: var(--shadow);
+}
+.modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 16px;
+  padding: 22px 24px;
+  border-bottom: 1px solid rgba(255,255,255,.08);
+}
+.modal-title { font-size: 28px; font-weight: 700; color: var(--blue); }
+.modal-subtitle { color: var(--muted); margin-top: 6px; font-size: 14px; }
+.modal-close {
+  width: 44px;
+  height: 44px;
+  border-radius: 14px;
+  border: 1px solid rgba(255,255,255,.08);
+  background: rgba(255,255,255,.04);
+  color: white;
+  font-size: 22px;
+  cursor: pointer;
+}
+.modal-body {
+  padding: 20px 24px 24px;
+  overflow: auto;
+  max-height: calc(90vh - 100px);
+}
+.list-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 16px;
+}
+.os-card {
+  border-radius: 20px;
+  background: rgba(255,255,255,.04);
+  border: 1px solid rgba(255,255,255,.08);
+  padding: 18px;
+  border-left: 5px solid transparent;
+}
+.os-card.critica { border-left-color: var(--critical); }
+.os-card.alta { border-left-color: var(--warn); }
+.os-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 12px;
+}
+.os-title { font-size: 16px; font-weight: 700; }
+.os-desc { margin-top: 14px; line-height: 1.55; color: #e7f0ff; }
+.os-meta {
+  margin-top: 14px;
+  padding-top: 14px;
+  border-top: 1px solid rgba(255,255,255,.08);
+  color: var(--muted);
+  font-size: 13px;
+  display: grid;
+  gap: 8px;
+}
+.no-items {
+  padding: 36px;
+  text-align: center;
+  color: var(--muted);
+  background: rgba(255,255,255,.03);
+  border: 1px dashed rgba(255,255,255,.08);
+  border-radius: 18px;
+}
+@media (max-width: 1280px) {
+  .board { grid-template-columns: 1fr; }
+}
+@media (max-width: 980px) {
+  .header { grid-template-columns: 1fr; }
+  .header-right { flex-wrap: wrap; }
+  .cards { grid-template-columns: 1fr; }
+  .list-grid { grid-template-columns: 1fr; }
+}
+</style>
 </head>
 <body>
-    <div class="screen-alert" id="screenAlert"></div>
-    <div class="toast-stack" id="toastStack"></div>
-
-    <div class="dashboard-container">
-        <header class="header">
-            <div class="logo">
-                <div class="cross-circle"><i class="fas fa-plus"></i></div>
-                <div class="logo-text">
-                    <h1>Kronos OS • Painel Operacional</h1>
-                    <p>Acompanhamento em tempo real das ordens de serviço</p>
-                </div>
-            </div>
-            <div class="header-stats">
-                <div class="stat-box">
-                    <span class="number" id="totalGeral">0</span>
-                    <span class="label">Total exibido</span>
-                </div>
-                <div class="stat-box">
-                    <span class="number" id="ultimaAtualizacao">--:--:--</span>
-                    <span class="label">Última atualização</span>
-                </div>
-            </div>
-        </header>
-
-        <main class="status-grid">
-            <section class="status-column">
-                <div class="column-header" onclick="abrirModal('Aberto')">
-                    <div class="header-left">
-                        <div class="header-icon aberto-icon"><i class="fas fa-inbox"></i></div>
-                        <div class="header-copy">
-                            <h2>Abertas</h2>
-                            <p>Ordens recém-recebidas</p>
-                        </div>
-                    </div>
-                    <div class="header-right">
-                        <div class="count-badge" id="countAberto">0</div>
-                        <span class="clickable-text">Clique para abrir</span>
-                    </div>
-                </div>
-                <div class="column-preview" id="previewAberto"></div>
-            </section>
-
-            <section class="status-column">
-                <div class="column-header" onclick="abrirModal('Em Andamento')">
-                    <div class="header-left">
-                        <div class="header-icon andamento-icon"><i class="fas fa-screwdriver-wrench"></i></div>
-                        <div class="header-copy">
-                            <h2>Em andamento</h2>
-                            <p>Atendimento técnico ativo</p>
-                        </div>
-                    </div>
-                    <div class="header-right">
-                        <div class="count-badge" id="countAndamento">0</div>
-                        <span class="clickable-text">Clique para abrir</span>
-                    </div>
-                </div>
-                <div class="column-preview" id="previewAndamento"></div>
-            </section>
-
-            <section class="status-column">
-                <div class="column-header" onclick="abrirModal('Aguardando Peças')">
-                    <div class="header-left">
-                        <div class="header-icon pecas-icon"><i class="fas fa-box-open"></i></div>
-                        <div class="header-copy">
-                            <h2>Aguardando peças</h2>
-                            <p>Dependem de material ou item</p>
-                        </div>
-                    </div>
-                    <div class="header-right">
-                        <div class="count-badge" id="countPecas">0</div>
-                        <span class="clickable-text">Clique para abrir</span>
-                    </div>
-                </div>
-                <div class="column-preview" id="previewPecas"></div>
-            </section>
-        </main>
-
-        <div class="footer-note">Atualização automática a cada 5 segundos • ideal para exibição em TV</div>
+<div class="alert-stack" id="alertStack"></div>
+<div class="container">
+  <section class="header">
+    <div class="header-left">
+      <div class="logo">+</div>
+      <div>
+        <h1>Kronos OS • Painel Operacional</h1>
+        <div class="subtitle">Acompanhamento em tempo real das ordens de serviço por setor e status</div>
+      </div>
     </div>
+    <div class="header-right">
+      <div class="info-box">
+        <div class="info-number" id="totalGeral">0</div>
+        <div class="info-label">Total exibido</div>
+      </div>
+      <div class="info-box">
+        <div class="info-number" id="ultimaAtualizacao">--:--:--</div>
+        <div class="info-label">Última atualização</div>
+      </div>
+    </div>
+  </section>
 
-    <div class="modal" id="statusModal">
-        <div class="modal-content">
-            <div class="modal-header">
-                <div class="modal-title-wrap">
-                    <h2 id="modalTitulo">Ordens</h2>
-                    <p id="modalSubtitulo">Lista completa do status selecionado</p>
-                </div>
-                <div class="modal-actions">
-                    <div class="modal-count" id="modalCount">0</div>
-                    <button class="close-btn" onclick="fecharModal()" aria-label="Fechar"><i class="fas fa-times"></i></button>
-                </div>
-            </div>
-            <div class="modal-body">
-                <div class="modal-grid" id="modalLista"></div>
-            </div>
+  <section class="board">
+    <section class="sector ti">
+      <div class="sector-header">
+        <div class="sector-title">
+          <div class="sector-badge">💻</div>
+          <div>
+            <div class="sector-name">TI</div>
+            <div class="sector-sub">Ordens destinadas ao time de TI</div>
+          </div>
         </div>
+        <div class="sector-total">
+          <div class="count" id="totalTI">0</div>
+          <div class="label">Total TI</div>
+        </div>
+      </div>
+      <div class="cards">
+        <div class="status-card aberto" data-setor="TI" data-status="Aberto">
+          <div class="status-head">
+            <div class="status-title-wrap">
+              <div class="status-icon">📥</div>
+              <div>
+                <div class="status-name">Abertas</div>
+                <div class="status-desc">Clique para ver as O.S. de TI em aberto</div>
+              </div>
+            </div>
+            <div class="count-pill" id="count-ti-aberto">0</div>
+          </div>
+          <div class="status-body" id="preview-ti-aberto"></div>
+        </div>
+
+        <div class="status-card andamento" data-setor="TI" data-status="Em Andamento">
+          <div class="status-head">
+            <div class="status-title-wrap">
+              <div class="status-icon">🛠️</div>
+              <div>
+                <div class="status-name">Em andamento</div>
+                <div class="status-desc">Clique para ver as O.S. de TI em atendimento</div>
+              </div>
+            </div>
+            <div class="count-pill" id="count-ti-andamento">0</div>
+          </div>
+          <div class="status-body" id="preview-ti-andamento"></div>
+        </div>
+
+        <div class="status-card pecas" data-setor="TI" data-status="Aguardando Peças">
+          <div class="status-head">
+            <div class="status-title-wrap">
+              <div class="status-icon">📦</div>
+              <div>
+                <div class="status-name">Aguardando peças</div>
+                <div class="status-desc">Clique para ver as O.S. de TI aguardando item</div>
+              </div>
+            </div>
+            <div class="count-pill" id="count-ti-pecas">0</div>
+          </div>
+          <div class="status-body" id="preview-ti-pecas"></div>
+        </div>
+      </div>
+    </section>
+
+    <section class="sector manut">
+      <div class="sector-header">
+        <div class="sector-title">
+          <div class="sector-badge">🔧</div>
+          <div>
+            <div class="sector-name">Manutenção</div>
+            <div class="sector-sub">Ordens destinadas ao time de manutenção</div>
+          </div>
+        </div>
+        <div class="sector-total">
+          <div class="count" id="totalManutencao">0</div>
+          <div class="label">Total manutenção</div>
+        </div>
+      </div>
+      <div class="cards">
+        <div class="status-card aberto" data-setor="Manutenção" data-status="Aberto">
+          <div class="status-head">
+            <div class="status-title-wrap">
+              <div class="status-icon">📥</div>
+              <div>
+                <div class="status-name">Abertas</div>
+                <div class="status-desc">Clique para ver as O.S. de manutenção em aberto</div>
+              </div>
+            </div>
+            <div class="count-pill" id="count-manut-aberto">0</div>
+          </div>
+          <div class="status-body" id="preview-manut-aberto"></div>
+        </div>
+
+        <div class="status-card andamento" data-setor="Manutenção" data-status="Em Andamento">
+          <div class="status-head">
+            <div class="status-title-wrap">
+              <div class="status-icon">🛠️</div>
+              <div>
+                <div class="status-name">Em andamento</div>
+                <div class="status-desc">Clique para ver as O.S. de manutenção em atendimento</div>
+              </div>
+            </div>
+            <div class="count-pill" id="count-manut-andamento">0</div>
+          </div>
+          <div class="status-body" id="preview-manut-andamento"></div>
+        </div>
+
+        <div class="status-card pecas" data-setor="Manutenção" data-status="Aguardando Peças">
+          <div class="status-head">
+            <div class="status-title-wrap">
+              <div class="status-icon">📦</div>
+              <div>
+                <div class="status-name">Aguardando peças</div>
+                <div class="status-desc">Clique para ver as O.S. de manutenção aguardando item</div>
+              </div>
+            </div>
+            <div class="count-pill" id="count-manut-pecas">0</div>
+          </div>
+          <div class="status-body" id="preview-manut-pecas"></div>
+        </div>
+      </div>
+    </section>
+  </section>
+
+  <div class="footer-note">Atualização automática a cada 5 segundos • clique em qualquer cartão para ver todas as ordens</div>
+</div>
+
+<div class="modal" id="modalOS">
+  <div class="modal-card">
+    <div class="modal-header">
+      <div>
+        <div class="modal-title" id="modalTitulo">Ordens de serviço</div>
+        <div class="modal-subtitle" id="modalSubtitulo">Lista detalhada</div>
+      </div>
+      <button class="modal-close" id="fecharModal" type="button">×</button>
     </div>
+    <div class="modal-body">
+      <div class="list-grid" id="modalLista"></div>
+    </div>
+  </div>
+</div>
 
-    <script>
-        const API = `${window.location.origin}/api/os`;
-        const UPDATE_MS = 5000;
-        const PREVIEW_LIMIT = 3;
-        let todasOS = [];
-        let mapaOSAnterior = new Map();
-        let statusModalAtual = null;
-        let audioContext = null;
+<script>
+const API_URL = `${window.location.origin}/api/os`;
+const POLL_INTERVAL = 5000;
+let todasOS = [];
+let idsConhecidos = new Set();
+let primeiraCarga = true;
 
-        function normalizarStatus(status = '') {
-            const base = String(status).trim().toLowerCase();
-            if (base === 'aberto' || base === 'aberta') return 'Aberto';
-            if (base === 'em andamento' || base === 'em_andamento' || base === 'em andamento ') return 'Em Andamento';
-            if (base === 'aguardando peças' || base === 'aguardando pecas') return 'Aguardando Peças';
-            if (base === 'finalizado') return 'Finalizado';
-            if (base === 'cancelado') return 'Cancelado';
-            return status;
-        }
+const statusConfig = {
+  aberto: { label: 'Aberto', badgeClass: 'aberto' },
+  andamento: { label: 'Em Andamento', badgeClass: 'andamento' },
+  pecas: { label: 'Aguardando Peças', badgeClass: 'pecas' }
+};
 
-        function normalizarPrioridade(prioridade = '') {
-            const base = String(prioridade).trim().toLowerCase();
-            if (base === 'baixa') return 'Baixa';
-            if (base === 'média' || base === 'media') return 'Média';
-            if (base === 'alta') return 'Alta';
-            if (base === 'crítica' || base === 'critica') return 'Crítica';
-            return prioridade || 'Não definida';
-        }
+function normalizarTexto(valor) {
+  return String(valor || '')
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase()
+    .trim();
+}
 
-        function ordenarOS(lista) {
-            const ordemPrioridade = { 'Crítica': 1, 'Alta': 2, 'Média': 3, 'Baixa': 4 };
-            return [...lista].sort((a, b) => {
-                const pA = ordemPrioridade[normalizarPrioridade(a.prioridade)] || 99;
-                const pB = ordemPrioridade[normalizarPrioridade(b.prioridade)] || 99;
-                if (pA !== pB) return pA - pB;
-                const dA = new Date(a.data_abertura || 0).getTime();
-                const dB = new Date(b.data_abertura || 0).getTime();
-                return dB - dA;
-            });
-        }
+function normalizarSetor(valor) {
+  const txt = normalizarTexto(valor);
+  if (txt === 'ti') return 'TI';
+  if (txt.includes('manut')) return 'Manutenção';
+  return valor || 'Outro';
+}
 
-        function formatarData(data) {
-            if (!data) return 'Sem data';
-            const valor = new Date(data);
-            if (Number.isNaN(valor.getTime())) return 'Sem data';
-            return valor.toLocaleString('pt-BR');
-        }
+function normalizarStatus(valor) {
+  const txt = normalizarTexto(valor);
+  if (txt === 'aberto') return 'Aberto';
+  if (txt.includes('andamento')) return 'Em Andamento';
+  if (txt.includes('aguardando') && txt.includes('peca')) return 'Aguardando Peças';
+  return valor || 'Outro';
+}
 
-        function classePrioridade(prioridade) {
-            const p = normalizarPrioridade(prioridade).toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '');
-            return `priority-${p}`;
-        }
+function prioridadeClasse(prioridade) {
+  const txt = normalizarTexto(prioridade);
+  if (txt === 'critica') return 'critica';
+  if (txt === 'alta') return 'alta';
+  return '';
+}
 
-        function classeCardPorStatus(status) {
-            const normalizado = normalizarStatus(status);
-            if (normalizado === 'Em Andamento') return 'andamento';
-            if (normalizado === 'Aguardando Peças') return 'pecas';
-            return 'aberto';
-        }
+function prioridadeNivel(prioridade) {
+  const txt = normalizarTexto(prioridade);
+  if (txt === 'critica') return 1;
+  if (txt === 'alta') return 2;
+  if (txt === 'media') return 3;
+  if (txt === 'baixa') return 4;
+  return 5;
+}
 
-        function classeStatusBadge(status) {
-            const normalizado = normalizarStatus(status);
-            if (normalizado === 'Em Andamento') return 'status-andamento';
-            if (normalizado === 'Aguardando Peças') return 'status-pecas';
-            return 'status-aberto';
-        }
+function ordenarOS(lista) {
+  return [...lista].sort((a, b) => {
+    const prio = prioridadeNivel(a.prioridade) - prioridadeNivel(b.prioridade);
+    if (prio !== 0) return prio;
+    return new Date(b.data_abertura || 0) - new Date(a.data_abertura || 0);
+  });
+}
 
-        function cardOS(os) {
-            const prioridade = normalizarPrioridade(os.prioridade);
-            const status = normalizarStatus(os.status);
-            const destaque = prioridade === 'Crítica' ? 'critica' : prioridade === 'Alta' ? 'alta' : '';
-            return `
-                <article class="os-card ${classeCardPorStatus(status)} ${destaque}">
-                    <div class="os-top">
-                        <div class="os-title">#${os.id} • ${os.setor_origem || 'Sem setor'}</div>
-                        <span class="priority-badge ${classePrioridade(prioridade)}">${prioridade}</span>
-                    </div>
-                    <div class="os-description">${os.descricao || 'Sem descrição'}</div>
-                    <div class="os-meta">
-                        <div><strong>Destino:</strong> ${os.setor_destino || 'Não informado'}</div>
-                        <div><strong>Categoria:</strong> ${os.categoria || 'Não informada'}</div>
-                        <div><strong>Cliente:</strong> ${os.cliente || 'Não informado'}</div>
-                    </div>
-                    <div class="os-footer">
-                        <span class="status-badge ${classeStatusBadge(status)}">${status.toUpperCase()}</span>
-                        <span>${formatarData(os.data_abertura)}</span>
-                    </div>
-                </article>
-            `;
-        }
+function formatarData(valor) {
+  if (!valor) return '--';
+  const data = new Date(valor);
+  if (isNaN(data.getTime())) return valor;
+  return data.toLocaleString('pt-BR');
+}
 
-        function renderListaPreview(elementId, lista) {
-            const el = document.getElementById(elementId);
-            if (!lista.length) {
-                el.innerHTML = '<div class="empty-state">Nenhuma O.S. neste status no momento</div>';
-                return;
-            }
-            el.innerHTML = lista.slice(0, PREVIEW_LIMIT).map(cardOS).join('');
-        }
+function resumir(texto, max = 110) {
+  const t = String(texto || '').trim();
+  return t.length > max ? t.slice(0, max) + '…' : t;
+}
 
-        function atualizarContadores(agrupado) {
-            document.getElementById('countAberto').textContent = agrupado['Aberto'].length;
-            document.getElementById('countAndamento').textContent = agrupado['Em Andamento'].length;
-            document.getElementById('countPecas').textContent = agrupado['Aguardando Peças'].length;
-            document.getElementById('totalGeral').textContent = todasOS.length;
-            document.getElementById('ultimaAtualizacao').textContent = new Date().toLocaleTimeString('pt-BR');
-        }
+function payloadParaLista(payload) {
+  if (Array.isArray(payload)) return payload;
+  if (payload && Array.isArray(payload.data)) return payload.data;
+  return [];
+}
 
-        function agruparPorStatus(lista) {
-            const grupos = {
-                'Aberto': [],
-                'Em Andamento': [],
-                'Aguardando Peças': []
-            };
+function construirPreview(os, statusKey) {
+  const prioClass = prioridadeClasse(os.prioridade);
+  const badgePrio = prioClass ? `<span class="badge ${prioClass}">${os.prioridade || ''}</span>` : `<span class="badge ${statusConfig[statusKey].badgeClass}">${statusConfig[statusKey].label.toUpperCase()}</span>`;
+  return `
+    <div class="preview-card ${prioClass}">
+      <div class="preview-id">#${os.id} • ${os.setor_origem || 'Sem setor'}</div>
+      <div class="preview-text">${resumir(os.descricao || 'Sem descrição')}</div>
+      <div class="preview-meta">
+        ${badgePrio}
+        <span>${formatarData(os.data_abertura)}</span>
+      </div>
+    </div>
+  `;
+}
 
-            lista.forEach(os => {
-                const status = normalizarStatus(os.status);
-                if (grupos[status]) grupos[status].push(os);
-            });
+function preencherCard(setor, statusKey, lista) {
+  const prefixo = setor === 'TI' ? 'ti' : 'manut';
+  document.getElementById(`count-${prefixo}-${statusKey}`).textContent = lista.length;
+  const target = document.getElementById(`preview-${prefixo}-${statusKey}`);
 
-            Object.keys(grupos).forEach(chave => {
-                grupos[chave] = ordenarOS(grupos[chave]);
-            });
+  if (!lista.length) {
+    target.innerHTML = `<div class="empty">Nenhuma O.S. neste status agora</div>`;
+    return;
+  }
 
-            return grupos;
-        }
+  const top = ordenarOS(lista).slice(0, 2);
+  target.innerHTML = top.map(os => construirPreview(os, statusKey)).join('');
+}
 
-        function renderPainel() {
-            const grupos = agruparPorStatus(todasOS);
-            atualizarContadores(grupos);
-            renderListaPreview('previewAberto', grupos['Aberto']);
-            renderListaPreview('previewAndamento', grupos['Em Andamento']);
-            renderListaPreview('previewPecas', grupos['Aguardando Peças']);
-            if (statusModalAtual) {
-                preencherModal(statusModalAtual);
-            }
-        }
+function atualizarPainel() {
+  const ti = todasOS.filter(os => normalizarSetor(os.setor_destino) === 'TI');
+  const manut = todasOS.filter(os => normalizarSetor(os.setor_destino) === 'Manutenção');
 
-        function abrirModal(status) {
-            statusModalAtual = status;
-            preencherModal(status);
-            document.getElementById('statusModal').classList.add('open');
-        }
+  document.getElementById('totalGeral').textContent = todasOS.length;
+  document.getElementById('totalTI').textContent = ti.length;
+  document.getElementById('totalManutencao').textContent = manut.length;
+  document.getElementById('ultimaAtualizacao').textContent = new Date().toLocaleTimeString('pt-BR');
 
-        function preencherModal(status) {
-            const normalizado = normalizarStatus(status);
-            const lista = ordenarOS(todasOS.filter(os => normalizarStatus(os.status) === normalizado));
-            const titulos = {
-                'Aberto': 'Ordens Abertas',
-                'Em Andamento': 'Ordens em Andamento',
-                'Aguardando Peças': 'Ordens Aguardando Peças'
-            };
-            document.getElementById('modalTitulo').textContent = titulos[normalizado] || normalizado;
-            document.getElementById('modalSubtitulo').textContent = 'Clique fora da janela ou no X para fechar';
-            document.getElementById('modalCount').textContent = lista.length;
-            const modalLista = document.getElementById('modalLista');
-            modalLista.innerHTML = lista.length ? lista.map(cardOS).join('') : '<div class="empty-state">Nenhuma O.S. neste status no momento</div>';
-        }
+  preencherCard('TI', 'aberto', ti.filter(os => normalizarStatus(os.status) === 'Aberto'));
+  preencherCard('TI', 'andamento', ti.filter(os => normalizarStatus(os.status) === 'Em Andamento'));
+  preencherCard('TI', 'pecas', ti.filter(os => normalizarStatus(os.status) === 'Aguardando Peças'));
 
-        function fecharModal() {
-            document.getElementById('statusModal').classList.remove('open');
-            statusModalAtual = null;
-        }
+  preencherCard('Manutenção', 'aberto', manut.filter(os => normalizarStatus(os.status) === 'Aberto'));
+  preencherCard('Manutenção', 'andamento', manut.filter(os => normalizarStatus(os.status) === 'Em Andamento'));
+  preencherCard('Manutenção', 'pecas', manut.filter(os => normalizarStatus(os.status) === 'Aguardando Peças'));
+}
 
-        document.getElementById('statusModal').addEventListener('click', (event) => {
-            if (event.target.id === 'statusModal') {
-                fecharModal();
-            }
-        });
+function abrirModal(setor, status) {
+  const lista = ordenarOS(
+    todasOS.filter(os => normalizarSetor(os.setor_destino) === setor && normalizarStatus(os.status) === status)
+  );
 
-        document.addEventListener('keydown', (event) => {
-            if (event.key === 'Escape') fecharModal();
-        });
+  document.getElementById('modalTitulo').textContent = `${setor} • ${status}`;
+  document.getElementById('modalSubtitulo').textContent = `${lista.length} ordem(ns) neste grupo`;
+  const listaEl = document.getElementById('modalLista');
 
-        function beep(tipo = 'normal') {
-            try {
-                audioContext = audioContext || new (window.AudioContext || window.webkitAudioContext)();
-                if (audioContext.state === 'suspended') {
-                    audioContext.resume();
-                }
-                const oscillator = audioContext.createOscillator();
-                const gainNode = audioContext.createGain();
-                oscillator.connect(gainNode);
-                gainNode.connect(audioContext.destination);
-                oscillator.type = tipo === 'critica' ? 'sawtooth' : 'sine';
-                oscillator.frequency.setValueAtTime(tipo === 'critica' ? 880 : tipo === 'alta' ? 740 : 620, audioContext.currentTime);
-                gainNode.gain.setValueAtTime(0.0001, audioContext.currentTime);
-                gainNode.gain.exponentialRampToValueAtTime(0.12, audioContext.currentTime + 0.02);
-                gainNode.gain.exponentialRampToValueAtTime(0.0001, audioContext.currentTime + (tipo === 'critica' ? 0.45 : 0.25));
-                oscillator.start();
-                oscillator.stop(audioContext.currentTime + (tipo === 'critica' ? 0.45 : 0.25));
-            } catch (error) {
-                console.warn('Áudio não pôde ser reproduzido:', error);
-            }
-        }
+  if (!lista.length) {
+    listaEl.innerHTML = `<div class="no-items">Nenhuma ordem de serviço encontrada neste filtro.</div>`;
+  } else {
+    listaEl.innerHTML = lista.map(os => {
+      const prioClass = prioridadeClasse(os.prioridade);
+      return `
+        <div class="os-card ${prioClass}">
+          <div class="os-head">
+            <div class="os-title">#${os.id} • ${os.setor_origem || 'Sem setor de origem'}</div>
+            <div>${os.prioridade ? `<span class="badge ${prioClass || 'aberto'}">${os.prioridade}</span>` : ''}</div>
+          </div>
+          <div class="os-desc">${os.descricao || 'Sem descrição'}</div>
+          <div class="os-meta">
+            <div><strong>Destino:</strong> ${os.setor_destino || '--'}</div>
+            <div><strong>Categoria:</strong> ${os.categoria || '--'}</div>
+            <div><strong>Cliente:</strong> ${os.cliente || '--'}</div>
+            <div><strong>Status:</strong> ${normalizarStatus(os.status)}</div>
+            <div><strong>Abertura:</strong> ${formatarData(os.data_abertura)}</div>
+          </div>
+        </div>
+      `;
+    }).join('');
+  }
 
-        function mostrarAlertaTela(prioridadeClasse) {
-            const overlay = document.getElementById('screenAlert');
-            overlay.className = `screen-alert show ${prioridadeClasse}`;
-            setTimeout(() => {
-                overlay.className = 'screen-alert';
-            }, prioridadeClasse === 'critica' ? 2200 : 1400);
-        }
+  document.getElementById('modalOS').classList.add('show');
+  document.body.classList.add('modal-open');
+}
 
-        function criarToast(os) {
-            const stack = document.getElementById('toastStack');
-            const prioridade = normalizarPrioridade(os.prioridade);
-            const prioridadeClasse = prioridade === 'Crítica' ? 'critica' : prioridade === 'Alta' ? 'alta' : 'normal';
-            const toast = document.createElement('div');
-            toast.className = `toast ${prioridadeClasse}`;
-            toast.innerHTML = `
-                <div class="toast-top">
-                    <div>
-                        <div class="toast-title">${prioridade === 'Crítica' ? '🚨 NOVA O.S. CRÍTICA' : prioridade === 'Alta' ? '⚠️ NOVA O.S. ALTA' : '✅ Nova ordem de serviço'}</div>
-                        <div class="toast-subtitle">#${os.id} • ${os.setor_origem || 'Sem setor'} → ${os.setor_destino || 'Sem destino'}</div>
-                    </div>
-                    <span class="priority-badge ${classePrioridade(prioridade)}">${prioridade}</span>
-                </div>
-                <div class="toast-body">${os.descricao || 'Sem descrição'}</div>
-            `;
-            stack.prepend(toast);
-            while (stack.children.length > 4) {
-                stack.removeChild(stack.lastChild);
-            }
-            setTimeout(() => {
-                toast.remove();
-            }, prioridade === 'Crítica' ? 12000 : 8000);
-            beep(prioridadeClasse);
-            if (prioridadeClasse === 'alta' || prioridadeClasse === 'critica') {
-                mostrarAlertaTela(prioridadeClasse);
-            }
-        }
+function fecharModal() {
+  document.getElementById('modalOS').classList.remove('show');
+  document.body.classList.remove('modal-open');
+}
 
-        function verificarNovasOS(listaAtual) {
-            const novoMapa = new Map(listaAtual.map(os => [String(os.id), os]));
-            if (mapaOSAnterior.size === 0) {
-                mapaOSAnterior = novoMapa;
-                return;
-            }
+function tocarSom() {
+  const ctx = window.AudioContext || window.webkitAudioContext;
+  if (!ctx) return;
+  const audio = new ctx();
+  const osc = audio.createOscillator();
+  const gain = audio.createGain();
+  osc.connect(gain);
+  gain.connect(audio.destination);
+  osc.type = 'sine';
+  osc.frequency.value = 880;
+  gain.gain.value = 0.04;
+  osc.start();
+  osc.stop(audio.currentTime + 0.18);
+}
 
-            const novas = listaAtual.filter(os => !mapaOSAnterior.has(String(os.id)));
-            ordenarOS(novas).forEach(criarToast);
-            mapaOSAnterior = novoMapa;
-        }
+function mostrarAlertas(novasOS) {
+  if (!novasOS.length) return;
+  const stack = document.getElementById('alertStack');
 
-        async function carregarOS() {
-            try {
-                const response = await fetch(API, { cache: 'no-store' });
-                if (!response.ok) {
-                    throw new Error(`Falha ao carregar O.S. (${response.status})`);
-                }
-                const payload = await response.json();
-                const lista = Array.isArray(payload) ? payload : (payload.data || []);
-                todasOS = lista.map(os => ({
-                    ...os,
-                    status: normalizarStatus(os.status),
-                    prioridade: normalizarPrioridade(os.prioridade)
-                }));
-                verificarNovasOS(todasOS);
-                renderPainel();
-            } catch (error) {
-                console.error('Erro ao carregar painel:', error);
-                ['previewAberto', 'previewAndamento', 'previewPecas'].forEach((id) => {
-                    document.getElementById(id).innerHTML = `<div class="empty-state">${error.message}</div>`;
-                });
-            }
-        }
+  ordenarOS(novasOS).slice(0, 3).forEach((os, index) => {
+    const txtPrio = normalizarTexto(os.prioridade);
+    const classe = txtPrio === 'critica' ? 'critical' : (txtPrio === 'alta' ? 'high' : 'normal');
+    const titulo = txtPrio === 'critica'
+      ? '🚨 NOVA O.S. CRÍTICA'
+      : txtPrio === 'alta'
+        ? '🚨 NOVA O.S. ALTA'
+        : '🆕 Nova O.S. criada';
 
-        window.abrirModal = abrirModal;
-        window.fecharModal = fecharModal;
-        carregarOS();
-        setInterval(carregarOS, UPDATE_MS);
-    </script>
+    const alerta = document.createElement('div');
+    alerta.className = `alert ${classe}`;
+    alerta.innerHTML = `
+      <div class="alert-title">${titulo}</div>
+      <div class="alert-sub">#${os.id} • ${os.setor_destino || 'Sem destino'} • ${os.setor_origem || 'Sem origem'}</div>
+      <div class="alert-sub">${resumir(os.descricao || 'Sem descrição', 90)}</div>
+    `;
+    stack.appendChild(alerta);
+
+    if (classe === 'critical' || classe === 'high') {
+      setTimeout(() => tocarSom(), 120 * (index + 1));
+    }
+
+    setTimeout(() => {
+      alerta.style.opacity = '0';
+      alerta.style.transform = 'translateX(18px)';
+      setTimeout(() => alerta.remove(), 300);
+    }, classe === 'critical' ? 9000 : 6500);
+  });
+}
+
+function detectarNovasOS(listaAtual) {
+  const novos = listaAtual.filter(os => !idsConhecidos.has(String(os.id)));
+  idsConhecidos = new Set(listaAtual.map(os => String(os.id)));
+
+  if (primeiraCarga) {
+    primeiraCarga = false;
+    return;
+  }
+
+  mostrarAlertas(novos);
+}
+
+async function carregarOS() {
+  try {
+    const response = await fetch(API_URL, { cache: 'no-store' });
+    if (!response.ok) throw new Error(`HTTP ${response.status}`);
+    const payload = await response.json();
+    todasOS = payloadParaLista(payload);
+    detectarNovasOS(todasOS);
+    atualizarPainel();
+  } catch (error) {
+    console.error('Erro ao carregar painel:', error);
+    document.getElementById('ultimaAtualizacao').textContent = 'Erro';
+  }
+}
+
+document.querySelectorAll('.status-card').forEach(card => {
+  card.addEventListener('click', () => {
+    abrirModal(card.dataset.setor, card.dataset.status);
+  });
+});
+
+document.getElementById('fecharModal').addEventListener('click', fecharModal);
+document.getElementById('modalOS').addEventListener('click', (event) => {
+  if (event.target.id === 'modalOS') fecharModal();
+});
+document.addEventListener('keydown', (event) => {
+  if (event.key === 'Escape') fecharModal();
+});
+
+carregarOS();
+setInterval(carregarOS, POLL_INTERVAL);
+</script>
 </body>
 </html>
