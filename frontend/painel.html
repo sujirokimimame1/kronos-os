@@ -13,18 +13,20 @@
             --primary-glow: rgba(79, 195, 247, 0.35);
             --secondary: #BA68C8;
             --secondary-glow: rgba(186, 104, 200, 0.25);
-            --success: #22C55E;
-            --warning: #F59E0B;
-            --danger: #EF4444;
-            --muted: #64748B;
+            --warning: #FBBF24;
+            --warning-glow: rgba(251, 191, 36, 0.25);
+            --danger: #F87171;
+            --danger-glow: rgba(248, 113, 113, 0.28);
+            --success: #4ADE80;
+            --success-glow: rgba(74, 222, 128, 0.22);
             --black: #0F172A;
             --black-light: #1E293B;
             --black-lighter: #334155;
             --light: #FFFFFF;
             --gray: #94A3B8;
-            --card-bg: rgba(15, 23, 42, 0.65);
+            --card-bg: rgba(15, 23, 42, 0.68);
             --card-border: rgba(79, 195, 247, 0.2);
-            --shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+            --shadow: 0 10px 30px rgba(0, 0, 0, 0.45);
             --glow: 0 0 12px var(--primary-glow), 0 0 20px var(--primary-glow);
         }
 
@@ -39,7 +41,7 @@
             background: linear-gradient(135deg, var(--black) 0%, var(--black-light) 50%, var(--black-lighter) 100%);
             color: var(--light);
             min-height: 100vh;
-            line-height: 1.6;
+            line-height: 1.5;
             overflow-x: hidden;
             position: relative;
         }
@@ -57,18 +59,19 @@
         }
 
         .dashboard-container {
-            width: 100%;
-            min-height: 100vh;
+            width: min(1800px, 100%);
+            margin: 0 auto;
             padding: 1.5rem;
+            min-height: 100vh;
         }
 
         .header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
+            display: grid;
+            grid-template-columns: 1fr auto;
             gap: 1rem;
+            align-items: center;
             margin-bottom: 1.5rem;
-            padding: 1.25rem 1.5rem;
+            padding: 1.5rem;
             background: var(--card-bg);
             backdrop-filter: blur(20px);
             -webkit-backdrop-filter: blur(20px);
@@ -83,17 +86,9 @@
             gap: 1rem;
         }
 
-        .logo-icon {
-            width: 50px;
-            height: 50px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-        }
-
         .cross-circle {
-            width: 45px;
-            height: 45px;
+            width: 52px;
+            height: 52px;
             border-radius: 50%;
             background: linear-gradient(135deg, var(--primary), var(--primary-dark));
             display: flex;
@@ -102,27 +97,13 @@
             position: relative;
             box-shadow: 0 0 20px var(--primary-glow);
             animation: neonPulse 3s infinite;
+            color: var(--black);
+            font-size: 1.6rem;
+            font-weight: 700;
         }
-
-        .cross {
-            position: relative;
-            width: 25px;
-            height: 25px;
-        }
-
-        .cross::before,
-        .cross::after {
-            content: '';
-            position: absolute;
-            background: var(--black);
-            border-radius: 2px;
-        }
-
-        .cross::before { width: 25px; height: 5px; top: 10px; left: 0; }
-        .cross::after { width: 5px; height: 25px; top: 0; left: 10px; }
 
         .logo-text h1 {
-            font-size: 1.85rem;
+            font-size: clamp(1.6rem, 2vw, 2.4rem);
             font-weight: 700;
             background: linear-gradient(135deg, var(--primary), var(--primary-light));
             -webkit-background-clip: text;
@@ -131,83 +112,79 @@
             text-shadow: 0 0 10px var(--primary-glow);
         }
 
-        .logo-text p,
-        .header-meta,
-        .column-subtitle,
-        .os-meta,
-        .empty-state,
-        .loading-state,
-        .error-state {
+        .logo-text p {
             color: var(--gray);
+            margin-top: 0.15rem;
+            font-size: 1.05rem;
         }
 
-        .header-right {
+        .header-stats {
             display: flex;
-            align-items: center;
             gap: 1rem;
             flex-wrap: wrap;
             justify-content: flex-end;
         }
 
-        .mini-stat {
-            min-width: 120px;
-            padding: 0.85rem 1rem;
-            border-radius: 18px;
-            background: rgba(255, 255, 255, 0.05);
+        .stat-box {
+            min-width: 132px;
+            padding: 1rem 1.2rem;
+            border-radius: 20px;
+            background: rgba(255,255,255,0.04);
             border: 1px solid rgba(255,255,255,0.08);
             text-align: center;
         }
 
-        .mini-stat strong {
+        .stat-box .number {
             display: block;
-            font-size: 1.6rem;
-            color: var(--light);
+            font-size: clamp(1.7rem, 2vw, 2.2rem);
+            font-weight: 800;
         }
 
-        .mini-stat span {
-            font-size: 0.85rem;
+        .stat-box .label {
             color: var(--gray);
+            font-size: 0.95rem;
+            margin-top: 0.25rem;
         }
 
-        .board-grid {
+        .status-grid {
             display: grid;
             grid-template-columns: repeat(3, minmax(0, 1fr));
             gap: 1.25rem;
-            min-height: calc(100vh - 180px);
         }
 
-        .board-column {
-            display: flex;
-            flex-direction: column;
+        .status-column {
             background: var(--card-bg);
             border: 1px solid var(--card-border);
             border-radius: 24px;
-            backdrop-filter: blur(20px);
-            -webkit-backdrop-filter: blur(20px);
             box-shadow: var(--shadow);
-            min-height: 0;
             overflow: hidden;
+            min-height: 560px;
         }
 
         .column-header {
             display: flex;
-            justify-content: space-between;
             align-items: center;
-            padding: 1rem 1.2rem;
+            justify-content: space-between;
+            gap: 0.85rem;
+            padding: 1.15rem 1.2rem;
             border-bottom: 1px solid rgba(255,255,255,0.06);
-            position: sticky;
-            top: 0;
-            background: rgba(15, 23, 42, 0.85);
-            z-index: 2;
+            cursor: pointer;
+            transition: background 0.25s ease, transform 0.25s ease;
+            user-select: none;
         }
 
-        .column-title-wrap {
+        .column-header:hover {
+            background: rgba(255,255,255,0.04);
+        }
+
+        .header-left {
             display: flex;
             align-items: center;
-            gap: 0.85rem;
+            gap: 0.9rem;
+            min-width: 0;
         }
 
-        .column-icon {
+        .header-icon {
             width: 42px;
             height: 42px;
             border-radius: 14px;
@@ -215,375 +192,724 @@
             align-items: center;
             justify-content: center;
             font-size: 1.1rem;
-            box-shadow: inset 0 0 0 1px rgba(255,255,255,0.12);
-        }
-
-        .icon-aberto { background: rgba(79, 195, 247, 0.18); color: var(--primary-light); }
-        .icon-andamento { background: rgba(245, 158, 11, 0.16); color: #FBBF24; }
-        .icon-pecas { background: rgba(186, 104, 200, 0.18); color: #D8B4FE; }
-
-        .column-title { font-size: 1.15rem; font-weight: 700; }
-        .column-count {
-            min-width: 48px;
-            height: 48px;
-            padding: 0 0.8rem;
-            border-radius: 16px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 1.2rem;
-            font-weight: 700;
-            color: var(--light);
-            background: rgba(255,255,255,0.07);
+            flex-shrink: 0;
             border: 1px solid rgba(255,255,255,0.08);
         }
 
-        .column-body {
-            padding: 1rem;
-            overflow-y: auto;
+        .header-copy h2 {
+            font-size: 1.1rem;
+            margin-bottom: 0.15rem;
+        }
+
+        .header-copy p {
+            color: var(--gray);
+            font-size: 0.92rem;
+        }
+
+        .header-right {
             display: flex;
-            flex-direction: column;
-            gap: 0.85rem;
+            align-items: center;
+            gap: 0.75rem;
+        }
+
+        .count-badge {
+            min-width: 50px;
+            height: 50px;
+            padding: 0 0.9rem;
+            border-radius: 18px;
+            background: rgba(255,255,255,0.06);
+            border: 1px solid rgba(255,255,255,0.1);
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.45rem;
+            font-weight: 800;
+        }
+
+        .header-right .hint {
+            color: var(--gray);
+            font-size: 0.85rem;
+            white-space: nowrap;
+        }
+
+        .column-preview {
+            padding: 1rem;
+            display: grid;
+            gap: 1rem;
+            max-height: 700px;
+            overflow: auto;
+        }
+
+        .empty-state {
+            min-height: 170px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: var(--gray);
+            border: 1px dashed rgba(255,255,255,0.08);
+            border-radius: 18px;
+            background: rgba(255,255,255,0.02);
+            text-align: center;
+            padding: 1rem;
         }
 
         .os-card {
-            background: rgba(255, 255, 255, 0.045);
-            border: 1px solid rgba(255, 255, 255, 0.08);
-            border-radius: 18px;
+            background: rgba(255,255,255,0.035);
+            border: 1px solid rgba(255,255,255,0.08);
+            border-left: 4px solid var(--primary);
+            border-radius: 20px;
             padding: 1rem;
-            transition: transform 0.25s ease, border-color 0.25s ease, box-shadow 0.25s ease;
-            position: relative;
-            overflow: hidden;
+            box-shadow: 0 6px 20px rgba(0,0,0,0.22);
         }
 
-        .os-card:hover {
-            transform: translateY(-2px);
-            border-color: rgba(79, 195, 247, 0.35);
-            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.28);
-        }
+        .os-card.andamento { border-left-color: var(--warning); }
+        .os-card.pecas { border-left-color: #C084FC; }
+        .os-card.alta { box-shadow: 0 0 0 1px rgba(251, 191, 36, 0.28), 0 10px 28px rgba(251, 191, 36, 0.12); }
+        .os-card.critica { box-shadow: 0 0 0 1px rgba(248, 113, 113, 0.35), 0 12px 30px rgba(248, 113, 113, 0.18); }
 
-        .os-card::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 4px;
-            height: 100%;
-            background: var(--primary);
-        }
-
-        .os-card.andamento::before { background: var(--warning); }
-        .os-card.pecas::before { background: var(--secondary); }
-
-        .os-header {
+        .os-top {
             display: flex;
             justify-content: space-between;
-            gap: 0.8rem;
-            margin-bottom: 0.7rem;
-        }
-
-        .os-id {
-            font-size: 1rem;
-            font-weight: 700;
-            color: var(--light);
-        }
-
-        .priority-badge {
-            white-space: nowrap;
-            font-size: 0.75rem;
-            font-weight: 700;
-            padding: 0.35rem 0.65rem;
-            border-radius: 999px;
-            border: 1px solid rgba(255,255,255,0.1);
-        }
-
-        .priority-critica { background: rgba(239, 68, 68, 0.18); color: #FCA5A5; }
-        .priority-alta { background: rgba(245, 158, 11, 0.18); color: #FCD34D; }
-        .priority-media { background: rgba(79, 195, 247, 0.18); color: #BAE6FD; }
-        .priority-baixa { background: rgba(34, 197, 94, 0.18); color: #86EFAC; }
-
-        .os-desc {
-            color: #E2E8F0;
-            font-size: 0.97rem;
+            gap: 0.75rem;
+            align-items: flex-start;
             margin-bottom: 0.8rem;
+        }
+
+        .os-title {
+            font-size: 1.05rem;
+            font-weight: 700;
+        }
+
+        .priority-badge,
+        .status-badge {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            padding: 0.38rem 0.75rem;
+            border-radius: 999px;
+            font-size: 0.83rem;
+            font-weight: 700;
+            white-space: nowrap;
+            border: 1px solid rgba(255,255,255,0.08);
+        }
+
+        .priority-baixa { background: rgba(74, 222, 128, 0.18); color: #9AE6B4; }
+        .priority-media { background: rgba(96, 165, 250, 0.18); color: #93C5FD; }
+        .priority-alta { background: rgba(251, 191, 36, 0.18); color: #FCD34D; }
+        .priority-critica { background: rgba(248, 113, 113, 0.2); color: #FCA5A5; }
+
+        .os-description {
+            font-size: 0.98rem;
+            color: rgba(255,255,255,0.95);
+            margin-bottom: 0.95rem;
+            line-height: 1.6;
             display: -webkit-box;
-            -webkit-line-clamp: 4;
+            -webkit-line-clamp: 3;
             -webkit-box-orient: vertical;
             overflow: hidden;
         }
 
         .os-meta {
             display: grid;
-            grid-template-columns: 1fr;
             gap: 0.35rem;
-            font-size: 0.86rem;
-        }
-
-        .os-meta strong { color: #CBD5E1; }
-
-        .status-line {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            gap: 0.75rem;
-            margin-top: 0.85rem;
-            padding-top: 0.75rem;
-            border-top: 1px solid rgba(255,255,255,0.06);
-            font-size: 0.82rem;
             color: var(--gray);
+            font-size: 0.94rem;
+            margin-bottom: 0.85rem;
         }
 
-        .status-badge {
-            padding: 0.35rem 0.65rem;
-            border-radius: 999px;
-            font-weight: 700;
-            font-size: 0.72rem;
-            text-transform: uppercase;
-            letter-spacing: 0.04em;
-        }
+        .os-meta strong { color: rgba(255,255,255,0.9); }
 
-        .status-aberto { background: rgba(79, 195, 247, 0.18); color: #BAE6FD; }
-        .status-andamento { background: rgba(245, 158, 11, 0.18); color: #FCD34D; }
-        .status-pecas { background: rgba(186, 104, 200, 0.18); color: #E9D5FF; }
-
-        .panel-message {
+        .os-footer {
             display: flex;
             align-items: center;
-            justify-content: center;
-            min-height: 180px;
-            text-align: center;
-            padding: 1rem;
-            border: 1px dashed rgba(255,255,255,0.08);
-            border-radius: 18px;
-            background: rgba(255,255,255,0.02);
-        }
-
-        .footer-note {
-            margin-top: 1rem;
-            text-align: center;
+            justify-content: space-between;
+            gap: 0.75rem;
+            margin-top: 0.9rem;
+            padding-top: 0.8rem;
+            border-top: 1px solid rgba(255,255,255,0.06);
             color: var(--gray);
             font-size: 0.88rem;
         }
 
+        .status-aberto { background: rgba(79, 195, 247, 0.18); color: #A5E3FF; }
+        .status-andamento { background: rgba(251, 191, 36, 0.18); color: #FCD34D; }
+        .status-pecas { background: rgba(192, 132, 252, 0.18); color: #D8B4FE; }
+
+        .footer-note {
+            text-align: center;
+            color: var(--gray);
+            margin-top: 1rem;
+            font-size: 0.95rem;
+        }
+
+        .modal {
+            position: fixed;
+            inset: 0;
+            background: rgba(2, 6, 23, 0.82);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            padding: 1.25rem;
+            z-index: 2000;
+        }
+
+        .modal.open { display: flex; }
+
+        .modal-content {
+            width: min(1400px, 100%);
+            max-height: 90vh;
+            overflow: hidden;
+            background: rgba(15, 23, 42, 0.94);
+            border: 1px solid var(--card-border);
+            border-radius: 28px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.55);
+            backdrop-filter: blur(18px);
+            -webkit-backdrop-filter: blur(18px);
+        }
+
+        .modal-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 1rem;
+            padding: 1.25rem 1.4rem;
+            border-bottom: 1px solid rgba(255,255,255,0.08);
+        }
+
+        .modal-title-wrap h2 {
+            font-size: 1.35rem;
+            margin-bottom: 0.2rem;
+        }
+
+        .modal-title-wrap p {
+            color: var(--gray);
+        }
+
+        .modal-actions {
+            display: flex;
+            gap: 0.75rem;
+            align-items: center;
+        }
+
+        .modal-count {
+            min-width: 54px;
+            height: 54px;
+            border-radius: 18px;
+            background: rgba(255,255,255,0.06);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 800;
+            font-size: 1.45rem;
+            border: 1px solid rgba(255,255,255,0.08);
+        }
+
+        .close-btn {
+            width: 46px;
+            height: 46px;
+            border-radius: 14px;
+            border: 1px solid rgba(255,255,255,0.12);
+            background: transparent;
+            color: var(--light);
+            font-size: 1.1rem;
+            cursor: pointer;
+        }
+
+        .modal-body {
+            padding: 1.2rem 1.35rem 1.4rem;
+            max-height: calc(90vh - 92px);
+            overflow: auto;
+        }
+
+        .modal-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+            gap: 1rem;
+        }
+
+        .toast-stack {
+            position: fixed;
+            top: 1rem;
+            right: 1rem;
+            z-index: 3000;
+            display: grid;
+            gap: 0.75rem;
+            width: min(420px, calc(100vw - 2rem));
+        }
+
+        .toast {
+            background: rgba(15, 23, 42, 0.95);
+            border: 1px solid rgba(255,255,255,0.1);
+            border-left: 6px solid var(--primary);
+            border-radius: 20px;
+            padding: 1rem 1rem 1rem 1.1rem;
+            box-shadow: 0 20px 45px rgba(0,0,0,0.32);
+            animation: slideIn 0.35s ease;
+        }
+
+        .toast.alta {
+            border-left-color: var(--warning);
+            box-shadow: 0 0 0 1px rgba(251, 191, 36, 0.18), 0 20px 50px rgba(251, 191, 36, 0.18);
+        }
+
+        .toast.critica {
+            border-left-color: var(--danger);
+            box-shadow: 0 0 0 1px rgba(248, 113, 113, 0.28), 0 20px 55px rgba(248, 113, 113, 0.22);
+            animation: slideIn 0.35s ease, pulseDanger 1s ease 3;
+        }
+
+        .toast-top {
+            display: flex;
+            justify-content: space-between;
+            gap: 0.75rem;
+            margin-bottom: 0.65rem;
+        }
+
+        .toast-title {
+            font-size: 1rem;
+            font-weight: 800;
+        }
+
+        .toast-subtitle {
+            color: var(--gray);
+            font-size: 0.93rem;
+            margin-top: 0.2rem;
+        }
+
+        .toast-body {
+            font-size: 0.95rem;
+            line-height: 1.5;
+        }
+
+        .screen-alert {
+            position: fixed;
+            inset: 0;
+            pointer-events: none;
+            z-index: 2500;
+            opacity: 0;
+            transition: opacity 0.25s ease;
+            background: radial-gradient(circle at center, rgba(248, 113, 113, 0.14), rgba(248, 113, 113, 0.04) 45%, transparent 72%);
+        }
+
+        .screen-alert.show { opacity: 1; }
+
+        .screen-alert.alta {
+            background: radial-gradient(circle at center, rgba(251, 191, 36, 0.12), rgba(251, 191, 36, 0.04) 45%, transparent 72%);
+        }
+
+        .screen-alert.critica {
+            background: radial-gradient(circle at center, rgba(248, 113, 113, 0.18), rgba(248, 113, 113, 0.06) 45%, transparent 72%);
+        }
+
+        .clickable-text {
+            color: var(--gray);
+            font-size: 0.86rem;
+        }
+
+        .aberto-icon { background: rgba(79, 195, 247, 0.15); color: #8DDCFF; }
+        .andamento-icon { background: rgba(251, 191, 36, 0.15); color: #FCD34D; }
+        .pecas-icon { background: rgba(192, 132, 252, 0.15); color: #D8B4FE; }
+
         @keyframes neonPulse {
-            0%, 100% { box-shadow: 0 0 15px var(--primary-glow), 0 0 25px var(--primary-glow); }
-            50% { box-shadow: 0 0 22px var(--primary-glow), 0 0 32px var(--primary-glow); }
+            0%, 100% { transform: scale(1); box-shadow: 0 0 18px var(--primary-glow); }
+            50% { transform: scale(1.03); box-shadow: 0 0 30px rgba(79, 195, 247, 0.48); }
+        }
+
+        @keyframes slideIn {
+            from { opacity: 0; transform: translateX(18px) translateY(-8px); }
+            to { opacity: 1; transform: translateX(0) translateY(0); }
+        }
+
+        @keyframes pulseDanger {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.01); }
         }
 
         @media (max-width: 1200px) {
-            .board-grid { grid-template-columns: 1fr; }
-            .dashboard-container { padding: 1rem; }
+            .status-grid { grid-template-columns: 1fr; }
+            .status-column { min-height: 420px; }
         }
 
         @media (max-width: 768px) {
-            .header { flex-direction: column; align-items: stretch; }
-            .header-right { justify-content: stretch; }
-            .mini-stat { flex: 1; }
-            .logo-text h1 { font-size: 1.45rem; }
+            .dashboard-container { padding: 1rem; }
+            .header { grid-template-columns: 1fr; }
+            .header-stats { justify-content: flex-start; }
+            .column-header { align-items: flex-start; }
+            .header-right { flex-direction: column; align-items: flex-end; }
+            .modal-grid { grid-template-columns: 1fr; }
         }
     </style>
 </head>
 <body>
+    <div class="screen-alert" id="screenAlert"></div>
+    <div class="toast-stack" id="toastStack"></div>
+
     <div class="dashboard-container">
         <header class="header">
             <div class="logo">
-                <div class="logo-icon">
-                    <div class="cross-circle"><div class="cross"></div></div>
-                </div>
+                <div class="cross-circle"><i class="fas fa-plus"></i></div>
                 <div class="logo-text">
                     <h1>Kronos OS • Painel Operacional</h1>
                     <p>Acompanhamento em tempo real das ordens de serviço</p>
                 </div>
             </div>
-
-            <div class="header-right">
-                <div class="mini-stat">
-                    <strong id="total-os">0</strong>
-                    <span>Total exibido</span>
+            <div class="header-stats">
+                <div class="stat-box">
+                    <span class="number" id="totalGeral">0</span>
+                    <span class="label">Total exibido</span>
                 </div>
-                <div class="mini-stat">
-                    <strong id="ultima-atualizacao">--:--:--</strong>
-                    <span>Última atualização</span>
+                <div class="stat-box">
+                    <span class="number" id="ultimaAtualizacao">--:--:--</span>
+                    <span class="label">Última atualização</span>
                 </div>
             </div>
         </header>
 
-        <main class="board-grid">
-            <section class="board-column">
-                <div class="column-header">
-                    <div class="column-title-wrap">
-                        <div class="column-icon icon-aberto"><i class="fas fa-inbox"></i></div>
-                        <div>
-                            <div class="column-title">Abertas</div>
-                            <div class="column-subtitle">Ordens recém-recebidas</div>
+        <main class="status-grid">
+            <section class="status-column">
+                <div class="column-header" onclick="abrirModal('Aberto')">
+                    <div class="header-left">
+                        <div class="header-icon aberto-icon"><i class="fas fa-inbox"></i></div>
+                        <div class="header-copy">
+                            <h2>Abertas</h2>
+                            <p>Ordens recém-recebidas</p>
                         </div>
                     </div>
-                    <div class="column-count" id="count-aberto">0</div>
+                    <div class="header-right">
+                        <div class="count-badge" id="countAberto">0</div>
+                        <span class="clickable-text">Clique para abrir</span>
+                    </div>
                 </div>
-                <div class="column-body" id="aberto"></div>
+                <div class="column-preview" id="previewAberto"></div>
             </section>
 
-            <section class="board-column">
-                <div class="column-header">
-                    <div class="column-title-wrap">
-                        <div class="column-icon icon-andamento"><i class="fas fa-screwdriver-wrench"></i></div>
-                        <div>
-                            <div class="column-title">Em andamento</div>
-                            <div class="column-subtitle">Atendimento técnico ativo</div>
+            <section class="status-column">
+                <div class="column-header" onclick="abrirModal('Em Andamento')">
+                    <div class="header-left">
+                        <div class="header-icon andamento-icon"><i class="fas fa-screwdriver-wrench"></i></div>
+                        <div class="header-copy">
+                            <h2>Em andamento</h2>
+                            <p>Atendimento técnico ativo</p>
                         </div>
                     </div>
-                    <div class="column-count" id="count-andamento">0</div>
+                    <div class="header-right">
+                        <div class="count-badge" id="countAndamento">0</div>
+                        <span class="clickable-text">Clique para abrir</span>
+                    </div>
                 </div>
-                <div class="column-body" id="andamento"></div>
+                <div class="column-preview" id="previewAndamento"></div>
             </section>
 
-            <section class="board-column">
-                <div class="column-header">
-                    <div class="column-title-wrap">
-                        <div class="column-icon icon-pecas"><i class="fas fa-box-open"></i></div>
-                        <div>
-                            <div class="column-title">Aguardando peças</div>
-                            <div class="column-subtitle">Dependem de material ou item</div>
+            <section class="status-column">
+                <div class="column-header" onclick="abrirModal('Aguardando Peças')">
+                    <div class="header-left">
+                        <div class="header-icon pecas-icon"><i class="fas fa-box-open"></i></div>
+                        <div class="header-copy">
+                            <h2>Aguardando peças</h2>
+                            <p>Dependem de material ou item</p>
                         </div>
                     </div>
-                    <div class="column-count" id="count-pecas">0</div>
+                    <div class="header-right">
+                        <div class="count-badge" id="countPecas">0</div>
+                        <span class="clickable-text">Clique para abrir</span>
+                    </div>
                 </div>
-                <div class="column-body" id="pecas"></div>
+                <div class="column-preview" id="previewPecas"></div>
             </section>
         </main>
 
         <div class="footer-note">Atualização automática a cada 5 segundos • ideal para exibição em TV</div>
     </div>
 
+    <div class="modal" id="statusModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <div class="modal-title-wrap">
+                    <h2 id="modalTitulo">Ordens</h2>
+                    <p id="modalSubtitulo">Lista completa do status selecionado</p>
+                </div>
+                <div class="modal-actions">
+                    <div class="modal-count" id="modalCount">0</div>
+                    <button class="close-btn" onclick="fecharModal()" aria-label="Fechar"><i class="fas fa-times"></i></button>
+                </div>
+            </div>
+            <div class="modal-body">
+                <div class="modal-grid" id="modalLista"></div>
+            </div>
+        </div>
+    </div>
+
     <script>
         const API = `${window.location.origin}/api/os`;
-        const REFRESH_INTERVAL = 5000;
-
-        const columns = {
-            aberto: document.getElementById('aberto'),
-            andamento: document.getElementById('andamento'),
-            pecas: document.getElementById('pecas')
-        };
+        const UPDATE_MS = 5000;
+        const PREVIEW_LIMIT = 3;
+        let todasOS = [];
+        let mapaOSAnterior = new Map();
+        let statusModalAtual = null;
+        let audioContext = null;
 
         function normalizarStatus(status = '') {
-            const mapa = {
-                'aberto': 'aberto',
-                'em andamento': 'andamento',
-                'em_andamento': 'andamento',
-                'emandamento': 'andamento',
-                'aguardando peças': 'pecas',
-                'aguardando pecas': 'pecas'
-            };
-
-            return mapa[String(status).trim().toLowerCase()] || null;
+            const base = String(status).trim().toLowerCase();
+            if (base === 'aberto' || base === 'aberta') return 'Aberto';
+            if (base === 'em andamento' || base === 'em_andamento' || base === 'em andamento ') return 'Em Andamento';
+            if (base === 'aguardando peças' || base === 'aguardando pecas') return 'Aguardando Peças';
+            if (base === 'finalizado') return 'Finalizado';
+            if (base === 'cancelado') return 'Cancelado';
+            return status;
         }
 
-        function classePrioridade(prioridade = '') {
-            const valor = String(prioridade).trim().toLowerCase();
-            if (valor === 'crítica' || valor === 'critica') return 'priority-critica';
-            if (valor === 'alta') return 'priority-alta';
-            if (valor === 'média' || valor === 'media') return 'priority-media';
-            if (valor === 'baixa') return 'priority-baixa';
-            return 'priority-media';
+        function normalizarPrioridade(prioridade = '') {
+            const base = String(prioridade).trim().toLowerCase();
+            if (base === 'baixa') return 'Baixa';
+            if (base === 'média' || base === 'media') return 'Média';
+            if (base === 'alta') return 'Alta';
+            if (base === 'crítica' || base === 'critica') return 'Crítica';
+            return prioridade || 'Não definida';
+        }
+
+        function ordenarOS(lista) {
+            const ordemPrioridade = { 'Crítica': 1, 'Alta': 2, 'Média': 3, 'Baixa': 4 };
+            return [...lista].sort((a, b) => {
+                const pA = ordemPrioridade[normalizarPrioridade(a.prioridade)] || 99;
+                const pB = ordemPrioridade[normalizarPrioridade(b.prioridade)] || 99;
+                if (pA !== pB) return pA - pB;
+                const dA = new Date(a.data_abertura || 0).getTime();
+                const dB = new Date(b.data_abertura || 0).getTime();
+                return dB - dA;
+            });
         }
 
         function formatarData(data) {
             if (!data) return 'Sem data';
-            const dt = new Date(data);
-            if (Number.isNaN(dt.getTime())) return 'Sem data';
-            return dt.toLocaleString('pt-BR');
+            const valor = new Date(data);
+            if (Number.isNaN(valor.getTime())) return 'Sem data';
+            return valor.toLocaleString('pt-BR');
         }
 
-        function escapeHtml(texto = '') {
-            return String(texto)
-                .replace(/&/g, '&amp;')
-                .replace(/</g, '&lt;')
-                .replace(/>/g, '&gt;')
-                .replace(/"/g, '&quot;')
-                .replace(/'/g, '&#039;');
+        function classePrioridade(prioridade) {
+            const p = normalizarPrioridade(prioridade).toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '');
+            return `priority-${p}`;
         }
 
-        function criarCard(os, tipoColuna) {
+        function classeCardPorStatus(status) {
+            const normalizado = normalizarStatus(status);
+            if (normalizado === 'Em Andamento') return 'andamento';
+            if (normalizado === 'Aguardando Peças') return 'pecas';
+            return 'aberto';
+        }
+
+        function classeStatusBadge(status) {
+            const normalizado = normalizarStatus(status);
+            if (normalizado === 'Em Andamento') return 'status-andamento';
+            if (normalizado === 'Aguardando Peças') return 'status-pecas';
+            return 'status-aberto';
+        }
+
+        function cardOS(os) {
+            const prioridade = normalizarPrioridade(os.prioridade);
+            const status = normalizarStatus(os.status);
+            const destaque = prioridade === 'Crítica' ? 'critica' : prioridade === 'Alta' ? 'alta' : '';
             return `
-                <article class="os-card ${tipoColuna}">
-                    <div class="os-header">
-                        <div class="os-id">#${escapeHtml(os.id)} • ${escapeHtml(os.setor_origem || 'Sem origem')}</div>
-                        <span class="priority-badge ${classePrioridade(os.prioridade)}">${escapeHtml(os.prioridade || 'Sem prioridade')}</span>
+                <article class="os-card ${classeCardPorStatus(status)} ${destaque}">
+                    <div class="os-top">
+                        <div class="os-title">#${os.id} • ${os.setor_origem || 'Sem setor'}</div>
+                        <span class="priority-badge ${classePrioridade(prioridade)}">${prioridade}</span>
                     </div>
-
-                    <div class="os-desc">${escapeHtml(os.descricao || 'Sem descrição informada')}</div>
-
+                    <div class="os-description">${os.descricao || 'Sem descrição'}</div>
                     <div class="os-meta">
-                        <div><strong>Destino:</strong> ${escapeHtml(os.setor_destino || 'Não informado')}</div>
-                        <div><strong>Categoria:</strong> ${escapeHtml(os.categoria || 'Não informada')}</div>
-                        <div><strong>Cliente:</strong> ${escapeHtml(os.cliente || 'Não informado')}</div>
+                        <div><strong>Destino:</strong> ${os.setor_destino || 'Não informado'}</div>
+                        <div><strong>Categoria:</strong> ${os.categoria || 'Não informada'}</div>
+                        <div><strong>Cliente:</strong> ${os.cliente || 'Não informado'}</div>
                     </div>
-
-                    <div class="status-line">
-                        <span class="status-badge status-${tipoColuna}">${escapeHtml(os.status || 'Sem status')}</span>
+                    <div class="os-footer">
+                        <span class="status-badge ${classeStatusBadge(status)}">${status.toUpperCase()}</span>
                         <span>${formatarData(os.data_abertura)}</span>
                     </div>
                 </article>
             `;
         }
 
-        function renderizarMensagem(coluna, texto, classe = 'empty-state') {
-            coluna.innerHTML = `<div class="panel-message ${classe}">${escapeHtml(texto)}</div>`;
+        function renderListaPreview(elementId, lista) {
+            const el = document.getElementById(elementId);
+            if (!lista.length) {
+                el.innerHTML = '<div class="empty-state">Nenhuma O.S. neste status no momento</div>';
+                return;
+            }
+            el.innerHTML = lista.slice(0, PREVIEW_LIMIT).map(cardOS).join('');
+        }
+
+        function atualizarContadores(agrupado) {
+            document.getElementById('countAberto').textContent = agrupado['Aberto'].length;
+            document.getElementById('countAndamento').textContent = agrupado['Em Andamento'].length;
+            document.getElementById('countPecas').textContent = agrupado['Aguardando Peças'].length;
+            document.getElementById('totalGeral').textContent = todasOS.length;
+            document.getElementById('ultimaAtualizacao').textContent = new Date().toLocaleTimeString('pt-BR');
+        }
+
+        function agruparPorStatus(lista) {
+            const grupos = {
+                'Aberto': [],
+                'Em Andamento': [],
+                'Aguardando Peças': []
+            };
+
+            lista.forEach(os => {
+                const status = normalizarStatus(os.status);
+                if (grupos[status]) grupos[status].push(os);
+            });
+
+            Object.keys(grupos).forEach(chave => {
+                grupos[chave] = ordenarOS(grupos[chave]);
+            });
+
+            return grupos;
+        }
+
+        function renderPainel() {
+            const grupos = agruparPorStatus(todasOS);
+            atualizarContadores(grupos);
+            renderListaPreview('previewAberto', grupos['Aberto']);
+            renderListaPreview('previewAndamento', grupos['Em Andamento']);
+            renderListaPreview('previewPecas', grupos['Aguardando Peças']);
+            if (statusModalAtual) {
+                preencherModal(statusModalAtual);
+            }
+        }
+
+        function abrirModal(status) {
+            statusModalAtual = status;
+            preencherModal(status);
+            document.getElementById('statusModal').classList.add('open');
+        }
+
+        function preencherModal(status) {
+            const normalizado = normalizarStatus(status);
+            const lista = ordenarOS(todasOS.filter(os => normalizarStatus(os.status) === normalizado));
+            const titulos = {
+                'Aberto': 'Ordens Abertas',
+                'Em Andamento': 'Ordens em Andamento',
+                'Aguardando Peças': 'Ordens Aguardando Peças'
+            };
+            document.getElementById('modalTitulo').textContent = titulos[normalizado] || normalizado;
+            document.getElementById('modalSubtitulo').textContent = 'Clique fora da janela ou no X para fechar';
+            document.getElementById('modalCount').textContent = lista.length;
+            const modalLista = document.getElementById('modalLista');
+            modalLista.innerHTML = lista.length ? lista.map(cardOS).join('') : '<div class="empty-state">Nenhuma O.S. neste status no momento</div>';
+        }
+
+        function fecharModal() {
+            document.getElementById('statusModal').classList.remove('open');
+            statusModalAtual = null;
+        }
+
+        document.getElementById('statusModal').addEventListener('click', (event) => {
+            if (event.target.id === 'statusModal') {
+                fecharModal();
+            }
+        });
+
+        document.addEventListener('keydown', (event) => {
+            if (event.key === 'Escape') fecharModal();
+        });
+
+        function beep(tipo = 'normal') {
+            try {
+                audioContext = audioContext || new (window.AudioContext || window.webkitAudioContext)();
+                if (audioContext.state === 'suspended') {
+                    audioContext.resume();
+                }
+                const oscillator = audioContext.createOscillator();
+                const gainNode = audioContext.createGain();
+                oscillator.connect(gainNode);
+                gainNode.connect(audioContext.destination);
+                oscillator.type = tipo === 'critica' ? 'sawtooth' : 'sine';
+                oscillator.frequency.setValueAtTime(tipo === 'critica' ? 880 : tipo === 'alta' ? 740 : 620, audioContext.currentTime);
+                gainNode.gain.setValueAtTime(0.0001, audioContext.currentTime);
+                gainNode.gain.exponentialRampToValueAtTime(0.12, audioContext.currentTime + 0.02);
+                gainNode.gain.exponentialRampToValueAtTime(0.0001, audioContext.currentTime + (tipo === 'critica' ? 0.45 : 0.25));
+                oscillator.start();
+                oscillator.stop(audioContext.currentTime + (tipo === 'critica' ? 0.45 : 0.25));
+            } catch (error) {
+                console.warn('Áudio não pôde ser reproduzido:', error);
+            }
+        }
+
+        function mostrarAlertaTela(prioridadeClasse) {
+            const overlay = document.getElementById('screenAlert');
+            overlay.className = `screen-alert show ${prioridadeClasse}`;
+            setTimeout(() => {
+                overlay.className = 'screen-alert';
+            }, prioridadeClasse === 'critica' ? 2200 : 1400);
+        }
+
+        function criarToast(os) {
+            const stack = document.getElementById('toastStack');
+            const prioridade = normalizarPrioridade(os.prioridade);
+            const prioridadeClasse = prioridade === 'Crítica' ? 'critica' : prioridade === 'Alta' ? 'alta' : 'normal';
+            const toast = document.createElement('div');
+            toast.className = `toast ${prioridadeClasse}`;
+            toast.innerHTML = `
+                <div class="toast-top">
+                    <div>
+                        <div class="toast-title">${prioridade === 'Crítica' ? '🚨 NOVA O.S. CRÍTICA' : prioridade === 'Alta' ? '⚠️ NOVA O.S. ALTA' : '✅ Nova ordem de serviço'}</div>
+                        <div class="toast-subtitle">#${os.id} • ${os.setor_origem || 'Sem setor'} → ${os.setor_destino || 'Sem destino'}</div>
+                    </div>
+                    <span class="priority-badge ${classePrioridade(prioridade)}">${prioridade}</span>
+                </div>
+                <div class="toast-body">${os.descricao || 'Sem descrição'}</div>
+            `;
+            stack.prepend(toast);
+            while (stack.children.length > 4) {
+                stack.removeChild(stack.lastChild);
+            }
+            setTimeout(() => {
+                toast.remove();
+            }, prioridade === 'Crítica' ? 12000 : 8000);
+            beep(prioridadeClasse);
+            if (prioridadeClasse === 'alta' || prioridadeClasse === 'critica') {
+                mostrarAlertaTela(prioridadeClasse);
+            }
+        }
+
+        function verificarNovasOS(listaAtual) {
+            const novoMapa = new Map(listaAtual.map(os => [String(os.id), os]));
+            if (mapaOSAnterior.size === 0) {
+                mapaOSAnterior = novoMapa;
+                return;
+            }
+
+            const novas = listaAtual.filter(os => !mapaOSAnterior.has(String(os.id)));
+            ordenarOS(novas).forEach(criarToast);
+            mapaOSAnterior = novoMapa;
         }
 
         async function carregarOS() {
             try {
-                Object.values(columns).forEach((coluna) => {
-                    if (!coluna.dataset.loaded) renderizarMensagem(coluna, 'Carregando ordens de serviço...', 'loading-state');
-                });
-
                 const response = await fetch(API, { cache: 'no-store' });
+                if (!response.ok) {
+                    throw new Error(`Falha ao carregar O.S. (${response.status})`);
+                }
                 const payload = await response.json();
-
-                if (!response.ok || !payload.success) {
-                    throw new Error(payload.message || 'Erro ao carregar ordens de serviço');
-                }
-
-                const lista = Array.isArray(payload.data) ? payload.data : [];
-                const grupos = { aberto: [], andamento: [], pecas: [] };
-
-                lista.forEach((os) => {
-                    const grupo = normalizarStatus(os.status);
-                    if (grupo) grupos[grupo].push(os);
-                });
-
-                const counts = {
-                    aberto: grupos.aberto.length,
-                    andamento: grupos.andamento.length,
-                    pecas: grupos.pecas.length
-                };
-
-                document.getElementById('count-aberto').textContent = counts.aberto;
-                document.getElementById('count-andamento').textContent = counts.andamento;
-                document.getElementById('count-pecas').textContent = counts.pecas;
-                document.getElementById('total-os').textContent = counts.aberto + counts.andamento + counts.pecas;
-                document.getElementById('ultima-atualizacao').textContent = new Date().toLocaleTimeString('pt-BR');
-
-                for (const [tipo, coluna] of Object.entries(columns)) {
-                    const itens = grupos[tipo];
-                    coluna.dataset.loaded = 'true';
-                    if (!itens.length) {
-                        renderizarMensagem(coluna, 'Nenhuma O.S. nesta coluna no momento.');
-                        continue;
-                    }
-                    coluna.innerHTML = itens.map((os) => criarCard(os, tipo)).join('');
-                }
+                const lista = Array.isArray(payload) ? payload : (payload.data || []);
+                todasOS = lista.map(os => ({
+                    ...os,
+                    status: normalizarStatus(os.status),
+                    prioridade: normalizarPrioridade(os.prioridade)
+                }));
+                verificarNovasOS(todasOS);
+                renderPainel();
             } catch (error) {
                 console.error('Erro ao carregar painel:', error);
-                Object.values(columns).forEach((coluna) => {
-                    coluna.dataset.loaded = 'true';
-                    renderizarMensagem(coluna, error.message || 'Erro ao carregar painel.', 'error-state');
+                ['previewAberto', 'previewAndamento', 'previewPecas'].forEach((id) => {
+                    document.getElementById(id).innerHTML = `<div class="empty-state">${error.message}</div>`;
                 });
             }
         }
 
+        window.abrirModal = abrirModal;
+        window.fecharModal = fecharModal;
         carregarOS();
-        setInterval(carregarOS, REFRESH_INTERVAL);
+        setInterval(carregarOS, UPDATE_MS);
     </script>
 </body>
 </html>
