@@ -267,7 +267,8 @@ app.get('/solicitante-dashboard', servePage('solicitante-dashboard.html'));
 app.get('/tecnico-dashboard', servePage('tecnico-dashboard.html'));
 app.get('/tecnico-selecao-setor', servePage('tecnico-selecao-setor.html'));
 app.get('/relatorios', servePage('relatorios.html'));
-app.get('/painel', servePage('painel.html'));
+app.get('/painel', servePage('painel-tv.html'));
+app.get('/painel-tv', servePage('painel-tv.html'));
 
 // ✅ Redirects para compatibilidade
 app.get('/tecnico', (req, res) => {
