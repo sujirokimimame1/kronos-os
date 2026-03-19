@@ -676,6 +676,20 @@
       }
     }
 
+    // 🔧 FUNÇÃO CORRIGIDA PARA FORMATAR SETOR NA VOZ
+    function formatarSetorParaVoz(setor) {
+      if (!setor) return "";
+      
+      const mapa = {
+        "TI": "T.I.",
+        "RH": "R.H.",
+        "CPD": "C.P.D.",
+        "UTI": "U.T.I."
+      };
+      
+      return mapa[setor.toUpperCase()] || setor;
+    }
+
     function anunciarNovaOS(os) {
       const prioridade = normalizarPrioridade(os.prioridade);
       const overlay = document.getElementById('announcementOverlay');
@@ -688,7 +702,16 @@
       if (painelSom.voz && 'speechSynthesis' in window) {
         try {
           window.speechSynthesis.cancel();
-          const msg = new SpeechSynthesisUtterance(`${prioridade === 'Crítica' ? 'Atenção. Nova ordem de serviço crítica.' : prioridade === 'Alta' ? 'Atenção. Nova ordem de serviço alta prioridade.' : 'Nova ordem de serviço aberta.'} Setor ${normalizarSetor(os.setor_destino)}.`);
+          
+          // 🔧 TEXTO CORRIGIDO PARA VOZ - AGORA USA O FORMATADOR
+          const setorFormatado = formatarSetorParaVoz(normalizarSetor(os.setor_destino));
+          
+          const msg = new SpeechSynthesisUtterance(
+            `${prioridade === 'Crítica' ? 'Atenção. Nova ordem de serviço crítica.' : 
+              prioridade === 'Alta' ? 'Atenção. Nova ordem de serviço alta prioridade.' : 
+              'Nova ordem de serviço aberta.'} Setor ${setorFormatado}.`
+          );
+          
           msg.lang = 'pt-BR';
           msg.rate = prioridade === 'Crítica' ? 1.02 : 1.06;
           msg.pitch = prioridade === 'Crítica' ? 0.92 : 1.0;
