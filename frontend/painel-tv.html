@@ -94,6 +94,34 @@
     }
     .header-stat strong { display:block; font-size: 2rem; }
     .header-stat span { color: var(--gray); font-size: .95rem; }
+
+    .sound-toolbar {
+      margin-bottom: 1rem;
+      display:flex; gap:1rem; align-items:center; justify-content:space-between; flex-wrap:wrap;
+      padding: 1rem 1.2rem;
+      background: var(--card-bg);
+      backdrop-filter: blur(20px);
+      border-radius: 24px;
+      border: 1px solid var(--card-border);
+      box-shadow: var(--shadow);
+    }
+    .sound-toolbar .group { display:flex; align-items:center; gap:.8rem; flex-wrap:wrap; }
+    .toggle-pill, .sound-badge {
+      border-radius: 999px; padding: .65rem .95rem; border:1px solid rgba(255,255,255,.08); background: rgba(255,255,255,.05); color:#fff;
+      display:inline-flex; align-items:center; gap:.55rem;
+    }
+    .toggle-pill.active { border-color: rgba(79,195,247,.4); box-shadow: 0 0 0 2px rgba(79,195,247,.12); }
+    .sound-toolbar input[type="range"] { width: 170px; }
+    .announcement-overlay {
+      position: fixed; inset: 0; z-index: 9997; pointer-events:none; display:flex; align-items:flex-end; justify-content:center; padding: 2rem; opacity:0; transition: opacity .25s ease;
+    }
+    .announcement-overlay.show { opacity:1; }
+    .announcement-box {
+      width:min(860px, 100%); border-radius: 28px; padding: 1.2rem 1.4rem; background: rgba(2,6,23,.94); border: 1px solid rgba(79,195,247,.35); box-shadow: var(--shadow), 0 0 22px rgba(79,195,247,.25);
+    }
+    .announcement-box strong { font-size: 1.5rem; display:block; margin-bottom:.35rem; }
+    .announcement-box p { color:#cbd5e1; font-size:1.05rem; }
+
     .sector-tabs {
       display:flex; gap:1rem; margin-bottom: 1rem; flex-wrap: wrap;
     }
@@ -266,6 +294,20 @@
       </div>
     </header>
 
+
+    <section class="sound-toolbar">
+      <div class="group">
+        <button class="toggle-pill" id="enableSoundBtn" onclick="alternarSomPainel()"><i class="fa-solid fa-volume-high"></i> Som ativo</button>
+        <button class="toggle-pill" id="enableVoiceBtn" onclick="alternarVozPainel()"><i class="fa-solid fa-bullhorn"></i> Anúncio por voz</button>
+        <span class="sound-badge"><i class="fa-solid fa-wave-square"></i> Alerta sonoro moderno para novas O.S.</span>
+      </div>
+      <div class="group">
+        <label class="sound-badge" for="volumeRange"><i class="fa-solid fa-sliders"></i> Volume <span id="volumeLabel">92%</span></label>
+        <input id="volumeRange" type="range" min="0" max="100" value="92" oninput="atualizarVolumePainel(this.value)">
+        <button class="toggle-pill" onclick="testarSomPainel()"><i class="fa-solid fa-play"></i> Testar som</button>
+      </div>
+    </section>
+
     <section class="sector-tabs">
       <button class="sector-tab active" id="setorBtnTI" onclick="trocarSetor('TI')">
         <div class="left">
@@ -355,10 +397,7 @@
     </div>
   </div>
 
-  <audio id="audioAlerta" preload="auto">
-    <source src="https://actions.google.com/sounds/v1/alarms/beep_short.ogg" type="audio/ogg">
-    <source src="https://actions.google.com/sounds/v1/alarms/beep_short.ogg" type="audio/mpeg">
-  </audio>
+  <div class="announcement-overlay" id="announcementOverlay"><div class="announcement-box" id="announcementBox"></div></div>
 
   <script>
     const API_URL = `${window.location.origin}/api/os`;
@@ -367,6 +406,12 @@
     let statusAtual = 'Aberto';
     let idsConhecidos = new Set();
     let primeiroCarregamento = true;
+    let audioCtx = null;
+    const painelSom = {
+      habilitado: localStorage.getItem('kronos_painel_sound_enabled') !== 'false',
+      voz: localStorage.getItem('kronos_painel_voice_enabled') !== 'false',
+      volume: Number(localStorage.getItem('kronos_painel_volume') || 0.92)
+    };
 
     function normalizarTexto(valor) {
       return String(valor || '')
@@ -556,19 +601,114 @@
       abrirModal(setorAtual, statusAtual);
     }
 
+
+    function inicializarControlesSom() {
+      document.getElementById('volumeRange').value = Math.round((painelSom.volume || 0.92) * 100);
+      document.getElementById('volumeLabel').textContent = `${Math.round((painelSom.volume || 0.92) * 100)}%`;
+      sincronizarBotoesSom();
+    }
+
+    function sincronizarBotoesSom() {
+      const somBtn = document.getElementById('enableSoundBtn');
+      const vozBtn = document.getElementById('enableVoiceBtn');
+      somBtn.classList.toggle('active', painelSom.habilitado);
+      vozBtn.classList.toggle('active', painelSom.voz);
+      somBtn.innerHTML = painelSom.habilitado ? '<i class="fa-solid fa-volume-high"></i> Som ativo' : '<i class="fa-solid fa-volume-xmark"></i> Som desligado';
+      vozBtn.innerHTML = painelSom.voz ? '<i class="fa-solid fa-bullhorn"></i> Anúncio por voz' : '<i class="fa-solid fa-comment-slash"></i> Voz desligada';
+    }
+
+    function alternarSomPainel() {
+      painelSom.habilitado = !painelSom.habilitado;
+      localStorage.setItem('kronos_painel_sound_enabled', String(painelSom.habilitado));
+      sincronizarBotoesSom();
+      if (painelSom.habilitado) testarSomPainel();
+    }
+
+    function alternarVozPainel() {
+      painelSom.voz = !painelSom.voz;
+      localStorage.setItem('kronos_painel_voice_enabled', String(painelSom.voz));
+      sincronizarBotoesSom();
+    }
+
+    function atualizarVolumePainel(value) {
+      painelSom.volume = Math.max(0, Math.min(1, Number(value) / 100));
+      localStorage.setItem('kronos_painel_volume', String(painelSom.volume));
+      document.getElementById('volumeLabel').textContent = `${Math.round(painelSom.volume * 100)}%`;
+    }
+
+    function getAudioCtx() {
+      if (!audioCtx) {
+        const Ctx = window.AudioContext || window.webkitAudioContext;
+        if (!Ctx) return null;
+        audioCtx = new Ctx();
+      }
+      return audioCtx;
+    }
+
+    function tocarTom(ctx, start, duration, frequency, gainValue, type = 'sawtooth') {
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.type = type;
+      osc.frequency.setValueAtTime(frequency, start);
+      gain.gain.setValueAtTime(0.0001, start);
+      gain.gain.exponentialRampToValueAtTime(Math.max(0.0001, gainValue), start + 0.02);
+      gain.gain.exponentialRampToValueAtTime(0.0001, start + duration);
+      osc.connect(gain).connect(ctx.destination);
+      osc.start(start);
+      osc.stop(start + duration + 0.04);
+    }
+
+    function tocarSomAlerta(prioridade = 'Média') {
+      if (!painelSom.habilitado) return;
+      const ctx = getAudioCtx();
+      if (!ctx) return;
+      if (ctx.state === 'suspended') ctx.resume().catch(() => {});
+      const agora = ctx.currentTime + 0.02;
+      const volume = Math.max(0.04, painelSom.volume * 0.12);
+      const ehCritica = prioridade === 'Crítica';
+      const ehAlta = prioridade === 'Alta';
+      tocarTom(ctx, agora, 0.14, ehCritica ? 880 : 740, volume, 'square');
+      tocarTom(ctx, agora + 0.16, 0.14, ehCritica ? 660 : 540, volume * 0.95, 'square');
+      tocarTom(ctx, agora + 0.34, 0.22, ehAlta || ehCritica ? 990 : 660, volume * 1.1, 'sawtooth');
+      if (ehCritica) {
+        tocarTom(ctx, agora + 0.62, 0.16, 740, volume * 1.15, 'square');
+        tocarTom(ctx, agora + 0.82, 0.22, 1040, volume * 1.25, 'sawtooth');
+      }
+    }
+
+    function anunciarNovaOS(os) {
+      const prioridade = normalizarPrioridade(os.prioridade);
+      const overlay = document.getElementById('announcementOverlay');
+      const box = document.getElementById('announcementBox');
+      box.innerHTML = `<strong>${prioridade === 'Crítica' ? '🚨 Nova O.S. crítica' : prioridade === 'Alta' ? '⚠️ Nova O.S. alta prioridade' : '🔔 Nova O.S. aberta'}</strong><p>${normalizarSetor(os.setor_destino)} • ${os.setor_origem || 'Sem origem'} • ${os.descricao || 'Sem descrição'}</p>`;
+      overlay.classList.add('show');
+      clearTimeout(window.overlayTimer);
+      window.overlayTimer = setTimeout(() => overlay.classList.remove('show'), prioridade === 'Crítica' ? 7000 : 4500);
+
+      if (painelSom.voz && 'speechSynthesis' in window) {
+        try {
+          window.speechSynthesis.cancel();
+          const msg = new SpeechSynthesisUtterance(`${prioridade === 'Crítica' ? 'Atenção. Nova ordem de serviço crítica.' : prioridade === 'Alta' ? 'Atenção. Nova ordem de serviço alta prioridade.' : 'Nova ordem de serviço aberta.'} Setor ${normalizarSetor(os.setor_destino)}.`);
+          msg.lang = 'pt-BR';
+          msg.rate = prioridade === 'Crítica' ? 1.02 : 1.06;
+          msg.pitch = prioridade === 'Crítica' ? 0.92 : 1.0;
+          msg.volume = Math.max(0.25, Math.min(1, painelSom.volume));
+          window.speechSynthesis.speak(msg);
+        } catch (_) {}
+      }
+    }
+
+    function testarSomPainel() {
+      tocarSomAlerta('Alta');
+      anunciarNovaOS({ prioridade: 'Alta', setor_destino: setorAtual, setor_origem: 'Teste', descricao: 'Teste de alerta do painel.' });
+    }
+
     function mostrarFlashCritico() {
       const flash = document.getElementById('screenFlash');
       flash.classList.add('show');
       setTimeout(() => flash.classList.remove('show'), 900);
     }
 
-    function tocarSom() {
-      const audio = document.getElementById('audioAlerta');
-      if (audio) {
-        audio.currentTime = 0;
-        audio.play().catch(() => {});
-      }
-    }
 
     function mostrarAlerta(os) {
       const prioridade = normalizarPrioridade(os.prioridade);
@@ -588,7 +728,8 @@
         </div>
       `;
       container.prepend(el);
-      tocarSom();
+      tocarSomAlerta(prioridade);
+      anunciarNovaOS(os);
       if (prioridade === 'Crítica' || prioridade === 'Alta') mostrarFlashCritico();
       setTimeout(() => el.remove(), prioridade === 'Crítica' ? 12000 : 8000);
     }
@@ -637,6 +778,7 @@
       if (event.target.id === 'modalLista') fecharModal();
     });
 
+    inicializarControlesSom();
     setInterval(carregarOS, 5000);
     carregarOS();
   </script>

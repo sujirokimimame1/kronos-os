@@ -1,0 +1,1195 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Kronos - Manutenções Preventivas</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
+    <style>
+        :root {
+            --primary: #4FC3F7;
+            --primary-dark: #29B6F6;
+            --primary-light: #81D4FA;
+            --primary-glow: rgba(79, 195, 247, 0.35);
+            --secondary: #BA68C8;
+            --secondary-glow: rgba(186, 104, 200, 0.25);
+            --black: #0F172A;
+            --black-light: #1E293B;
+            --black-lighter: #334155;
+            --light: #FFFFFF;
+            --gray: #94A3B8;
+            --card-bg: rgba(15, 23, 42, 0.65);
+            --card-border: rgba(79, 195, 247, 0.2);
+            --shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+            --success: #22c55e;
+            --warning: #facc15;
+            --danger: #ef4444;
+            --info: #60a5fa;
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', system-ui, -apple-system, BlinkMacSystemFont, sans-serif; }
+        body {
+            background: linear-gradient(135deg, var(--black) 0%, var(--black-light) 50%, var(--black-lighter) 100%);
+            color: var(--light);
+            min-height: 100vh;
+            line-height: 1.5;
+            overflow-x: hidden;
+            position: relative;
+        }
+        body::before {
+            content: '';
+            position: fixed;
+            inset: 0;
+            background:
+                radial-gradient(circle at 15% 85%, var(--primary-glow) 0%, transparent 60%),
+                radial-gradient(circle at 85% 15%, var(--secondary-glow) 0%, transparent 60%),
+                radial-gradient(circle at 50% 40%, rgba(186, 104, 200, 0.08) 0%, transparent 70%);
+            z-index: -1;
+            pointer-events: none;
+        }
+        .dashboard-container { max-width: 1600px; margin: 0 auto; padding: 2rem 1.5rem 3rem; }
+        .glass-card {
+            background: var(--card-bg);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border-radius: 24px;
+            border: 1px solid var(--card-border);
+            box-shadow: var(--shadow);
+        }
+        .header {
+            display: flex; justify-content: space-between; align-items: center; gap: 1rem; flex-wrap: wrap;
+            margin-bottom: 1.5rem; padding: 1.5rem;
+        }
+        .logo { display: flex; align-items: center; gap: 1rem; }
+        .cross-circle {
+            width: 50px; height: 50px; border-radius: 50%;
+            display: grid; place-items: center;
+            background: linear-gradient(135deg, var(--primary), var(--primary-dark));
+            box-shadow: 0 0 20px var(--primary-glow);
+            color: var(--black);
+            font-size: 1.2rem; font-weight: 900;
+        }
+        .logo-text h1 {
+            font-size: 1.9rem; font-weight: 700;
+            background: linear-gradient(135deg, var(--primary), var(--primary-light));
+            -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
+        }
+        .logo-text p { color: var(--gray); }
+        .header-actions { display: flex; align-items: center; gap: .75rem; flex-wrap: wrap; }
+        .btn {
+            padding: .8rem 1.25rem; border-radius: 14px; border: none; cursor: pointer;
+            display: inline-flex; gap: .55rem; align-items: center; justify-content: center;
+            font-weight: 700; text-decoration: none; transition: .25s ease; white-space: nowrap;
+        }
+        .btn:hover { transform: translateY(-2px); }
+        .btn-primary {
+            color: var(--black);
+            background: linear-gradient(135deg, var(--primary), var(--primary-dark));
+            box-shadow: 0 8px 18px rgba(79, 195, 247, .22);
+        }
+        .btn-secondary { background: transparent; color: var(--primary); border: 1px solid var(--card-border); }
+        .btn-warning { background: transparent; color: #FFD93D; border: 1px solid rgba(255, 217, 61, 0.3); }
+        .btn-danger { background: transparent; color: #fca5a5; border: 1px solid rgba(239, 68, 68, 0.35); }
+        .btn-info { background: transparent; color: #93c5fd; border: 1px solid rgba(96, 165, 250, 0.35); }
+        .btn-success { background: transparent; color: #86efac; border: 1px solid rgba(34, 197, 94, 0.35); }
+        .btn-ghost { background: rgba(255,255,255,0.04); color: var(--light); border: 1px solid rgba(255,255,255,0.08); }
+
+        .hero-grid { display: grid; grid-template-columns: 1.45fr 1fr; gap: 1rem; margin-bottom: 1rem; }
+        .hero-card, .stats-card, .filters-card, .kanban-column, .modal-content, .report-card, .empty-state, .drawer, .timeline-item {
+            background: var(--card-bg); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
+            border: 1px solid var(--card-border); box-shadow: var(--shadow);
+        }
+        .hero-card { padding: 1.4rem; border-radius: 24px; }
+        .hero-card h2 { margin-bottom: .65rem; }
+        .hero-list { margin-top: .85rem; display: grid; gap: .5rem; color: var(--gray); }
+        .hero-list div i { color: var(--primary); margin-right: .5rem; }
+        .meta-badges { display: flex; flex-wrap: wrap; gap: .55rem; margin-top: .95rem; }
+        .pill {
+            padding: .45rem .8rem; border-radius: 999px; font-weight: 700; font-size: .86rem;
+            border: 1px solid rgba(255,255,255,.08); background: rgba(255,255,255,.04);
+        }
+        .stats-grid { display: grid; grid-template-columns: repeat(6, 1fr); gap: 1rem; margin: 1rem 0; }
+        .stats-card { border-radius: 20px; padding: 1rem 1.1rem; }
+        .stats-card .label { color: var(--gray); font-size: .85rem; text-transform: uppercase; letter-spacing: .04em; }
+        .stats-card .value { font-size: 2rem; font-weight: 800; margin-top: .3rem; }
+        .stats-card .sub { color: var(--gray); font-size: .85rem; }
+
+        .filters-card { border-radius: 24px; padding: 1.1rem; margin-bottom: 1rem; }
+        .filters-header { display: flex; justify-content: space-between; align-items: center; gap: 1rem; margin-bottom: .8rem; flex-wrap: wrap; }
+        .filters-grid { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: .9rem; }
+        .field { display: flex; flex-direction: column; gap: .4rem; }
+        .field label { font-size: .9rem; color: var(--primary-light); font-weight: 700; }
+        input, select, textarea {
+            width: 100%; border-radius: 14px; border: 1px solid rgba(255,255,255,.08); background: rgba(2, 6, 23, .55);
+            color: var(--light); padding: .85rem .95rem; font-size: .95rem;
+        }
+        input:focus, select:focus, textarea:focus { outline: none; border-color: var(--primary); box-shadow: 0 0 0 3px rgba(79, 195, 247, .14); }
+        textarea { min-height: 100px; resize: vertical; }
+
+        .kanban-wrapper { overflow-x: auto; padding-bottom: .5rem; }
+        .kanban { display: grid; grid-template-columns: repeat(6, minmax(300px, 1fr)); gap: 1rem; }
+        .kanban-column { border-radius: 24px; min-height: 560px; padding: 1rem; position: relative; }
+        .kanban-column.drag-over { border-color: var(--primary); box-shadow: 0 0 0 2px rgba(79,195,247,.18), var(--shadow); }
+        .column-header { display: flex; justify-content: space-between; align-items: center; gap: .75rem; margin-bottom: .9rem; }
+        .column-title { font-weight: 800; }
+        .column-badge { min-width: 34px; height: 34px; border-radius: 999px; display: grid; place-items: center; background: rgba(255,255,255,.08); font-weight: 800; }
+        .status-solicitada { border-top: 4px solid #38bdf8; }
+        .status-analise { border-top: 4px solid #60a5fa; }
+        .status-programada { border-top: 4px solid #4ade80; }
+        .status-aguardando { border-top: 4px solid #facc15; }
+        .status-execucao { border-top: 4px solid #22c55e; }
+        .status-concluida { border-top: 4px solid #818cf8; }
+        .cards { display: flex; flex-direction: column; gap: .85rem; min-height: 460px; }
+        .card {
+            background: rgba(2, 6, 23, 0.62); border: 1px solid rgba(148, 163, 184, 0.16);
+            border-radius: 20px; padding: 1rem; transition: .25s ease; cursor: grab;
+        }
+        .card:hover { transform: translateY(-2px); border-color: var(--primary); }
+        .card.dragging { opacity: .55; transform: scale(.98); }
+        .card-top, .card-footer { display: flex; justify-content: space-between; gap: .7rem; }
+        .card-title { font-size: 1.02rem; font-weight: 800; }
+        .card-sub { color: var(--gray); font-size: .9rem; margin-top: .15rem; }
+        .priority-chip, .deadline-chip {
+            padding: .35rem .65rem; border-radius: 999px; font-size: .78rem; font-weight: 800;
+            display: inline-flex; align-items: center; gap: .35rem; height: fit-content;
+        }
+        .priority-Baixa { background: rgba(148, 163, 184, .16); color: #cbd5e1; }
+        .priority-Média { background: rgba(96, 165, 250, .16); color: #bfdbfe; }
+        .priority-Alta { background: rgba(250, 204, 21, .15); color: #fde047; }
+        .priority-Crítica { background: rgba(239, 68, 68, .16); color: #fca5a5; }
+        .deadline-atrasada { background: rgba(239,68,68,.16); color: #fca5a5; }
+        .deadline-vencendo { background: rgba(250,204,21,.15); color: #fde047; }
+        .deadline-ok { background: rgba(34,197,94,.15); color: #86efac; }
+        .card-meta { display: grid; gap: .35rem; margin-top: .8rem; color: var(--gray); font-size: .88rem; }
+        .card-meta strong { color: var(--light); }
+        .card-actions { display: grid; grid-template-columns: repeat(2, 1fr); gap: .55rem; margin-top: .9rem; }
+        .card-actions .btn, .card-actions select { width: 100%; padding: .72rem .8rem; }
+        .card-actions .full { grid-column: span 2; }
+        .empty-state { padding: 1.1rem; border-radius: 16px; text-align: center; color: var(--gray); }
+
+        .modal {
+            position: fixed; inset: 0; background: rgba(2,6,23,.72); display: none; align-items: center; justify-content: center;
+            padding: 1.2rem; z-index: 60;
+        }
+        .modal.show { display: flex; }
+        .modal-content { width: min(1180px, 100%); max-height: 92vh; overflow-y: auto; padding: 1.35rem; border-radius: 28px; }
+        .modal-header { display: flex; justify-content: space-between; align-items: center; gap: 1rem; margin-bottom: 1rem; }
+        .modal-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: .9rem; }
+        .span-2 { grid-column: span 2; }
+        .span-3 { grid-column: span 3; }
+        .modal-actions { display: flex; justify-content: flex-end; gap: .75rem; flex-wrap: wrap; margin-top: 1rem; }
+        .close-btn { background: none; border: none; color: var(--gray); font-size: 1.8rem; cursor: pointer; }
+
+        .drawer {
+            position: fixed; top: 0; right: -560px; width: min(560px, 100vw); height: 100vh;
+            padding: 1.2rem; z-index: 70; transition: right .28s ease; overflow-y: auto;
+            border-radius: 28px 0 0 28px;
+        }
+        .drawer.show { right: 0; }
+        .drawer-header { display: flex; justify-content: space-between; gap: 1rem; align-items: center; margin-bottom: 1rem; }
+        .timeline { display: grid; gap: .85rem; }
+        .timeline-item { padding: .95rem 1rem; border-radius: 18px; }
+        .timeline-item h4 { margin-bottom: .25rem; }
+        .timeline-item small { color: var(--gray); display: block; margin-bottom: .4rem; }
+        .timeline-item p { color: #dbeafe; white-space: pre-wrap; }
+
+        .report-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1rem; margin-top: 1rem; }
+        .report-card { border-radius: 20px; padding: 1rem; }
+        .report-list { display: grid; gap: .45rem; color: var(--gray); margin-top: .75rem; }
+        .report-row { display: flex; justify-content: space-between; gap: .75rem; }
+        .toast {
+            position: fixed; right: 20px; bottom: 20px; min-width: 280px; max-width: 420px; z-index: 80;
+            padding: 1rem 1.1rem; border-radius: 18px; display: none;
+            background: rgba(15, 23, 42, .96); border: 1px solid var(--card-border); box-shadow: var(--shadow);
+        }
+        .toast.show { display: block; }
+        .muted { color: var(--gray); }
+        .text-right { text-align: right; }
+
+        @media (max-width: 1250px) {
+            .hero-grid, .report-grid, .stats-grid, .filters-grid, .modal-grid { grid-template-columns: repeat(2, 1fr); }
+            .stats-grid { grid-template-columns: repeat(3, 1fr); }
+            .span-2, .span-3 { grid-column: span 2; }
+        }
+        @media (max-width: 820px) {
+            .dashboard-container { padding: 1rem .85rem 2rem; }
+            .hero-grid, .report-grid, .stats-grid, .filters-grid, .modal-grid { grid-template-columns: 1fr; }
+            .span-2, .span-3 { grid-column: span 1; }
+            .stats-grid { grid-template-columns: 1fr 1fr; }
+        }
+
+        .planner-card { border-radius: 24px; padding: 1.1rem; margin: 1rem 0; }
+        .planner-header { display:flex; justify-content:space-between; align-items:center; gap:1rem; margin-bottom:.9rem; flex-wrap:wrap; }
+        .planner-grid { display:grid; grid-template-columns: 340px 1fr; gap:1rem; }
+        .planner-calendar {
+            background: rgba(2, 6, 23, 0.56); border:1px solid rgba(148,163,184,.14); border-radius: 20px; padding: 1rem;
+        }
+        .calendar-controls { display:flex; justify-content:space-between; align-items:center; gap:.6rem; margin-bottom:.85rem; }
+        .calendar-title { font-size: 1.05rem; font-weight: 800; }
+        .calendar-grid { display:grid; grid-template-columns: repeat(7, 1fr); gap:.45rem; }
+        .calendar-weekday, .calendar-day {
+            min-height: 44px; border-radius: 14px; display:flex; align-items:center; justify-content:center; text-align:center;
+            font-size: .88rem;
+        }
+        .calendar-weekday { color: var(--gray); font-weight: 700; background: rgba(255,255,255,.04); }
+        .calendar-day {
+            position: relative; flex-direction: column; gap:.2rem; padding:.4rem; background: rgba(255,255,255,.03); border:1px solid rgba(255,255,255,.05);
+        }
+        .calendar-day.muted { opacity: .35; }
+        .calendar-day.today { border-color: rgba(79,195,247,.4); box-shadow: 0 0 0 2px rgba(79,195,247,.12); }
+        .calendar-day.has-items { background: rgba(79,195,247,.08); }
+        .calendar-day.atrasada { background: rgba(239,68,68,.13); border-color: rgba(239,68,68,.26); }
+        .calendar-day.vencendo { background: rgba(250,204,21,.13); border-color: rgba(250,204,21,.26); }
+        .calendar-day .count { font-size: .76rem; color: var(--gray); }
+        .agenda-panel {
+            background: rgba(2, 6, 23, 0.56); border:1px solid rgba(148,163,184,.14); border-radius: 20px; padding: 1rem;
+        }
+        .agenda-summary { display:grid; grid-template-columns: repeat(4, 1fr); gap:.75rem; margin-bottom:.85rem; }
+        .agenda-mini {
+            padding:.85rem; border-radius: 16px; background: rgba(255,255,255,.04); border:1px solid rgba(255,255,255,.06);
+        }
+        .agenda-mini strong { font-size:1.5rem; display:block; }
+        .agenda-list { display:grid; gap:.75rem; max-height: 430px; overflow:auto; padding-right:.2rem; }
+        .agenda-item {
+            padding:.95rem 1rem; border-radius: 18px; background: rgba(255,255,255,.04); border:1px solid rgba(255,255,255,.07);
+            display:grid; gap:.35rem;
+        }
+        .agenda-item-top { display:flex; justify-content:space-between; gap:.8rem; align-items:flex-start; }
+        .agenda-item .meta { color: var(--gray); font-size: .88rem; }
+        .agenda-actions { display:flex; gap:.55rem; flex-wrap:wrap; margin-top:.35rem; }
+
+        @media print {
+            .header-actions, .filters-card, .btn, .card-actions, .drawer, .toast { display: none !important; }
+            body, .dashboard-container { background: white !important; color: black !important; }
+            .kanban { grid-template-columns: repeat(2, 1fr); }
+            .kanban-column, .card, .hero-card, .stats-card { box-shadow: none !important; backdrop-filter: none !important; border: 1px solid #ccc !important; color: black !important; }
+        }
+    </style>
+</head>
+<body>
+    <div class="dashboard-container">
+        <header class="header glass-card">
+            <div class="logo">
+                <div class="cross-circle"><i class="fas fa-tools"></i></div>
+                <div class="logo-text">
+                    <h1>Kronos OS - Preventivas</h1>
+                    <p>Módulo completo de manutenção preventiva com Kanban, histórico e relatório</p>
+                </div>
+            </div>
+            <div class="header-actions">
+                <span id="userInfo" class="muted"></span>
+                <button class="btn btn-primary" onclick="abrirModalCadastro()"><i class="fas fa-plus"></i> Nova preventiva</button>
+                <button class="btn btn-info" onclick="abrirModalRelatorios()"><i class="fas fa-file-pdf"></i> Relatórios</button>
+                <button class="btn btn-secondary" onclick="exportarCSV()"><i class="fas fa-file-csv"></i> CSV</button>
+                <button class="btn btn-success" onclick="exportarJSON()"><i class="fas fa-file-code"></i> JSON</button>
+                <button class="btn btn-warning" onclick="window.location.href='tecnico-dashboard.html'"><i class="fas fa-arrow-left"></i> Voltar</button>
+                <button class="btn btn-danger" onclick="logout()"><i class="fas fa-sign-out-alt"></i> Sair</button>
+            </div>
+        </header>
+
+        <section class="hero-grid">
+            <div class="hero-card">
+                <h2>Controle completo das preventivas</h2>
+                <p class="muted">Cadastre marca, modelo, número de série, setor, periodicidade e acompanhe tudo em um quadro Kanban com histórico por equipamento, drag and drop entre etapas e emissão de relatório em PDF.</p>
+                <div class="hero-list">
+                    <div><i class="fas fa-check-circle"></i> Fluxo visual igual ao padrão do projeto</div>
+                    <div><i class="fas fa-check-circle"></i> Atualização rápida de status por arrastar e soltar</div>
+                    <div><i class="fas fa-check-circle"></i> Histórico completo de movimentações e anotações técnicas</div>
+                    <div><i class="fas fa-check-circle"></i> Relatório PDF, CSV e impressão da visão filtrada</div>
+                </div>
+                <div class="meta-badges">
+                    <span class="pill"><i class="fas fa-layer-group"></i> 6 etapas do Kanban</span>
+                    <span class="pill"><i class="fas fa-bell"></i> atrasadas e vencendo</span>
+                    <span class="pill"><i class="fas fa-notes-medical"></i> histórico de ações</span>
+                </div>
+            </div>
+            <div class="hero-card text-right">
+                <h2 id="setorAtualTitulo">Setor técnico</h2>
+                <p class="muted">As preventivas mostradas seguem o setor selecionado pelo técnico no painel.</p>
+                <div style="margin-top: 1rem; display:grid; gap:.45rem; color: var(--gray);">
+                    <div><strong>Arrastar e soltar:</strong> mova o card de uma coluna para outra.</div>
+                    <div><strong>Conclusão automática:</strong> ao concluir, a próxima manutenção pode ser recalculada.</div>
+                    <div><strong>Histórico:</strong> cada alteração fica registrada por usuário e data.</div>
+                </div>
+            </div>
+        </section>
+
+        <section class="stats-grid">
+            <div class="stats-card"><div class="label">Total</div><div class="value" id="statTotal">0</div><div class="sub">preventivas ativas</div></div>
+            <div class="stats-card"><div class="label">Solicitadas</div><div class="value" id="statSolicitadas">0</div><div class="sub">aguardando triagem</div></div>
+            <div class="stats-card"><div class="label">Programadas</div><div class="value" id="statProgramadas">0</div><div class="sub">com agenda planejada</div></div>
+            <div class="stats-card"><div class="label">Em execução</div><div class="value" id="statExecucao">0</div><div class="sub">em andamento</div></div>
+            <div class="stats-card"><div class="label">Atrasadas</div><div class="value" id="statAtrasadas">0</div><div class="sub">fora do prazo</div></div>
+            <div class="stats-card"><div class="label">Vencendo</div><div class="value" id="statVencendo">0</div><div class="sub">próximos 7 dias</div></div>
+        </section>
+
+        <section class="filters-card">
+            <div class="filters-header">
+                <div>
+                    <h3>Filtros e pesquisa</h3>
+                    <p class="muted">A lista e os relatórios usam exatamente os mesmos filtros abaixo.</p>
+                </div>
+                <div class="header-actions">
+                    <button class="btn btn-secondary" onclick="limparFiltros()"><i class="fas fa-eraser"></i> Limpar</button>
+                    <button class="btn btn-primary" onclick="aplicarFiltros()"><i class="fas fa-filter"></i> Aplicar filtros</button>
+                </div>
+            </div>
+            <div class="filters-grid">
+                <div class="field"><label for="busca">Pesquisar</label><input id="busca" placeholder="equipamento, marca, modelo, série..."></div>
+                <div class="field"><label for="filtroStatus">Status</label><select id="filtroStatus"></select></div>
+                <div class="field"><label for="filtroPeriodicidade">Periodicidade</label><select id="filtroPeriodicidade"></select></div>
+                <div class="field"><label for="filtroPrioridade">Prioridade</label><select id="filtroPrioridade"></select></div>
+                <div class="field"><label for="filtroPrazo">Prazo</label><select id="filtroPrazo"><option value="">Todos</option><option value="atrasada">Atrasadas</option><option value="vencendo">Vencendo</option><option value="ok">Em dia</option></select></div>
+                <div class="field"><label for="filtroSetorEquipamento">Setor do aparelho</label><input id="filtroSetorEquipamento" placeholder="filtrar setor do aparelho"></div>
+                <div class="field"><label for="filtroTecnico">Técnico</label><input id="filtroTecnico" placeholder="nome do técnico"></div>
+            </div>
+        </section>
+
+
+        <section class="planner-card glass-card">
+            <div class="planner-header">
+                <div>
+                    <h3>Agenda inteligente das preventivas</h3>
+                    <p class="muted">Visual mensal das próximas manutenções, com destaque para vencidas, vencendo e concluídas. A agenda usa os mesmos filtros aplicados acima.</p>
+                </div>
+                <div class="header-actions">
+                    <button class="btn btn-secondary" type="button" onclick="mudarMesAgenda(-1)"><i class="fas fa-chevron-left"></i> Mês anterior</button>
+                    <button class="btn btn-info" type="button" onclick="irParaMesAtual()"><i class="fas fa-calendar-day"></i> Mês atual</button>
+                    <button class="btn btn-secondary" type="button" onclick="mudarMesAgenda(1)">Próximo mês <i class="fas fa-chevron-right"></i></button>
+                </div>
+            </div>
+            <div class="planner-grid">
+                <div class="planner-calendar">
+                    <div class="calendar-controls">
+                        <div class="calendar-title" id="agendaMesTitulo">Agenda</div>
+                        <span class="pill" id="agendaMesBadge">0 itens</span>
+                    </div>
+                    <div class="calendar-grid" id="agendaCalendario"></div>
+                </div>
+                <div class="agenda-panel">
+                    <div class="agenda-summary">
+                        <div class="agenda-mini"><span class="muted">No mês</span><strong id="agendaTotalMes">0</strong></div>
+                        <div class="agenda-mini"><span class="muted">Atrasadas</span><strong id="agendaAtrasadasMes">0</strong></div>
+                        <div class="agenda-mini"><span class="muted">Vencendo</span><strong id="agendaVencendoMes">0</strong></div>
+                        <div class="agenda-mini"><span class="muted">Concluídas</span><strong id="agendaConcluidasMes">0</strong></div>
+                    </div>
+                    <div class="agenda-list" id="agendaLista"></div>
+                </div>
+            </div>
+        </section>
+
+        <div class="kanban-wrapper">
+            <section class="kanban" id="kanbanBoard"></section>
+        </div>
+    </div>
+
+    <div class="modal" id="modalPreventiva">
+        <div class="modal-content">
+            <div class="modal-header">
+                <div>
+                    <h2 id="modalTitulo">Nova preventiva</h2>
+                    <p class="muted">Cadastre o equipamento e acompanhe o fluxo técnico completo.</p>
+                </div>
+                <button class="close-btn" onclick="fecharModal()">&times;</button>
+            </div>
+            <form id="preventivaForm" onsubmit="salvarPreventiva(event)">
+                <input type="hidden" id="preventivaId">
+                <div class="modal-grid">
+                    <div class="field"><label for="equipamento">Equipamento</label><input id="equipamento" required></div>
+                    <div class="field"><label for="marca">Marca</label><input id="marca" required></div>
+                    <div class="field"><label for="modelo">Modelo</label><input id="modelo" required></div>
+                    <div class="field"><label for="numeroSerie">Número de série</label><input id="numeroSerie" required></div>
+                    <div class="field"><label for="setorEquipamento">Setor do equipamento</label><input id="setorEquipamento" required></div>
+                    <div class="field"><label for="setorResponsavel">Setor responsável</label><input id="setorResponsavel" required></div>
+                    <div class="field"><label for="localizacao">Localização</label><input id="localizacao" placeholder="sala, ala, leito, bancada..."></div>
+                    <div class="field"><label for="periodicidade">Periodicidade</label><select id="periodicidade"></select></div>
+                    <div class="field"><label for="prioridade">Prioridade</label><select id="prioridade"></select></div>
+                    <div class="field"><label for="dataUltima">Última manutenção</label><input id="dataUltima" type="date" onchange="calcularProximaData()"></div>
+                    <div class="field"><label for="dataProxima">Próxima manutenção</label><input id="dataProxima" type="date"></div>
+                    <div class="field"><label for="status">Status</label><select id="status"></select></div>
+                    <div class="field span-2"><label for="tecnicoResponsavel">Técnico responsável</label><input id="tecnicoResponsavel"></div>
+                    <div class="field span-3"><label for="observacoes">Observações</label><textarea id="observacoes" placeholder="descrição técnica, cuidados, checklist, peças previstas..."></textarea></div>
+                </div>
+                <div class="modal-actions">
+                    <button type="button" class="btn btn-secondary" onclick="fecharModal()">Cancelar</button>
+                    <button type="submit" class="btn btn-primary"><i class="fas fa-save"></i> Salvar preventiva</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <div class="modal" id="modalRelatorios">
+        <div class="modal-content">
+            <div class="modal-header">
+                <div>
+                    <h2>Relatórios de preventivas</h2>
+                    <p class="muted">Resumo consolidado da visão atual filtrada.</p>
+                </div>
+                <button class="close-btn" onclick="fecharModalRelatorios()">&times;</button>
+            </div>
+            <div class="report-grid">
+                <div class="report-card">
+                    <h3>Resumo geral</h3>
+                    <div class="report-list" id="reportResumo"></div>
+                </div>
+                <div class="report-card">
+                    <h3>Por status</h3>
+                    <div class="report-list" id="reportStatus"></div>
+                </div>
+                <div class="report-card">
+                    <h3>Por periodicidade</h3>
+                    <div class="report-list" id="reportPeriodicidade"></div>
+                </div>
+            </div>
+            <div class="report-card" style="margin-top:1rem;">
+                <h3>Próximas preventivas</h3>
+                <div class="report-list" id="reportProximas"></div>
+            </div>
+            <div class="modal-actions">
+                <button type="button" class="btn btn-secondary" onclick="window.print()"><i class="fas fa-print"></i> Imprimir</button>
+                <button type="button" class="btn btn-primary" onclick="gerarPDF()"><i class="fas fa-file-pdf"></i> Gerar PDF</button>
+            </div>
+        </div>
+    </div>
+
+    <aside class="drawer" id="historicoDrawer">
+        <div class="drawer-header">
+            <div>
+                <h2 id="historicoTitulo">Histórico</h2>
+                <p class="muted">Movimentações registradas nesta preventiva.</p>
+            </div>
+            <button class="close-btn" onclick="fecharHistorico()">&times;</button>
+        </div>
+        <div class="field">
+            <label for="historicoNota">Adicionar anotação técnica</label>
+            <textarea id="historicoNota" placeholder="ex: equipamento testado, checklist executado, peça solicitada..."></textarea>
+            <button class="btn btn-primary" onclick="salvarAnotacaoHistorico()"><i class="fas fa-notes-medical"></i> Registrar anotação</button>
+        </div>
+        <div class="timeline" id="historicoLista" style="margin-top:1rem;"></div>
+    </aside>
+
+    <div class="toast" id="toast"></div>
+
+    <script>
+        const API_BASE_URL = '';
+        const STATUS = ['Manutenção Solicitada', 'Em Análise', 'Programada', 'Aguardando Peça', 'Em Execução', 'Concluída'];
+        const PERIODICIDADES = ['Mensal', 'Bimestral', 'Trimestral', 'Semestral', 'Anual'];
+        const PRIORIDADES = ['Baixa', 'Média', 'Alta', 'Crítica'];
+        const COLUNAS = [
+            { nome: 'Manutenção Solicitada', classe: 'status-solicitada' },
+            { nome: 'Em Análise', classe: 'status-analise' },
+            { nome: 'Programada', classe: 'status-programada' },
+            { nome: 'Aguardando Peça', classe: 'status-aguardando' },
+            { nome: 'Em Execução', classe: 'status-execucao' },
+            { nome: 'Concluída', classe: 'status-concluida' }
+        ];
+
+        let preventivas = [];
+        let resumoAtual = null;
+        let relatorioAtual = null;
+        let setorSelecionado = '';
+        let historicoPreventivaId = null;
+        let agendaMesAtual = new Date(new Date().getFullYear(), new Date().getMonth(), 1);
+
+        document.addEventListener('DOMContentLoaded', async () => {
+            preencherSelects();
+            configurarAtalhos();
+            await validarAcesso();
+            await carregarResumo();
+            await carregarPreventivas();
+        });
+
+        function configurarAtalhos() {
+            ['busca', 'filtroSetorEquipamento', 'filtroTecnico'].forEach(id => {
+                document.getElementById(id).addEventListener('keydown', (e) => {
+                    if (e.key === 'Enter') aplicarFiltros();
+                });
+            });
+        }
+
+        function authHeaders() {
+            const token = localStorage.getItem('kronos_token');
+            return {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${token}`
+            };
+        }
+
+        function preencherSelects() {
+            const preencher = (id, values, primeiro) => {
+                const el = document.getElementById(id);
+                el.innerHTML = primeiro;
+                values.forEach(v => {
+                    const option = document.createElement('option');
+                    option.value = v;
+                    option.textContent = v;
+                    el.appendChild(option);
+                });
+            };
+            preencher('filtroStatus', STATUS, '<option value="">Todos</option>');
+            preencher('filtroPeriodicidade', PERIODICIDADES, '<option value="">Todas</option>');
+            preencher('filtroPrioridade', PRIORIDADES, '<option value="">Todas</option>');
+            preencher('periodicidade', PERIODICIDADES, '');
+            preencher('prioridade', PRIORIDADES, '');
+            preencher('status', STATUS, '');
+            document.getElementById('periodicidade').value = 'Mensal';
+            document.getElementById('prioridade').value = 'Média';
+            document.getElementById('status').value = 'Manutenção Solicitada';
+        }
+
+        async function validarAcesso() {
+            const token = localStorage.getItem('kronos_token');
+            const userData = JSON.parse(localStorage.getItem('kronos_user') || 'null');
+            setorSelecionado = localStorage.getItem('tecnico_setor_selecionado') || '';
+
+            if (!token || !userData) {
+                window.location.href = 'index.html';
+                return;
+            }
+
+            if (userData.tipo !== 'tecnico' && userData.tipo !== 'admin') {
+                showToast('Acesso permitido apenas para técnico ou admin', true);
+                setTimeout(() => window.location.href = 'index.html', 1500);
+                return;
+            }
+
+            document.getElementById('userInfo').textContent = `${userData.nome} ${setorSelecionado ? `- ${setorSelecionado}` : ''}`;
+            document.getElementById('setorAtualTitulo').textContent = setorSelecionado || userData.setor || 'Setor técnico';
+        }
+
+        function filtrosAtuais() {
+            const params = new URLSearchParams();
+            const busca = document.getElementById('busca').value.trim();
+            const status = document.getElementById('filtroStatus').value;
+            const periodicidade = document.getElementById('filtroPeriodicidade').value;
+            const prioridade = document.getElementById('filtroPrioridade').value;
+            const prazo = document.getElementById('filtroPrazo').value;
+            const setorEquip = document.getElementById('filtroSetorEquipamento').value.trim();
+            const tecnico = document.getElementById('filtroTecnico').value.trim();
+            if (setorSelecionado) params.set('setor', setorSelecionado);
+            if (busca) params.set('busca', busca);
+            if (status) params.set('status', status);
+            if (periodicidade) params.set('periodicidade', periodicidade);
+            if (prioridade) params.set('prioridade', prioridade);
+            if (prazo) params.set('prazo', prazo);
+            if (setorEquip) params.set('setor_equipamento', setorEquip);
+            if (tecnico) params.set('tecnico', tecnico);
+            return params;
+        }
+
+        async function carregarResumo() {
+            try {
+                const response = await fetch(`${API_BASE_URL}/api/preventivas/stats/resumo?${filtrosAtuais().toString()}`, { headers: authHeaders() });
+                const json = await response.json();
+                if (!response.ok || !json.success) throw new Error(json.message || 'Erro ao carregar resumo');
+                resumoAtual = json.data || {};
+                document.getElementById('statTotal').textContent = resumoAtual.total || 0;
+                document.getElementById('statSolicitadas').textContent = resumoAtual.solicitadas || 0;
+                document.getElementById('statProgramadas').textContent = resumoAtual.programadas || 0;
+                document.getElementById('statExecucao').textContent = resumoAtual.execucao || 0;
+                document.getElementById('statAtrasadas').textContent = resumoAtual.atrasadas || 0;
+                document.getElementById('statVencendo').textContent = resumoAtual.vencendo || 0;
+            } catch (error) {
+                console.error(error);
+                showToast(error.message, true);
+            }
+        }
+
+        async function carregarPreventivas() {
+            try {
+                const response = await fetch(`${API_BASE_URL}/api/preventivas?${filtrosAtuais().toString()}`, { headers: authHeaders() });
+                const json = await response.json();
+                if (!response.ok || !json.success) throw new Error(json.message || 'Erro ao carregar preventivas');
+                preventivas = json.data || [];
+                renderizarKanban();
+                renderizarAgenda();
+            } catch (error) {
+                console.error(error);
+                showToast(error.message, true);
+            }
+        }
+
+        function renderizarKanban() {
+            const board = document.getElementById('kanbanBoard');
+            board.innerHTML = '';
+
+            COLUNAS.forEach(coluna => {
+                const itens = preventivas.filter(p => p.status === coluna.nome);
+                const div = document.createElement('section');
+                div.className = `kanban-column ${coluna.classe}`;
+                div.dataset.status = coluna.nome;
+                div.innerHTML = `
+                    <div class="column-header">
+                        <div class="column-title">${escapeHtml(coluna.nome)}</div>
+                        <div class="column-badge">${itens.length}</div>
+                    </div>
+                    <div class="cards"></div>
+                `;
+
+                const cards = div.querySelector('.cards');
+                configurarDropColuna(div);
+
+                if (!itens.length) {
+                    cards.innerHTML = '<div class="empty-state">Nenhuma preventiva nesta etapa.</div>';
+                } else {
+                    itens.forEach(item => cards.appendChild(criarCard(item)));
+                }
+                board.appendChild(div);
+            });
+        }
+
+        function criarCard(item) {
+            const situacao = classificarPrazo(item);
+            const prazoLabel = situacao === 'atrasada' ? 'Atrasada' : situacao === 'vencendo' ? 'Vencendo' : 'Em dia';
+            const artigo = document.createElement('article');
+            artigo.className = 'card';
+            artigo.draggable = true;
+            artigo.dataset.id = item.id;
+            artigo.dataset.status = item.status;
+            artigo.addEventListener('dragstart', (e) => {
+                artigo.classList.add('dragging');
+                e.dataTransfer.setData('text/plain', String(item.id));
+            });
+            artigo.addEventListener('dragend', () => artigo.classList.remove('dragging'));
+
+            const prioridadeClasse = `priority-${(item.prioridade || 'Média').replace(/\s/g, '')}`;
+            artigo.innerHTML = `
+                <div class="card-top">
+                    <div>
+                        <div class="card-title">${escapeHtml(item.equipamento)}</div>
+                        <div class="card-sub">${escapeHtml(item.marca)} • ${escapeHtml(item.modelo)}</div>
+                    </div>
+                    <span class="priority-chip ${prioridadeClasse}"><i class="fas fa-flag"></i> ${escapeHtml(item.prioridade || 'Média')}</span>
+                </div>
+                <div style="margin-top:.55rem; display:flex; justify-content:space-between; gap:.6rem; flex-wrap:wrap; align-items:center;">
+                    <span class="deadline-chip deadline-${situacao}"><i class="fas fa-clock"></i> ${prazoLabel}</span>
+                    <small class="muted">#${item.id}</small>
+                </div>
+                <div class="card-meta">
+                    <div><strong>Série:</strong> ${escapeHtml(item.numero_serie)}</div>
+                    <div><strong>Setor aparelho:</strong> ${escapeHtml(item.setor_equipamento)}</div>
+                    <div><strong>Setor responsável:</strong> ${escapeHtml(item.setor_responsavel)}</div>
+                    <div><strong>Periodicidade:</strong> ${escapeHtml(item.periodicidade || '-')}</div>
+                    <div><strong>Próxima manutenção:</strong> ${formatarData(item.data_proxima_manutencao)}</div>
+                    <div><strong>Técnico:</strong> ${escapeHtml(item.tecnico_responsavel || '-')}</div>
+                    <div><strong>Localização:</strong> ${escapeHtml(item.localizacao || '-')}</div>
+                </div>
+                <div class="card-actions">
+                    <button class="btn btn-secondary" onclick="editarPreventiva(${item.id})"><i class="fas fa-pen"></i> Editar</button>
+                    <button class="btn btn-info" onclick="abrirHistorico(${item.id})"><i class="fas fa-history"></i> Histórico</button>
+                    <select onchange="alterarStatusRapido(${item.id}, this.value)">${STATUS.map(s => `<option value="${escapeAttr(s)}" ${s === item.status ? 'selected' : ''}>${escapeHtml(s)}</option>`).join('')}</select>
+                    <button class="btn btn-success" onclick="concluirPreventiva(${item.id})"><i class="fas fa-check"></i> Concluir</button>
+                    <button class="btn btn-primary" onclick="duplicarPreventivaServidor(${item.id})"><i class="fas fa-copy"></i> Duplicar</button>
+                    <button class="btn btn-danger" onclick="excluirPreventiva(${item.id})"><i class="fas fa-trash"></i> Excluir</button>
+                </div>
+            `;
+            return artigo;
+        }
+
+        function configurarDropColuna(coluna) {
+            coluna.addEventListener('dragover', (e) => {
+                e.preventDefault();
+                coluna.classList.add('drag-over');
+            });
+            coluna.addEventListener('dragleave', () => coluna.classList.remove('drag-over'));
+            coluna.addEventListener('drop', async (e) => {
+                e.preventDefault();
+                coluna.classList.remove('drag-over');
+                const id = Number(e.dataTransfer.getData('text/plain'));
+                const status = coluna.dataset.status;
+                const item = preventivas.find(p => p.id === id);
+                if (!item || item.status === status) return;
+                await alterarStatusRapido(id, status, true);
+            });
+        }
+
+        function classificarPrazo(item) {
+            if (!item.data_proxima_manutencao || item.status === 'Concluída') return 'ok';
+            const hoje = new Date(); hoje.setHours(0,0,0,0);
+            const data = new Date(`${String(item.data_proxima_manutencao).slice(0,10)}T00:00:00`);
+            const diff = Math.ceil((data - hoje) / 86400000);
+            if (diff < 0) return 'atrasada';
+            if (diff <= 7) return 'vencendo';
+            return 'ok';
+        }
+
+        function formatarData(data) {
+            if (!data) return '-';
+            const dt = new Date(`${String(data).slice(0,10)}T00:00:00`);
+            return Number.isNaN(dt.getTime()) ? data : dt.toLocaleDateString('pt-BR');
+        }
+
+        function calcularProximaData() {
+            const ultima = document.getElementById('dataUltima').value;
+            const periodicidade = document.getElementById('periodicidade').value;
+            if (!ultima || !periodicidade) return;
+            const data = new Date(`${ultima}T00:00:00`);
+            const mapa = { Mensal: 1, Bimestral: 2, Trimestral: 3, Semestral: 6, Anual: 12 };
+            data.setMonth(data.getMonth() + (mapa[periodicidade] || 1));
+            document.getElementById('dataProxima').value = data.toISOString().slice(0,10);
+        }
+
+        function abrirModalCadastro() {
+            document.getElementById('modalTitulo').textContent = 'Nova preventiva';
+            document.getElementById('preventivaForm').reset();
+            document.getElementById('preventivaId').value = '';
+            document.getElementById('setorResponsavel').value = setorSelecionado || '';
+            const user = JSON.parse(localStorage.getItem('kronos_user') || 'null');
+            document.getElementById('tecnicoResponsavel').value = user?.nome || '';
+            document.getElementById('periodicidade').value = 'Mensal';
+            document.getElementById('prioridade').value = 'Média';
+            document.getElementById('status').value = 'Manutenção Solicitada';
+            document.getElementById('modalPreventiva').classList.add('show');
+        }
+
+        function fecharModal() { document.getElementById('modalPreventiva').classList.remove('show'); }
+
+        function editarPreventiva(id) {
+            const item = preventivas.find(p => p.id === id);
+            if (!item) return;
+            document.getElementById('modalTitulo').textContent = `Editar preventiva #${id}`;
+            document.getElementById('preventivaId').value = item.id;
+            document.getElementById('equipamento').value = item.equipamento || '';
+            document.getElementById('marca').value = item.marca || '';
+            document.getElementById('modelo').value = item.modelo || '';
+            document.getElementById('numeroSerie').value = item.numero_serie || '';
+            document.getElementById('setorEquipamento').value = item.setor_equipamento || '';
+            document.getElementById('setorResponsavel').value = item.setor_responsavel || setorSelecionado || '';
+            document.getElementById('localizacao').value = item.localizacao || '';
+            document.getElementById('periodicidade').value = item.periodicidade || 'Mensal';
+            document.getElementById('prioridade').value = item.prioridade || 'Média';
+            document.getElementById('dataUltima').value = item.data_ultima_manutencao ? String(item.data_ultima_manutencao).slice(0,10) : '';
+            document.getElementById('dataProxima').value = item.data_proxima_manutencao ? String(item.data_proxima_manutencao).slice(0,10) : '';
+            document.getElementById('status').value = item.status || 'Manutenção Solicitada';
+            document.getElementById('tecnicoResponsavel').value = item.tecnico_responsavel || '';
+            document.getElementById('observacoes').value = item.observacoes || '';
+            document.getElementById('modalPreventiva').classList.add('show');
+        }
+
+        async function salvarPreventiva(event) {
+            event.preventDefault();
+            const id = document.getElementById('preventivaId').value;
+            const payload = {
+                equipamento: document.getElementById('equipamento').value.trim(),
+                marca: document.getElementById('marca').value.trim(),
+                modelo: document.getElementById('modelo').value.trim(),
+                numero_serie: document.getElementById('numeroSerie').value.trim(),
+                setor_equipamento: document.getElementById('setorEquipamento').value.trim(),
+                setor_responsavel: document.getElementById('setorResponsavel').value.trim(),
+                localizacao: document.getElementById('localizacao').value.trim(),
+                periodicidade: document.getElementById('periodicidade').value,
+                prioridade: document.getElementById('prioridade').value,
+                data_ultima_manutencao: document.getElementById('dataUltima').value || null,
+                data_proxima_manutencao: document.getElementById('dataProxima').value || null,
+                status: document.getElementById('status').value,
+                tecnico_responsavel: document.getElementById('tecnicoResponsavel').value.trim(),
+                observacoes: document.getElementById('observacoes').value.trim()
+            };
+
+            try {
+                const response = await fetch(`${API_BASE_URL}/api/preventivas${id ? `/${id}` : ''}`, {
+                    method: id ? 'PUT' : 'POST', headers: authHeaders(), body: JSON.stringify(payload)
+                });
+                const json = await response.json();
+                if (!response.ok || !json.success) throw new Error(json.message || 'Erro ao salvar preventiva');
+                fecharModal();
+                showToast(id ? 'Preventiva atualizada com sucesso.' : 'Preventiva cadastrada com sucesso.');
+                await recarregarTudo();
+            } catch (error) {
+                console.error(error);
+                showToast(error.message, true);
+            }
+        }
+
+        async function alterarStatusRapido(id, status, porDrag = false) {
+            try {
+                const response = await fetch(`${API_BASE_URL}/api/preventivas/${id}/status`, {
+                    method: 'PATCH', headers: authHeaders(), body: JSON.stringify({ status })
+                });
+                const json = await response.json();
+                if (!response.ok || !json.success) throw new Error(json.message || 'Erro ao atualizar status');
+                showToast(porDrag ? 'Card movido com sucesso.' : 'Status atualizado com sucesso.');
+                await recarregarTudo();
+                if (historicoPreventivaId === id) await abrirHistorico(id, false);
+            } catch (error) {
+                console.error(error);
+                showToast(error.message, true);
+            }
+        }
+
+        async function concluirPreventiva(id) {
+            if (!confirm('Deseja concluir esta preventiva e recalcular a próxima manutenção?')) return;
+            try {
+                const response = await fetch(`${API_BASE_URL}/api/preventivas/${id}/concluir`, {
+                    method: 'POST', headers: authHeaders(), body: JSON.stringify({ data_execucao: new Date().toISOString().slice(0,10) })
+                });
+                const json = await response.json();
+                if (!response.ok || !json.success) throw new Error(json.message || 'Erro ao concluir preventiva');
+                showToast('Preventiva concluída e próxima data recalculada.');
+                await recarregarTudo();
+                if (historicoPreventivaId === id) await abrirHistorico(id, false);
+            } catch (error) {
+                console.error(error);
+                showToast(error.message, true);
+            }
+        }
+
+        async function excluirPreventiva(id) {
+            if (!confirm('Deseja remover esta preventiva do quadro? O histórico será mantido no banco.')) return;
+            try {
+                const response = await fetch(`${API_BASE_URL}/api/preventivas/${id}`, { method: 'DELETE', headers: authHeaders() });
+                const json = await response.json();
+                if (!response.ok || !json.success) throw new Error(json.message || 'Erro ao excluir preventiva');
+                showToast('Preventiva removida com sucesso.');
+                fecharHistorico();
+                await recarregarTudo();
+            } catch (error) {
+                console.error(error);
+                showToast(error.message, true);
+            }
+        }
+
+        async function duplicarPreventivaServidor(id) {
+            try {
+                const response = await fetch(`${API_BASE_URL}/api/preventivas/${id}/duplicar`, {
+                    method: 'POST', headers: authHeaders(), body: JSON.stringify({ reiniciar_datas: true })
+                });
+                const json = await response.json();
+                if (!response.ok || !json.success) throw new Error(json.message || 'Erro ao duplicar preventiva');
+                showToast('Preventiva duplicada com sucesso.');
+                await recarregarTudo();
+            } catch (error) {
+                console.error(error);
+                showToast(error.message, true);
+            }
+        }
+
+        async function abrirHistorico(id, abrirDrawer = true) {
+            historicoPreventivaId = id;
+            try {
+                const preventiva = preventivas.find(p => p.id === id);
+                document.getElementById('historicoTitulo').textContent = `Histórico - ${preventiva ? preventiva.equipamento : `#${id}`}`;
+                if (abrirDrawer) document.getElementById('historicoDrawer').classList.add('show');
+                const response = await fetch(`${API_BASE_URL}/api/preventivas/${id}/historico`, { headers: authHeaders() });
+                const json = await response.json();
+                if (!response.ok || !json.success) throw new Error(json.message || 'Erro ao carregar histórico');
+                const lista = document.getElementById('historicoLista');
+                const itens = json.data || [];
+                if (!itens.length) {
+                    lista.innerHTML = '<div class="empty-state">Ainda não há histórico para esta preventiva.</div>';
+                    return;
+                }
+                lista.innerHTML = itens.map(item => `
+                    <div class="timeline-item">
+                        <h4>${escapeHtml(item.acao || 'ação')}</h4>
+                        <small>${formatarDataHora(item.data_criacao)} • ${escapeHtml(item.criado_por_nome || 'Sistema')}</small>
+                        <p>${escapeHtml(item.descricao || 'Sem descrição')}</p>
+                    </div>
+                `).join('');
+            } catch (error) {
+                console.error(error);
+                showToast(error.message, true);
+            }
+        }
+
+        function fecharHistorico() {
+            document.getElementById('historicoDrawer').classList.remove('show');
+            document.getElementById('historicoNota').value = '';
+            historicoPreventivaId = null;
+        }
+
+        async function salvarAnotacaoHistorico() {
+            if (!historicoPreventivaId) return;
+            const descricao = document.getElementById('historicoNota').value.trim();
+            if (!descricao) {
+                showToast('Digite a anotação antes de salvar.', true);
+                return;
+            }
+            try {
+                const response = await fetch(`${API_BASE_URL}/api/preventivas/${historicoPreventivaId}/historico`, {
+                    method: 'POST', headers: authHeaders(), body: JSON.stringify({ descricao })
+                });
+                const json = await response.json();
+                if (!response.ok || !json.success) throw new Error(json.message || 'Erro ao salvar anotação');
+                document.getElementById('historicoNota').value = '';
+                showToast('Anotação registrada com sucesso.');
+                await abrirHistorico(historicoPreventivaId, false);
+            } catch (error) {
+                console.error(error);
+                showToast(error.message, true);
+            }
+        }
+
+        async function abrirModalRelatorios() {
+            try {
+                const response = await fetch(`${API_BASE_URL}/api/preventivas/relatorios/resumo?${filtrosAtuais().toString()}`, { headers: authHeaders() });
+                const json = await response.json();
+                if (!response.ok || !json.success) throw new Error(json.message || 'Erro ao carregar relatório');
+                relatorioAtual = json.data;
+                preencherRelatorio(json.data);
+                document.getElementById('modalRelatorios').classList.add('show');
+            } catch (error) {
+                console.error(error);
+                showToast(error.message, true);
+            }
+        }
+
+        function preencherRelatorio(data) {
+            const resumo = data.resumo || {};
+            document.getElementById('reportResumo').innerHTML = `
+                <div class="report-row"><span>Total</span><strong>${resumo.total || 0}</strong></div>
+                <div class="report-row"><span>Concluídas</span><strong>${resumo.concluidas || 0}</strong></div>
+                <div class="report-row"><span>Atrasadas</span><strong>${resumo.atrasadas || 0}</strong></div>
+                <div class="report-row"><span>Próximas 30 dias</span><strong>${resumo.proximos_30_dias || 0}</strong></div>
+            `;
+            document.getElementById('reportStatus').innerHTML = (data.porStatus || []).map(item => `<div class="report-row"><span>${escapeHtml(item.status)}</span><strong>${item.total}</strong></div>`).join('') || '<div class="muted">Sem dados</div>';
+            document.getElementById('reportPeriodicidade').innerHTML = (data.porPeriodicidade || []).map(item => `<div class="report-row"><span>${escapeHtml(item.periodicidade)}</span><strong>${item.total}</strong></div>`).join('') || '<div class="muted">Sem dados</div>';
+            document.getElementById('reportProximas').innerHTML = (data.proximas || []).slice(0, 12).map(item => `
+                <div class="report-row"><span>${escapeHtml(item.equipamento)} - ${escapeHtml(item.setor_equipamento)}</span><strong>${formatarData(item.data_proxima_manutencao)}</strong></div>
+            `).join('') || '<div class="muted">Nenhuma preventiva encontrada</div>';
+        }
+
+        function fecharModalRelatorios() { document.getElementById('modalRelatorios').classList.remove('show'); }
+
+        function gerarPDF() {
+            if (!relatorioAtual) {
+                showToast('Abra o relatório antes de gerar o PDF.', true);
+                return;
+            }
+            const { jsPDF } = window.jspdf;
+            const doc = new jsPDF({ orientation: 'landscape' });
+            const filtros = Object.fromEntries(filtrosAtuais().entries());
+            const titulo = 'Kronos OS - Relatório de Preventivas';
+            doc.setFontSize(18);
+            doc.text(titulo, 14, 16);
+            doc.setFontSize(10);
+            doc.text(`Emitido em ${new Date().toLocaleString('pt-BR')}`, 14, 23);
+            doc.text(`Setor: ${setorSelecionado || 'Todos'} | Busca: ${filtros.busca || '-'} | Status: ${filtros.status || 'Todos'}`, 14, 29);
+
+            const resumo = relatorioAtual.resumo || {};
+            doc.autoTable({
+                startY: 36,
+                head: [['Total', 'Concluídas', 'Atrasadas', 'Próximas 30 dias']],
+                body: [[resumo.total || 0, resumo.concluidas || 0, resumo.atrasadas || 0, resumo.proximos_30_dias || 0]],
+                theme: 'grid'
+            });
+
+            doc.autoTable({
+                startY: doc.lastAutoTable.finalY + 10,
+                head: [['Equipamento', 'Marca/Modelo', 'Série', 'Setor', 'Status', 'Próxima manutenção', 'Prioridade']],
+                body: preventivas.map(item => [
+                    item.equipamento || '',
+                    `${item.marca || ''} ${item.modelo || ''}`.trim(),
+                    item.numero_serie || '',
+                    item.setor_equipamento || '',
+                    item.status || '',
+                    formatarData(item.data_proxima_manutencao),
+                    item.prioridade || ''
+                ]),
+                theme: 'striped',
+                styles: { fontSize: 8 }
+            });
+
+            doc.save(`relatorio-preventivas-${new Date().toISOString().slice(0,10)}.pdf`);
+        }
+
+        function exportarCSV() {
+            if (!preventivas.length) {
+                showToast('Não há preventivas para exportar.', true);
+                return;
+            }
+            const cabecalho = ['ID','Equipamento','Marca','Modelo','NumeroSerie','SetorEquipamento','SetorResponsavel','Localizacao','Periodicidade','Status','Prioridade','TecnicoResponsavel','DataUltima','DataProxima','Observacoes'];
+            const linhas = preventivas.map(item => [
+                item.id, item.equipamento, item.marca, item.modelo, item.numero_serie,
+                item.setor_equipamento, item.setor_responsavel, item.localizacao || '',
+                item.periodicidade || '', item.status || '', item.prioridade || '', item.tecnico_responsavel || '',
+                item.data_ultima_manutencao ? String(item.data_ultima_manutencao).slice(0,10) : '',
+                item.data_proxima_manutencao ? String(item.data_proxima_manutencao).slice(0,10) : '',
+                (item.observacoes || '').replace(/\n/g, ' ')
+            ]);
+            const csv = [cabecalho, ...linhas].map(l => l.map(valor => `"${String(valor ?? '').replace(/"/g, '""')}"`).join(';')).join('\n');
+            const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `preventivas-${new Date().toISOString().slice(0,10)}.csv`;
+            document.body.appendChild(a);
+            a.click();
+            a.remove();
+            URL.revokeObjectURL(url);
+        }
+
+
+        function mudarMesAgenda(delta) {
+            agendaMesAtual = new Date(agendaMesAtual.getFullYear(), agendaMesAtual.getMonth() + delta, 1);
+            renderizarAgenda();
+        }
+
+        function irParaMesAtual() {
+            const agora = new Date();
+            agendaMesAtual = new Date(agora.getFullYear(), agora.getMonth(), 1);
+            renderizarAgenda();
+        }
+
+        function getAgendaItensMes() {
+            const inicio = new Date(agendaMesAtual.getFullYear(), agendaMesAtual.getMonth(), 1);
+            const fim = new Date(agendaMesAtual.getFullYear(), agendaMesAtual.getMonth() + 1, 0, 23, 59, 59, 999);
+            return [...preventivas].filter(item => {
+                if (!item.data_proxima_manutencao) return false;
+                const dt = new Date(`${String(item.data_proxima_manutencao).slice(0,10)}T00:00:00`);
+                return !Number.isNaN(dt.getTime()) && dt >= inicio && dt <= fim;
+            }).sort((a,b) => new Date(a.data_proxima_manutencao) - new Date(b.data_proxima_manutencao));
+        }
+
+        function renderizarAgenda() {
+            const titulo = document.getElementById('agendaMesTitulo');
+            const badge = document.getElementById('agendaMesBadge');
+            const calendario = document.getElementById('agendaCalendario');
+            const lista = document.getElementById('agendaLista');
+            if (!titulo || !badge || !calendario || !lista) return;
+
+            const itensMes = getAgendaItensMes();
+            const hoje = new Date();
+            const hojeChave = hoje.toISOString().slice(0,10);
+            titulo.textContent = agendaMesAtual.toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' });
+            badge.textContent = `${itensMes.length} item(ns)`;
+            document.getElementById('agendaTotalMes').textContent = itensMes.length;
+            document.getElementById('agendaAtrasadasMes').textContent = itensMes.filter(i => classificarPrazo(i) === 'atrasada').length;
+            document.getElementById('agendaVencendoMes').textContent = itensMes.filter(i => classificarPrazo(i) === 'vencendo').length;
+            document.getElementById('agendaConcluidasMes').textContent = itensMes.filter(i => i.status === 'Concluída').length;
+
+            const porDia = new Map();
+            itensMes.forEach(item => {
+                const chave = String(item.data_proxima_manutencao).slice(0,10);
+                if (!porDia.has(chave)) porDia.set(chave, []);
+                porDia.get(chave).push(item);
+            });
+
+            calendario.innerHTML = ['Dom','Seg','Ter','Qua','Qui','Sex','Sáb'].map(d => `<div class="calendar-weekday">${d}</div>`).join('');
+            const primeiroDia = new Date(agendaMesAtual.getFullYear(), agendaMesAtual.getMonth(), 1);
+            const ultimoDia = new Date(agendaMesAtual.getFullYear(), agendaMesAtual.getMonth() + 1, 0);
+            const inicioGrade = new Date(primeiroDia);
+            inicioGrade.setDate(primeiroDia.getDate() - primeiroDia.getDay());
+            const fimGrade = new Date(ultimoDia);
+            fimGrade.setDate(ultimoDia.getDate() + (6 - ultimoDia.getDay()));
+
+            for (let dt = new Date(inicioGrade); dt <= fimGrade; dt.setDate(dt.getDate() + 1)) {
+                const chave = dt.toISOString().slice(0,10);
+                const itens = porDia.get(chave) || [];
+                const classes = ['calendar-day'];
+                if (dt.getMonth() !== agendaMesAtual.getMonth()) classes.push('muted');
+                if (chave === hojeChave) classes.push('today');
+                if (itens.length) classes.push('has-items');
+                if (itens.some(i => classificarPrazo(i) === 'atrasada')) classes.push('atrasada');
+                else if (itens.some(i => classificarPrazo(i) === 'vencendo')) classes.push('vencendo');
+                calendario.insertAdjacentHTML('beforeend', `<button type="button" class="${classes.join(' ')}" onclick="selecionarDiaAgenda('${chave}')"><span>${dt.getDate()}</span><span class="count">${itens.length ? itens.length + ' OS' : ''}</span></button>`);
+            }
+
+            if (!itensMes.length) {
+                lista.innerHTML = '<div class="empty-state">Nenhuma preventiva com próxima manutenção neste mês.</div>';
+                return;
+            }
+            lista.innerHTML = itensMes.map(item => criarAgendaItem(item)).join('');
+        }
+
+        function criarAgendaItem(item) {
+            const prazo = classificarPrazo(item);
+            const prazoTexto = prazo === 'atrasada' ? 'Atrasada' : prazo === 'vencendo' ? 'Vencendo' : 'Em dia';
+            return `
+                <div class="agenda-item">
+                    <div class="agenda-item-top">
+                        <div>
+                            <strong>${escapeHtml(item.equipamento)}</strong>
+                            <div class="meta">${escapeHtml(item.marca)} • ${escapeHtml(item.modelo)} • Série ${escapeHtml(item.numero_serie)}</div>
+                        </div>
+                        <span class="deadline-chip deadline-${prazo}"><i class="fas fa-calendar-check"></i> ${prazoTexto}</span>
+                    </div>
+                    <div class="meta"><strong>Data:</strong> ${formatarData(item.data_proxima_manutencao)} • <strong>Status:</strong> ${escapeHtml(item.status)} • <strong>Setor:</strong> ${escapeHtml(item.setor_equipamento)}</div>
+                    <div class="meta"><strong>Técnico:</strong> ${escapeHtml(item.tecnico_responsavel || '-')} • <strong>Periodicidade:</strong> ${escapeHtml(item.periodicidade || '-')}</div>
+                    <div class="agenda-actions">
+                        <button class="btn btn-secondary" onclick="editarPreventiva(${item.id})"><i class="fas fa-pen"></i> Editar</button>
+                        <button class="btn btn-info" onclick="abrirHistorico(${item.id})"><i class="fas fa-history"></i> Histórico</button>
+                        <button class="btn btn-success" onclick="concluirPreventiva(${item.id})"><i class="fas fa-check"></i> Concluir</button>
+                    </div>
+                </div>
+            `;
+        }
+
+        function selecionarDiaAgenda(chave) {
+            const lista = document.getElementById('agendaLista');
+            const itens = preventivas.filter(item => String(item.data_proxima_manutencao || '').slice(0,10) === chave)
+                .sort((a,b) => new Date(a.data_proxima_manutencao) - new Date(b.data_proxima_manutencao));
+            if (!itens.length) {
+                lista.innerHTML = `<div class="empty-state">Nenhuma preventiva programada para ${new Date(`${chave}T00:00:00`).toLocaleDateString('pt-BR')}.</div>`;
+                return;
+            }
+            lista.innerHTML = itens.map(item => criarAgendaItem(item)).join('');
+        }
+
+        function exportarJSON() {
+            const blob = new Blob([JSON.stringify(preventivas, null, 2)], { type: 'application/json;charset=utf-8' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `preventivas-${new Date().toISOString().slice(0,10)}.json`;
+            document.body.appendChild(a);
+            a.click();
+            a.remove();
+            URL.revokeObjectURL(url);
+        }
+
+        function aplicarFiltros() { recarregarTudo(); }
+        function limparFiltros() {
+            document.getElementById('busca').value = '';
+            document.getElementById('filtroStatus').value = '';
+            document.getElementById('filtroPeriodicidade').value = '';
+            document.getElementById('filtroPrioridade').value = '';
+            document.getElementById('filtroPrazo').value = '';
+            document.getElementById('filtroSetorEquipamento').value = '';
+            document.getElementById('filtroTecnico').value = '';
+            recarregarTudo();
+        }
+
+        async function recarregarTudo() {
+            await carregarResumo();
+            await carregarPreventivas();
+        }
+
+        function formatarDataHora(data) {
+            if (!data) return '-';
+            const dt = new Date(data);
+            return Number.isNaN(dt.getTime()) ? data : dt.toLocaleString('pt-BR');
+        }
+
+        function logout() {
+            localStorage.removeItem('kronos_token');
+            localStorage.removeItem('kronos_user');
+            localStorage.removeItem('tecnico_setor_selecionado');
+            window.location.href = 'index.html';
+        }
+
+        function showToast(message, isError = false) {
+            const toast = document.getElementById('toast');
+            toast.textContent = message;
+            toast.style.borderColor = isError ? 'rgba(239,68,68,.5)' : 'var(--card-border)';
+            toast.classList.add('show');
+            clearTimeout(window.toastTimer);
+            window.toastTimer = setTimeout(() => toast.classList.remove('show'), 3200);
+        }
+
+        function escapeHtml(text) {
+            return String(text || '').replace(/[&<>"']/g, char => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;' }[char]));
+        }
+        function escapeAttr(text) {
+            return String(text || '').replace(/"/g, '&quot;');
+        }
+
+        window.onclick = function(event) {
+            if (event.target === document.getElementById('modalPreventiva')) fecharModal();
+            if (event.target === document.getElementById('modalRelatorios')) fecharModalRelatorios();
+        };
+    </script>
+</body>
+</html>

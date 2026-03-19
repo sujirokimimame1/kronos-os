@@ -219,16 +219,19 @@ try {
   const usuariosRoutes = require('./routes/usuarios');
   const osRoutes = require('./routes/os');
   const relatoriosRoutes = require('./routes/relatorios');
+  const preventivasRoutes = require('./routes/preventivas');
 
   console.log('✅ Rotas carregadas:', {
     usuarios: !!usuariosRoutes,
     os: !!osRoutes,
-    relatorios: !!relatoriosRoutes
+    relatorios: !!relatoriosRoutes,
+    preventivas: !!preventivasRoutes
   });
 
   app.use('/api/usuarios', usuariosRoutes);
   app.use('/api/os', osRoutes);
   app.use('/api/relatorios', relatoriosRoutes);
+  app.use('/api/preventivas', preventivasRoutes);
 
   console.log('🚀 Rotas da API registradas com sucesso');
 } catch (error) {
@@ -269,6 +272,7 @@ app.get('/tecnico-selecao-setor', servePage('tecnico-selecao-setor.html'));
 app.get('/relatorios', servePage('relatorios.html'));
 app.get('/painel', servePage('painel.html'));
 app.get('/painel-tv', servePage('painel-tv.html'));
+app.get('/manutencoes-preventivas', servePage('manutencoes-preventivas.html'));
 
 // ✅ Redirects para compatibilidade
 app.get('/tecnico', (req, res) => {
