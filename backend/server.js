@@ -266,8 +266,6 @@ const servePage = (pageName) => (req, res) => {
 app.get('/', servePage('index.html'));
 app.get('/login', servePage('login.html'));
 app.get('/cadastro', servePage('cadastro.html'));
-app.get('/acesso-solicitante', servePage('acesso-solicitante.html'));
-app.get('/acesso-tecnico', servePage('acesso-tecnico.html'));
 app.get('/solicitante-dashboard', servePage('solicitante-dashboard.html'));
 app.get('/tecnico-dashboard', servePage('tecnico-dashboard.html'));
 app.get('/tecnico-selecao-setor', servePage('tecnico-selecao-setor.html'));
@@ -278,11 +276,7 @@ app.get('/manutencoes-preventivas', servePage('manutencoes-preventivas.html'));
 
 // ✅ Redirects para compatibilidade
 app.get('/tecnico', (req, res) => {
-  res.redirect('/acesso-tecnico');
-});
-
-app.get('/solicitante', (req, res) => {
-  res.redirect('/acesso-solicitante');
+  res.redirect('/tecnico-selecao-setor');
 });
 
 // ✅ Rota para debug do banco - CORRIGIDO

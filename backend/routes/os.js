@@ -2,7 +2,6 @@ const express = require('express');
 const router = express.Router();
 const db = require('../db');
 const authMiddleware = require('../middleware/auth');
-const { requireTechnical } = require('../middleware/auth');
 
 // ✅ ROTA NOVA: Listar minhas OS - PARA SOLICITANTES
 // Esta rota DEVE vir antes de router.get('/:id', ...)
@@ -41,7 +40,7 @@ router.get('/minhas', authMiddleware, async (req, res) => {
 });
 
 // LISTAR TODAS OS
-router.get('/', authMiddleware, requireTechnical, async (req, res) => {
+router.get('/', async (req, res) => {
   try {
     const result = await db.query(`
       SELECT *
@@ -64,7 +63,7 @@ router.get('/', authMiddleware, requireTechnical, async (req, res) => {
 });
 
 // OS POR SETOR (TÉCNICO)
-router.get('/setor/:setor', authMiddleware, requireTechnical, async (req, res) => {
+router.get('/setor/:setor', async (req, res) => {
   try {
     const { setor } = req.params;
 
@@ -101,7 +100,7 @@ router.get('/setor/:setor', authMiddleware, requireTechnical, async (req, res) =
 
 // ✅ ROTA ESPECÍFICA: Buscar OS por ID
 // Esta rota DEVE vir depois de /minhas e /setor/:setor
-router.get('/:id', authMiddleware, async (req, res) => {
+router.get('/:id', async (req, res) => {
   try {
     const { id } = req.params;
 
@@ -120,16 +119,6 @@ router.get('/:id', authMiddleware, async (req, res) => {
       WHERE id = $1
     `, [id]);
 
-    const os = result.rows[0];
-    const isTechnical = req.user?.tipo === 'tecnico' || req.user?.tipo === 'admin';
-
-    if (os && !isTechnical && Number(os.user_id) !== Number(req.user_id || req.user?.id)) {
-      return res.status(403).json({
-        success: false,
-        message: 'Você não tem permissão para visualizar esta ordem de serviço'
-      });
-    }
-
     if (result.rows.length === 0) {
       return res.status(404).json({
         success: false,
@@ -139,7 +128,7 @@ router.get('/:id', authMiddleware, async (req, res) => {
 
     res.json({
       success: true,
-      data: os
+      data: result.rows[0]
     });
 
   } catch (error) {
@@ -206,7 +195,7 @@ router.post('/', authMiddleware, async (req, res) => {
 
     return res.status(201).json({
       success: true,
-      data: os
+      data: result.rows[0]
     });
 
   } catch (error) {
@@ -220,7 +209,7 @@ router.post('/', authMiddleware, async (req, res) => {
 });
 
 // ATUALIZAR STATUS
-router.put('/:id/status', authMiddleware, requireTechnical, async (req, res) => {
+router.put('/:id/status', async (req, res) => {
   try {
     const { id } = req.params;
     const { status, relato_tecnico } = req.body;
@@ -266,7 +255,7 @@ router.put('/:id/status', authMiddleware, requireTechnical, async (req, res) => 
 
     res.json({
       success: true,
-      data: os
+      data: result.rows[0]
     });
 
   } catch (error) {
@@ -279,7 +268,7 @@ router.put('/:id/status', authMiddleware, requireTechnical, async (req, res) => 
 });
 
 // EXCLUIR OS
-router.delete('/:id', authMiddleware, requireTechnical, async (req, res) => {
+router.delete('/:id', async (req, res) => {
   try {
     const { id } = req.params;
 
@@ -299,7 +288,7 @@ router.delete('/:id', authMiddleware, requireTechnical, async (req, res) => {
     res.json({
       success: true,
       message: 'Ordem de serviço excluída com sucesso',
-      data: os
+      data: result.rows[0]
     });
 
   } catch (error) {
