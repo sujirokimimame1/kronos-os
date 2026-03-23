@@ -492,84 +492,6 @@
                 </div>
             </div>
 
-            <!-- RH Card -->
-            <div class="setor-card ti" onclick="selecionarSetor('RH')">
-                <div class="card-icon"><i class="fas fa-users"></i></div>
-                <h3>RH</h3>
-                <p>Atendimento de recursos humanos e demandas administrativas</p>
-                <div class="features-list">
-                    <div class="feature-item">Admissão e desligamento</div>
-                    <div class="feature-item">Folha e ponto</div>
-                    <div class="feature-item">Documentação funcional</div>
-                    <div class="feature-item">Solicitações internas do setor</div>
-                </div>
-            </div>
-
-            <!-- Financeiro Card -->
-            <div class="setor-card manutencao" onclick="selecionarSetor('Financeiro')">
-                <div class="card-icon"><i class="fas fa-coins"></i></div>
-                <h3>Financeiro</h3>
-                <p>Atendimento financeiro, pagamentos e controle interno</p>
-                <div class="features-list">
-                    <div class="feature-item">Pagamentos e despesas</div>
-                    <div class="feature-item">Prestação de contas</div>
-                    <div class="feature-item">Conferência de lançamentos</div>
-                    <div class="feature-item">Solicitações do setor financeiro</div>
-                </div>
-            </div>
-
-            <!-- Hotelaria Card -->
-            <div class="setor-card ti" onclick="selecionarSetor('Hotelaria')">
-                <div class="card-icon"><i class="fas fa-bed"></i></div>
-                <h3>Hotelaria</h3>
-                <p>Atendimento das rotinas de apoio, conforto e acomodação</p>
-                <div class="features-list">
-                    <div class="feature-item">Leitos e acomodação</div>
-                    <div class="feature-item">Rouparia e apoio</div>
-                    <div class="feature-item">Organização do ambiente</div>
-                    <div class="feature-item">Solicitações do setor de hotelaria</div>
-                </div>
-            </div>
-
-            <!-- Assistência Social Card -->
-            <div class="setor-card manutencao" onclick="selecionarSetor('Assistência Social')">
-                <div class="card-icon"><i class="fas fa-hands-helping"></i></div>
-                <h3>Assistência Social</h3>
-                <p>Atendimento social ao paciente e apoio institucional</p>
-                <div class="features-list">
-                    <div class="feature-item">Acompanhamento social</div>
-                    <div class="feature-item">Orientação ao paciente</div>
-                    <div class="feature-item">Encaminhamentos internos</div>
-                    <div class="feature-item">Solicitações do serviço social</div>
-                </div>
-            </div>
-
-            <!-- Direção Card -->
-            <div class="setor-card ti" onclick="selecionarSetor('Direção')">
-                <div class="card-icon"><i class="fas fa-user-tie"></i></div>
-                <h3>Direção</h3>
-                <p>Atendimento das demandas estratégicas e administrativas</p>
-                <div class="features-list">
-                    <div class="feature-item">Demandas institucionais</div>
-                    <div class="feature-item">Acompanhamento gerencial</div>
-                    <div class="feature-item">Solicitações administrativas</div>
-                    <div class="feature-item">Encaminhamentos da direção</div>
-                </div>
-            </div>
-
-            <!-- Faturamento Card -->
-            <div class="setor-card manutencao" onclick="selecionarSetor('Faturamento')">
-                <div class="card-icon"><i class="fas fa-file-invoice-dollar"></i></div>
-                <h3>Faturamento</h3>
-                <p>Atendimento de rotinas de faturamento e convênios</p>
-                <div class="features-list">
-                    <div class="feature-item">Guias e convênios</div>
-                    <div class="feature-item">Lançamentos de faturamento</div>
-                    <div class="feature-item">Conferência de contas</div>
-                    <div class="feature-item">Solicitações do faturamento</div>
-                </div>
-            </div>
-
         </div>
 
         <!-- Loading State -->
@@ -594,28 +516,25 @@
             
             if (!user || !token) {
                 alert('Acesso não autorizado. Faça login primeiro.');
-                window.location.href = 'index.html';
+                window.location.href = '/';
                 return false;
             }
             
             try {
                 const userData = JSON.parse(user);
                 
-                // Verificar se pertence a um setor técnico permitido
-                const setoresPermitidos = ['TI', 'Manutenção', 'RH', 'Financeiro', 'Hotelaria', 'Assistência Social', 'Direção', 'Faturamento'];
-                if (!setoresPermitidos.includes(userData.setor)) {
+                if (userData.tipo !== 'tecnico' && userData.tipo !== 'admin') {
                     alert('Acesso permitido apenas para técnicos.');
-                    window.location.href = 'solicitante-dashboard.html';
+                    window.location.href = '/solicitante-dashboard';
                     return false;
                 }
-                
-                document.getElementById('userWelcome').textContent = 
-                    `Bem-vindo, ${userData.nome}!`;
+
+                document.getElementById('userWelcome').textContent = `Bem-vindo, ${userData.nome}!`;
                     
                 return true;
             } catch (e) {
                 console.error('Erro:', e);
-                window.location.href = 'index.html';
+                window.location.href = '/';
                 return false;
             }
         }
@@ -635,7 +554,7 @@
             
             // Redireciona para o dashboard do técnico
             setTimeout(() => {
-                window.location.href = 'tecnico-dashboard.html';
+                window.location.href = '/tecnico-dashboard';
             }, 1000);
         }
 
@@ -645,7 +564,7 @@
                 localStorage.removeItem('kronos_user');
                 localStorage.removeItem('kronos_token');
                 localStorage.removeItem('tecnico_setor_selecionado');
-                window.location.href = 'index.html';
+                window.location.href = '/';
             }
         }
 
@@ -656,7 +575,7 @@
             if (setorSalvo) {
                 console.log('Setor já selecionado anteriormente, redirecionando...');
                 setTimeout(() => {
-                    window.location.href = 'tecnico-dashboard.html';
+                    window.location.href = '/tecnico-dashboard';
                 }, 500);
             }
         }

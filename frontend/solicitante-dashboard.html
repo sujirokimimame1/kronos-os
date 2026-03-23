@@ -1388,12 +1388,6 @@
                         <option value="">Para qual setor?</option>
                         <option value="TI">TI</option>
                         <option value="Manutenção">Manutenção</option>
-                        <option value="RH">RH</option>
-                        <option value="Financeiro">Financeiro</option>
-                        <option value="Hotelaria">Hotelaria</option>
-                        <option value="Assistência Social">Assistência Social</option>
-                        <option value="Direção">Direção</option>
-                        <option value="Faturamento">Faturamento</option>
                     </select>
                 </div>
 
@@ -2469,7 +2463,25 @@
             const categoria = document.getElementById('categoria');
 
             if (btnNovaOS) {
-                btnNovaOS.onclick = () => modal.style.display = 'block';
+                btnNovaOS.onclick = () => {
+                    modal.style.display = 'block';
+                    try {
+                        const user = JSON.parse(localStorage.getItem('kronos_user') || 'null');
+                        const setorOrigem = document.getElementById('setor_origem');
+                        if (user && user.setor && setorOrigem) {
+                            const temOpcao = Array.from(setorOrigem.options).some(opt => opt.value === user.setor);
+                            if (!temOpcao) {
+                                const opt = document.createElement('option');
+                                opt.value = user.setor;
+                                opt.textContent = user.setor;
+                                setorOrigem.appendChild(opt);
+                            }
+                            setorOrigem.value = user.setor;
+                        }
+                    } catch (e) {
+                        console.warn('Não foi possível pré-preencher o setor do solicitante.', e);
+                    }
+                };
             }
             if (closeBtn) {
                 closeBtn.onclick = () => modal.style.display = 'none';
