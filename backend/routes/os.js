@@ -34,6 +34,32 @@ const setoresOrigemValidos = [
 const setoresDestinoValidos = ['TI', 'Manutenção'];
 const statusPermitidos = ['Aberto', 'Em Andamento', 'Aguardando Peças', 'Finalizado', 'Cancelado'];
 
+
+router.get('/painel-tv', async (req, res) => {
+  try {
+    const result = await db.query(`
+      SELECT id, user_id, setor_origem, setor_destino, categoria, cliente, descricao, prioridade, status, data_abertura, data_fechamento, relato_tecnico
+      FROM ordens_servico
+      WHERE status IN ('Aberto', 'Em Andamento', 'Aguardando Peças')
+      ORDER BY
+        CASE
+          WHEN prioridade = 'Crítica' THEN 1
+          WHEN prioridade = 'Alta' THEN 2
+          WHEN prioridade = 'Média' THEN 3
+          WHEN prioridade = 'Baixa' THEN 4
+          ELSE 5
+        END,
+        data_abertura DESC,
+        id DESC
+    `);
+
+    res.json({ success: true, data: result.rows || [] });
+  } catch (error) {
+    console.error('❌ Erro ao carregar painel TV:', error);
+    res.status(500).json({ success: false, message: 'Erro ao carregar painel TV' });
+  }
+});
+
 router.get('/minhas', authMiddleware, async (req, res) => {
   try {
     const userId = req.user_id || req.user?.id;
