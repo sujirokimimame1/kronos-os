@@ -289,6 +289,7 @@
         </div>
       </div>
       <div class="header-stats">
+        <div class="header-stat"><strong id="totalDia">0</strong><span>Total do dia</span></div>
         <div class="header-stat"><strong id="totalGeral">0</strong><span>Total geral</span></div>
         <div class="header-stat"><strong id="ultimaAtualizacao">--:--:--</strong><span>Última atualização</span></div>
       </div>
@@ -490,10 +491,11 @@
     }
 
     function atualizarCabecalho() {
-      const totalGeral = todasOS.length;
+      const totalGeralAtivas = todasOS.length;
       const totalTI = getSetorList('TI').length;
       const totalManutencao = getSetorList('Manutenção').length;
-      document.getElementById('totalGeral').textContent = totalGeral;
+      document.getElementById('totalDia').textContent = estatisticasPainel.total_dia_nao_finalizado || 0;
+      document.getElementById('totalGeral').textContent = estatisticasPainel.total_geral || totalGeralAtivas;
       document.getElementById('totalTI').textContent = totalTI;
       document.getElementById('totalManutencao').textContent = totalManutencao;
       document.getElementById('ultimaAtualizacao').textContent = new Date().toLocaleTimeString('pt-BR');
@@ -772,6 +774,7 @@
         const response = await fetch(API_URL, { cache: 'no-store' });
         const payload = await response.json();
         if (!response.ok || payload.success === false) throw new Error(payload.message || 'Erro ao carregar O.S.');
+        estatisticasPainel = payload.stats || { total_geral: 0, total_dia_nao_finalizado: 0 };
         todasOS = Array.isArray(payload) ? payload : (payload.data || []);
         todasOS = todasOS.map(os => ({
           ...os,

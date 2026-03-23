@@ -37,23 +37,43 @@ const statusPermitidos = ['Aberto', 'Em Andamento', 'Aguardando Peças', 'Finali
 
 router.get('/painel-tv', async (req, res) => {
   try {
-    const result = await db.query(`
-      SELECT id, user_id, setor_origem, setor_destino, categoria, cliente, descricao, prioridade, status, data_abertura, data_fechamento, relato_tecnico
-      FROM ordens_servico
-      WHERE status IN ('Aberto', 'Em Andamento', 'Aguardando Peças')
-      ORDER BY
-        CASE
-          WHEN prioridade = 'Crítica' THEN 1
-          WHEN prioridade = 'Alta' THEN 2
-          WHEN prioridade = 'Média' THEN 3
-          WHEN prioridade = 'Baixa' THEN 4
-          ELSE 5
-        END,
-        data_abertura DESC,
-        id DESC
-    `);
+    const [resultAtivas, resultStats] = await Promise.all([
+      db.query(`
+        SELECT id, user_id, setor_origem, setor_destino, categoria, cliente, descricao, prioridade, status, data_abertura, data_fechamento, relato_tecnico
+        FROM ordens_servico
+        WHERE status IN ('Aberto', 'Em Andamento', 'Aguardando Peças')
+        ORDER BY
+          CASE
+            WHEN prioridade = 'Crítica' THEN 1
+            WHEN prioridade = 'Alta' THEN 2
+            WHEN prioridade = 'Média' THEN 3
+            WHEN prioridade = 'Baixa' THEN 4
+            ELSE 5
+          END,
+          data_abertura DESC,
+          id DESC
+      `),
+      db.query(`
+        SELECT
+          COUNT(*)::int AS total_geral,
+          COUNT(*) FILTER (
+            WHERE status <> 'Finalizado'
+              AND DATE(data_abertura AT TIME ZONE 'America/Fortaleza') = DATE(NOW() AT TIME ZONE 'America/Fortaleza')
+          )::int AS total_dia_nao_finalizado
+        FROM ordens_servico
+      `)
+    ]);
 
-    res.json({ success: true, data: result.rows || [] });
+    const stats = resultStats.rows?.[0] || {};
+
+    res.json({
+      success: true,
+      data: resultAtivas.rows || [],
+      stats: {
+        total_geral: Number(stats.total_geral || 0),
+        total_dia_nao_finalizado: Number(stats.total_dia_nao_finalizado || 0)
+      }
+    });
   } catch (error) {
     console.error('❌ Erro ao carregar painel TV:', error);
     res.status(500).json({ success: false, message: 'Erro ao carregar painel TV' });
