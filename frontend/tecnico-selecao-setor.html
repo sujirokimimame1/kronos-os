@@ -515,7 +515,7 @@
             
             if (!user || !token) {
                 alert('Acesso não autorizado. Faça login primeiro.');
-                window.location.href = 'index.html';
+                window.location.href = 'acesso-tecnico.html';
                 return false;
             }
             
@@ -535,7 +535,7 @@
                 return true;
             } catch (e) {
                 console.error('Erro:', e);
-                window.location.href = 'index.html';
+                window.location.href = 'acesso-tecnico.html';
                 return false;
             }
         }
@@ -565,7 +565,7 @@
                 localStorage.removeItem('kronos_user');
                 localStorage.removeItem('kronos_token');
                 localStorage.removeItem('tecnico_setor_selecionado');
-                window.location.href = 'index.html';
+                window.location.href = 'acesso-tecnico.html';
             }
         }
 
