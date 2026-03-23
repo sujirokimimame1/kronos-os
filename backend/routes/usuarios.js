@@ -40,7 +40,6 @@ function definirTipoPorSetor(setor, tipoInformado) {
   if (tipoInformado === 'admin') return 'admin';
   if (tipoInformado === 'tecnico') return 'tecnico';
   if (tipoInformado === 'solicitante') return 'solicitante';
-  if (setoresTecnicos.includes(setor)) return 'tecnico';
   return 'solicitante';
 }
 

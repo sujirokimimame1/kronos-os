@@ -28,9 +28,7 @@ const setoresOrigemValidos = [
   'Almoxarifado',
   'Nutrição',
   'Laboratório',
-  'Fisioterapia',
-  'TI',
-  'Manutenção'
+  'Fisioterapia'
 ];
 
 const setoresDestinoValidos = ['TI', 'Manutenção'];
