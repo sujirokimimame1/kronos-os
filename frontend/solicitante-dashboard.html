@@ -1418,6 +1418,18 @@
                         <option value="Crítica">Crítica</option>
                     </select>
                 </div>
+
+                <div class="form-group">
+                    <label for="foto_os"><i class="fas fa-camera"></i> Foto do problema (opcional):</label>
+                    <input type="file" id="foto_os" accept="image/jpeg,image/png,image/webp" capture="environment">
+                    <small style="display:block; margin-top:0.5rem; color: var(--gray);">Você pode anexar uma foto da galeria ou tirar na hora pelo celular.</small>
+                    <div id="fotoPreviewContainer" style="display:none; margin-top: 1rem;">
+                        <img id="fotoPreview" alt="Pré-visualização da foto" style="max-width: 100%; max-height: 220px; border-radius: 12px; border: 1px solid rgba(79, 195, 247, 0.25); box-shadow: var(--shadow);">
+                        <button type="button" class="btn btn-secondary" onclick="removerFotoSelecionada()" style="margin-top: 0.8rem;">
+                            <i class="fas fa-trash"></i> Remover foto
+                        </button>
+                    </div>
+                </div>
                 
                 <button type="submit" class="btn-submit" id="btnSubmitOS">
                     <i class="fas fa-check-circle"></i> Criar Ordem de Serviço
@@ -2223,6 +2235,7 @@
                             <p><strong>Setor Origem:</strong> ${os.setor_origem}</p>
                             <p><strong>Categoria:</strong> ${os.categoria}</p>
                             <p><strong>Descrição:</strong> ${os.descricao}</p>
+                            ${os.foto_base64 ? `<p style="margin-top: 0.8rem;"><button class="btn btn-secondary" onclick="verFotoOS('${os.foto_mime_type || 'image/jpeg'}','${os.foto_base64}')"><i class="fas fa-image"></i> Ver Foto Anexada</button></p>` : ''}
                             ${os.relato_tecnico ? `<p><strong>Relatório Técnico:</strong> ${os.relato_tecnico}</p>` : ''}
                             ${os.status === 'Aguardando Peças' ? `
                                 <div style="background: rgba(155, 89, 182, 0.1); padding: 1rem; border-radius: 10px; margin-top: 1rem; border: 1px solid rgba(155, 89, 182, 0.2);">
@@ -2253,6 +2266,24 @@
                 'Crítica': '🔴'
             };
             return icons[prioridade] || '⚪';
+        }
+
+        function verFotoOS(mimeType, base64) {
+            const novaJanela = window.open('', '_blank');
+            if (!novaJanela) {
+                showToast('⚠️ Libere pop-up para visualizar a foto.', 'warning');
+                return;
+            }
+
+            novaJanela.document.write(`
+                <html>
+                    <head><title>Foto da OS</title></head>
+                    <body style="margin:0; background:#0F172A; display:flex; align-items:center; justify-content:center; min-height:100vh;">
+                        <img src="data:${mimeType};base64,${base64}" style="max-width:100%; max-height:100vh; object-fit:contain;">
+                    </body>
+                </html>
+            `);
+            novaJanela.document.close();
         }
 
         // ✅ SISTEMA DE NOTIFICAÇÕES
@@ -2462,6 +2493,8 @@
             const setorDestino = document.getElementById('setor_destino');
             const categoria = document.getElementById('categoria');
 
+            inicializarPreviewFoto();
+
             if (btnNovaOS) {
                 btnNovaOS.onclick = () => {
                     modal.style.display = 'block';
@@ -2510,11 +2543,74 @@
             }
         }
 
+        function removerFotoSelecionada() {
+            const inputFoto = document.getElementById('foto_os');
+            const previewContainer = document.getElementById('fotoPreviewContainer');
+            const preview = document.getElementById('fotoPreview');
+            if (inputFoto) inputFoto.value = '';
+            if (preview) preview.src = '';
+            if (previewContainer) previewContainer.style.display = 'none';
+        }
+
+        function inicializarPreviewFoto() {
+            const inputFoto = document.getElementById('foto_os');
+            const previewContainer = document.getElementById('fotoPreviewContainer');
+            const preview = document.getElementById('fotoPreview');
+
+            if (!inputFoto || !previewContainer || !preview) return;
+
+            inputFoto.addEventListener('change', function() {
+                const arquivo = this.files && this.files[0];
+
+                if (!arquivo) {
+                    removerFotoSelecionada();
+                    return;
+                }
+
+                if (!['image/jpeg', 'image/png', 'image/webp'].includes(arquivo.type)) {
+                    showToast('❌ Formato inválido. Use JPG, PNG ou WEBP.', 'error');
+                    removerFotoSelecionada();
+                    return;
+                }
+
+                if (arquivo.size > 5 * 1024 * 1024) {
+                    showToast('❌ A foto deve ter no máximo 5 MB.', 'error');
+                    removerFotoSelecionada();
+                    return;
+                }
+
+                const leitor = new FileReader();
+                leitor.onload = function(e) {
+                    preview.src = e.target.result;
+                    previewContainer.style.display = 'block';
+                };
+                leitor.readAsDataURL(arquivo);
+            });
+        }
+
+        function lerArquivoComoBase64(arquivo) {
+            return new Promise((resolve, reject) => {
+                if (!arquivo) {
+                    resolve(null);
+                    return;
+                }
+
+                const leitor = new FileReader();
+                leitor.onload = () => {
+                    const resultado = leitor.result || '';
+                    resolve(String(resultado).split(',')[1] || null);
+                };
+                leitor.onerror = reject;
+                leitor.readAsDataURL(arquivo);
+            });
+        }
+
         // ✅ ATUALIZAR O SUBMIT DA NOVA OS COM SOM COMPATÍVEL
         document.getElementById('formNovaOS').addEventListener('submit', async function(e) {
             e.preventDefault();
             const token = localStorage.getItem('kronos_token');
             const btnSubmit = document.getElementById('btnSubmitOS');
+            const arquivoFoto = document.getElementById('foto_os')?.files?.[0] || null;
 
             const novaOS = {
                 setor_origem: document.getElementById('setor_origem').value,
@@ -2522,7 +2618,10 @@
                 categoria: document.getElementById('categoria').value,
                 cliente: document.getElementById('cliente').value,
                 descricao: document.getElementById('descricao').value,
-                prioridade: document.getElementById('prioridade').value
+                prioridade: document.getElementById('prioridade').value,
+                foto_base64: arquivoFoto ? await lerArquivoComoBase64(arquivoFoto) : null,
+                foto_mime_type: arquivoFoto ? arquivoFoto.type : null,
+                foto_nome: arquivoFoto ? arquivoFoto.name : null
             };
 
             btnSubmit.disabled = true;
@@ -2560,6 +2659,7 @@
                 showToast('✅ OS criada com sucesso!', 'success');
                 document.getElementById('modalNovaOS').style.display = 'none';
                 document.getElementById('formNovaOS').reset();
+                removerFotoSelecionada();
                 carregarMinhasOS();
             } catch (error) {
                 console.error('Erro:', error);

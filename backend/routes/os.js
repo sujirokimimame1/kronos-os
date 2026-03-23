@@ -33,10 +33,39 @@ const setoresOrigemValidos = [
 
 const setoresDestinoValidos = ['TI', 'Manutenção'];
 const statusPermitidos = ['Aberto', 'Em Andamento', 'Aguardando Peças', 'Finalizado', 'Cancelado'];
+const TAMANHO_MAX_BASE64 = 5 * 1024 * 1024 * 1.37;
+let schemaGarantido = false;
 
+async function garantirColunasFoto() {
+  if (schemaGarantido) return;
+
+  await db.query(`
+    ALTER TABLE ordens_servico
+    ADD COLUMN IF NOT EXISTS foto_base64 TEXT
+  `);
+
+  await db.query(`
+    ALTER TABLE ordens_servico
+    ADD COLUMN IF NOT EXISTS foto_mime_type VARCHAR(100)
+  `);
+
+  await db.query(`
+    ALTER TABLE ordens_servico
+    ADD COLUMN IF NOT EXISTS foto_nome VARCHAR(255)
+  `);
+
+  schemaGarantido = true;
+}
+
+function normalizarBase64(valor) {
+  if (!valor || typeof valor !== 'string') return null;
+  return valor.replace(/^data:[^;]+;base64,/, '').trim();
+}
 
 router.get('/painel-tv', async (req, res) => {
   try {
+    await garantirColunasFoto();
+
     const [resultAtivas, resultStats] = await Promise.all([
       db.query(`
         SELECT id, user_id, setor_origem, setor_destino, categoria, cliente, descricao, prioridade, status, data_abertura, data_fechamento, relato_tecnico
@@ -82,6 +111,8 @@ router.get('/painel-tv', async (req, res) => {
 
 router.get('/minhas', authMiddleware, async (req, res) => {
   try {
+    await garantirColunasFoto();
+
     const userId = req.user_id || req.user?.id;
 
     if (!userId) {
@@ -104,6 +135,8 @@ router.get('/minhas', authMiddleware, async (req, res) => {
 
 router.get('/', authMiddleware, requireTechnical, async (req, res) => {
   try {
+    await garantirColunasFoto();
+
     const result = await db.query(`
       SELECT *
       FROM ordens_servico
@@ -119,6 +152,8 @@ router.get('/', authMiddleware, requireTechnical, async (req, res) => {
 
 router.get('/setor/:setor', authMiddleware, requireTechnical, async (req, res) => {
   try {
+    await garantirColunasFoto();
+
     const { setor } = req.params;
 
     if (!setoresDestinoValidos.includes(setor)) {
@@ -150,6 +185,8 @@ router.get('/setor/:setor', authMiddleware, requireTechnical, async (req, res) =
 
 router.get('/:id', authMiddleware, async (req, res) => {
   try {
+    await garantirColunasFoto();
+
     const { id } = req.params;
     if (isNaN(id)) {
       return res.status(400).json({ success: false, message: 'ID inválido' });
@@ -182,8 +219,10 @@ router.get('/:id', authMiddleware, async (req, res) => {
 
 router.post('/', authMiddleware, async (req, res) => {
   try {
+    await garantirColunasFoto();
+
     const user_id = req.user_id || req.user?.id;
-    const { setor_origem, setor_destino, categoria, cliente, descricao, prioridade } = req.body;
+    const { setor_origem, setor_destino, categoria, cliente, descricao, prioridade, foto_base64, foto_mime_type, foto_nome } = req.body;
 
     if (!user_id) {
       return res.status(401).json({ success: false, message: 'Usuário não autenticado' });
@@ -204,10 +243,27 @@ router.post('/', authMiddleware, async (req, res) => {
       return res.status(400).json({ success: false, message: 'Setor de destino inválido' });
     }
 
+    const base64Limpa = normalizarBase64(foto_base64);
+    const mimePermitido = !foto_mime_type || ['image/jpeg', 'image/png', 'image/webp', 'image/jpg'].includes(String(foto_mime_type).toLowerCase());
+
+    if (base64Limpa && base64Limpa.length > TAMANHO_MAX_BASE64) {
+      return res.status(400).json({
+        success: false,
+        message: 'A foto é muito grande. Use uma imagem de até 5 MB.'
+      });
+    }
+
+    if (base64Limpa && !mimePermitido) {
+      return res.status(400).json({
+        success: false,
+        message: 'Formato de imagem inválido. Use JPG, PNG ou WEBP.'
+      });
+    }
+
     const result = await db.query(`
       INSERT INTO ordens_servico
-      (user_id, setor_origem, setor_destino, categoria, cliente, descricao, prioridade, status, data_abertura)
-      VALUES ($1, $2, $3, $4, $5, $6, $7, 'Aberto', NOW())
+      (user_id, setor_origem, setor_destino, categoria, cliente, descricao, prioridade, status, data_abertura, foto_base64, foto_mime_type, foto_nome)
+      VALUES ($1, $2, $3, $4, $5, $6, $7, 'Aberto', NOW(), $8, $9, $10)
       RETURNING *
     `, [
       user_id,
@@ -216,7 +272,10 @@ router.post('/', authMiddleware, async (req, res) => {
       categoria || 'Geral',
       cliente || 'Não informado',
       descricao,
-      prioridade
+      prioridade,
+      base64Limpa,
+      base64Limpa ? (foto_mime_type || 'image/jpeg') : null,
+      base64Limpa ? (foto_nome || 'imagem-os') : null
     ]);
 
     res.status(201).json({ success: true, data: result.rows[0] });
@@ -228,6 +287,8 @@ router.post('/', authMiddleware, async (req, res) => {
 
 router.put('/:id/status', authMiddleware, requireTechnical, async (req, res) => {
   try {
+    await garantirColunasFoto();
+
     const { id } = req.params;
     const { status, relato_tecnico } = req.body;
 
@@ -270,6 +331,8 @@ router.put('/:id/status', authMiddleware, requireTechnical, async (req, res) => 
 
 router.delete('/:id', authMiddleware, requireTechnical, async (req, res) => {
   try {
+    await garantirColunasFoto();
+
     const { id } = req.params;
     const result = await db.query(`
       DELETE FROM ordens_servico
