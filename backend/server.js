@@ -263,9 +263,13 @@ const servePage = (pageName) => (req, res) => {
 };
 
 // Rotas principais
-app.get('/', servePage('index.html'));
+app.get('/', (req, res) => {
+  res.redirect('/solicitante');
+});
 app.get('/login', servePage('login.html'));
 app.get('/cadastro', servePage('cadastro.html'));
+app.get('/solicitante', servePage('acesso-solicitante.html'));
+app.get('/tecnico', servePage('acesso-tecnico.html'));
 app.get('/solicitante-dashboard', servePage('solicitante-dashboard.html'));
 app.get('/tecnico-dashboard', servePage('tecnico-dashboard.html'));
 app.get('/tecnico-selecao-setor', servePage('tecnico-selecao-setor.html'));
@@ -275,8 +279,12 @@ app.get('/painel-tv', servePage('painel-tv.html'));
 app.get('/manutencoes-preventivas', servePage('manutencoes-preventivas.html'));
 
 // ✅ Redirects para compatibilidade
-app.get('/tecnico', (req, res) => {
-  res.redirect('/tecnico-selecao-setor');
+app.get('/acesso-solicitante', (req, res) => {
+  res.redirect('/solicitante');
+});
+
+app.get('/acesso-tecnico', (req, res) => {
+  res.redirect('/tecnico');
 });
 
 // ✅ Rota para debug do banco - CORRIGIDO
