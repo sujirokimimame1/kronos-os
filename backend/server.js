@@ -14,6 +14,30 @@ process.on('unhandledRejection', (reason) => {
 const app = express();
 const PORT = process.env.PORT || 3000;
 
+// ✅ Função para criar admin padrão
+async function criarAdminPadrao() {
+  try {
+    const db = require('./db');
+
+    const existe = await db.get(
+      "SELECT * FROM usuarios WHERE email = 'admin.hrcm@gmail.com'"
+    );
+
+    if (!existe) {
+      await db.run(`
+        INSERT INTO usuarios (nome, email, senha, tipo)
+        VALUES ('Administrador HRCM', 'admin.hrcm@gmail.com', '123456', 'admin')
+      `);
+
+      console.log('✅ Admin criado: admin.hrcm@gmail.com / 123456');
+    } else {
+      console.log('ℹ️ Admin já existe');
+    }
+  } catch (err) {
+    console.error('❌ Erro ao criar admin:', err);
+  }
+}
+
 // ✅ Configuração CORS para produção e Render
 const allowedOrigins = [
   'https://kronos-app-prod.fly.dev',
@@ -440,6 +464,9 @@ process.on('SIGTERM', () => {
 
 // ✅ Inicializar servidor
 app.listen(PORT, '0.0.0.0', () => {
+  // ✅ Criar admin padrão ao iniciar
+  criarAdminPadrao();
+
   console.log(`
 🎉 KRONOS OS SISTEMA INICIADO COM SUCESSO!
 
