@@ -99,6 +99,23 @@
       background:rgba(79,195,247,.12); color:var(--primary-light);
     }
     .stat-hint { font-size:.9rem; color:#cbd5e1; margin-top:.55rem; }
+
+    .filters-bar {
+      display:flex; align-items:center; justify-content:space-between; gap:1rem; flex-wrap:wrap;
+      margin-bottom:1.25rem;
+    }
+    .filter-group {
+      display:flex; align-items:center; gap:.75rem; flex-wrap:wrap;
+      background:var(--card-bg); border:1px solid var(--card-border); border-radius:18px;
+      padding:.85rem 1rem; box-shadow:var(--shadow); backdrop-filter:blur(16px);
+    }
+    .filter-label { color:var(--gray); font-weight:700; }
+    .filter-select {
+      min-width:220px; padding:.72rem .95rem; border-radius:12px; border:1px solid rgba(79,195,247,.2);
+      background:rgba(15,23,42,.85); color:var(--light); font-weight:700; outline:none;
+    }
+    .filter-helper { color:var(--gray); font-size:.9rem; }
+
     .content-grid {
       display:grid; grid-template-columns:1.2fr .8fr; gap:1.5rem;
     }
@@ -200,6 +217,18 @@
       </div>
     </section>
 
+    <section class="filters-bar">
+      <div class="filter-group">
+        <span class="filter-label"><i class="fas fa-filter"></i> Filtrar ordens</span>
+        <select id="filtroSetorOS" class="filter-select">
+          <option value="todas">Todas as áreas</option>
+          <option value="ti">Somente T.I</option>
+          <option value="manutencao">Somente Manutenção</option>
+        </select>
+      </div>
+      <div id="filtroResumo" class="filter-helper">Exibindo visão geral de todas as ordens de serviço.</div>
+    </section>
+
     <section class="content-grid">
       <div class="card">
         <div class="section-title">
@@ -252,6 +281,8 @@ const API_BASE_URL = window.location.origin;
 const token = localStorage.getItem('kronos_token');
 const user = JSON.parse(localStorage.getItem('kronos_user') || 'null');
 const headers = token ? { 'Authorization': `Bearer ${token}` } : {};
+let listaOSCompleta = [];
+let filtroSetorAtual = 'todas';
 
 function logout() {
   localStorage.removeItem('kronos_user');
@@ -291,6 +322,93 @@ function classeSetor(setor) {
   return String(setor || '').toLowerCase().includes('manuten') ? 'manutencao' : 'ti';
 }
 
+
+function normalizarTexto(valor) {
+  return String(valor || '')
+    .normalize('NFD')
+    .replace(/[̀-ͯ]/g, '')
+    .toLowerCase()
+    .trim();
+}
+
+function identificarSetorOS(os) {
+  const candidatos = [
+    os.setor_destino,
+    os.setor_origem,
+    os.setor,
+    os.area,
+    os.departamento,
+    os.setor_responsavel,
+    os.tecnico_setor
+  ].map(normalizarTexto).filter(Boolean);
+
+  const texto = candidatos.join(' ');
+  if (texto.includes('manut')) return 'manutencao';
+  if (texto.includes('t.i') || texto.includes('ti') || texto.includes('informat')) return 'ti';
+  return 'ti';
+}
+
+function aplicarFiltroOS(lista) {
+  if (filtroSetorAtual === 'todas') return lista;
+  return lista.filter(os => identificarSetorOS(os) === filtroSetorAtual);
+}
+
+function atualizarResumoFiltro(totalFiltrado, totalCompleto) {
+  const resumo = document.getElementById('filtroResumo');
+  if (!resumo) return;
+
+  const textos = {
+    todas: 'Exibindo visão geral de todas as ordens de serviço.',
+    ti: 'Exibindo somente ordens de serviço da T.I.',
+    manutencao: 'Exibindo somente ordens de serviço da Manutenção.'
+  };
+
+  resumo.textContent = `${textos[filtroSetorAtual]} (${totalFiltrado} de ${totalCompleto})`;
+}
+
+function renderizarListaOS(lista) {
+  const hoje = new Date();
+  const hojeLocal = hoje.toLocaleDateString('pt-BR', { timeZone: 'America/Fortaleza' });
+  const abertasHoje = lista.filter(os => {
+    const data = os.data_abertura ? new Date(os.data_abertura).toLocaleDateString('pt-BR', { timeZone: 'America/Fortaleza' }) : null;
+    return data === hojeLocal && os.status !== 'Finalizado';
+  }).length;
+
+  document.getElementById('statTotalOS').textContent = String(lista.length);
+  document.getElementById('statHoje').textContent = String(abertasHoje);
+  document.getElementById('statAndamento').textContent = String(lista.filter(os => os.status === 'Em Andamento').length);
+
+  const container = document.getElementById('listaOS');
+  if (!lista.length) {
+    container.innerHTML = '<div class="empty">Nenhuma ordem de serviço encontrada para o filtro selecionado.</div>';
+    return;
+  }
+
+  container.innerHTML = lista.slice(0, 8).map(os => `
+      <div class="item">
+        <div class="item-top">
+          <div>
+            <div class="item-title">OS #${os.id} • ${escapeHtml(os.cliente || 'Sem solicitante')}</div>
+            <div class="item-meta">${escapeHtml(os.categoria || 'Sem categoria')} • ${escapeHtml(os.setor_origem || 'Sem origem')} → ${escapeHtml(os.setor_destino || 'Sem destino')}</div>
+          </div>
+          <div class="item-meta">${formatarData(os.data_abertura)}</div>
+        </div>
+        <div class="item-meta">${escapeHtml(os.descricao || 'Sem descrição')}</div>
+        <div class="tag-row">
+          <span class="tag ${classeSetor(os.setor_destino)}">${escapeHtml(os.setor_destino || '—')}</span>
+          <span class="tag ${classePrioridade(os.prioridade)}">${escapeHtml(os.prioridade || 'Sem prioridade')}</span>
+          <span class="tag ${String(os.status || '').toLowerCase() === 'finalizado' ? 'finalizado' : ''}">${escapeHtml(os.status || 'Sem status')}</span>
+        </div>
+      </div>
+    `).join('');
+}
+
+function atualizarPainelOS() {
+  const listaFiltrada = aplicarFiltroOS(listaOSCompleta);
+  atualizarResumoFiltro(listaFiltrada.length, listaOSCompleta.length);
+  renderizarListaOS(listaFiltrada);
+}
+
 async function carregarStatus() {
   try {
     const response = await fetch(`${API_BASE_URL}/api/status`);
@@ -311,44 +429,14 @@ async function carregarOS() {
     const response = await fetch(`${API_BASE_URL}/api/os`, { headers });
     const payload = await response.json();
     if (!response.ok || !payload.success) throw new Error(payload.message || 'Erro ao carregar O.S.');
-    const lista = Array.isArray(payload.data) ? payload.data : [];
-
-    const hoje = new Date();
-    const hojeLocal = hoje.toLocaleDateString('pt-BR', { timeZone: 'America/Fortaleza' });
-    const abertasHoje = lista.filter(os => {
-      const data = os.data_abertura ? new Date(os.data_abertura).toLocaleDateString('pt-BR', { timeZone: 'America/Fortaleza' }) : null;
-      return data === hojeLocal && os.status !== 'Finalizado';
-    }).length;
-
-    document.getElementById('statTotalOS').textContent = String(lista.length);
-    document.getElementById('statHoje').textContent = String(abertasHoje);
-    document.getElementById('statAndamento').textContent = String(lista.filter(os => os.status === 'Em Andamento').length);
-
-    const container = document.getElementById('listaOS');
-    if (!lista.length) {
-      container.innerHTML = '<div class="empty">Nenhuma ordem de serviço encontrada.</div>';
-      return;
-    }
-
-    container.innerHTML = lista.slice(0, 8).map(os => `
-      <div class="item">
-        <div class="item-top">
-          <div>
-            <div class="item-title">OS #${os.id} • ${escapeHtml(os.cliente || 'Sem solicitante')}</div>
-            <div class="item-meta">${escapeHtml(os.categoria || 'Sem categoria')} • ${escapeHtml(os.setor_origem || 'Sem origem')} → ${escapeHtml(os.setor_destino || 'Sem destino')}</div>
-          </div>
-          <div class="item-meta">${formatarData(os.data_abertura)}</div>
-        </div>
-        <div class="item-meta">${escapeHtml(os.descricao || 'Sem descrição')}</div>
-        <div class="tag-row">
-          <span class="tag ${classeSetor(os.setor_destino)}">${escapeHtml(os.setor_destino || '—')}</span>
-          <span class="tag ${classePrioridade(os.prioridade)}">${escapeHtml(os.prioridade || 'Sem prioridade')}</span>
-          <span class="tag ${String(os.status || '').toLowerCase() === 'finalizado' ? 'finalizado' : ''}">${escapeHtml(os.status || 'Sem status')}</span>
-        </div>
-      </div>
-    `).join('');
+    listaOSCompleta = Array.isArray(payload.data) ? payload.data : [];
+    atualizarPainelOS();
   } catch (error) {
     document.getElementById('listaOS').innerHTML = '<div class="empty">Não foi possível carregar as ordens de serviço.</div>';
+    document.getElementById('statTotalOS').textContent = '0';
+    document.getElementById('statHoje').textContent = '0';
+    document.getElementById('statAndamento').textContent = '0';
+    atualizarResumoFiltro(0, 0);
   }
 }
 
@@ -397,6 +485,10 @@ function atualizarHorario() {
 async function iniciar() {
   if (!ensureAdmin()) return;
   document.getElementById('btnSair').addEventListener('click', logout);
+  document.getElementById('filtroSetorOS').addEventListener('change', (event) => {
+    filtroSetorAtual = event.target.value;
+    atualizarPainelOS();
+  });
   atualizarHorario();
   await Promise.all([carregarStatus(), carregarOS(), carregarPreventivas()]);
 }

@@ -3239,7 +3239,7 @@
                     ];
                 });
                 
-                return [headers, ...rows].map(row => row.join(',')).join('\n');
+                return '\uFEFF' + [headers, ...rows].map(row => row.join(';')).join('\r\n');
             }
 
             mostrarProgressoExportacao(mostrar) {
