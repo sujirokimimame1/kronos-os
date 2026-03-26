@@ -1,3427 +1,905 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Kronos OS - Relatórios Avançados</title>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.28/jspdf.plugin.autotable.min.js"></script>
-    
-    <style>
-        :root {
-            --primary: #4FC3F7;
-            --primary-dark: #29B6F6;
-            --primary-light: #81D4FA;
-            --primary-glow: rgba(79, 195, 247, 0.35);
-            --secondary: #BA68C8;
-            --secondary-glow: rgba(186, 104, 200, 0.25);
-            --success: #66BB6A;
-            --warning: #FFA726;
-            --danger: #EF5350;
-            --info: #29B6F6;
-            
-            --black: #0F172A;
-            --black-light: #1E293B;
-            --black-lighter: #334155;
-            --light: #FFFFFF;
-            --gray: #94A3B8;
-            --gray-light: #CBD5E1;
-            
-            --card-bg: rgba(15, 23, 42, 0.85);
-            --card-border: rgba(79, 195, 247, 0.3);
-            --shadow: 0 10px 30px rgba(0, 0, 0, 0.7);
-            --glow: 0 0 15px var(--primary-glow), 0 0 25px var(--primary-glow);
-        }
-
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-            font-family: 'Segoe UI', system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
-        }
-
-        body {
-            background: linear-gradient(135deg, var(--black) 0%, var(--black-light) 50%, var(--black-lighter) 100%);
-            color: var(--light);
-            min-height: 100vh;
-            line-height: 1.6;
-            overflow-x: hidden;
-            position: relative;
-        }
-
-        body::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            background: 
-                radial-gradient(circle at 15% 85%, var(--primary-glow) 0%, transparent 60%),
-                radial-gradient(circle at 85% 15%, var(--secondary-glow) 0%, transparent 60%),
-                radial-gradient(circle at 50% 40%, rgba(186, 104, 200, 0.08) 0%, transparent 70%);
-            z-index: -1;
-            pointer-events: none;
-        }
-
-        header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            padding: 1.5rem 2rem;
-            background: var(--card-bg);
-            backdrop-filter: blur(20px);
-            -webkit-backdrop-filter: blur(20px);
-            border-bottom: 1px solid var(--card-border);
-            box-shadow: var(--shadow);
-            position: sticky;
-            top: 0;
-            z-index: 100;
-        }
-
-        .logo-container {
-            display: flex;
-            align-items: center;
-            gap: 1rem;
-        }
-
-        .logo-icon {
-            width: 50px;
-            height: 50px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            position: relative;
-        }
-
-        .cross-container {
-            width: 100%;
-            height: 100%;
-            position: relative;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-        }
-
-        .cross-circle {
-            width: 40px;
-            height: 40px;
-            border-radius: 50%;
-            background: linear-gradient(135deg, var(--primary), var(--primary-dark));
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            position: relative;
-            box-shadow: 0 0 20px var(--primary-glow);
-            animation: neonPulse 2s infinite;
-        }
-
-        .cross {
-            position: relative;
-            width: 20px;
-            height: 20px;
-        }
-
-        .cross::before,
-        .cross::after {
-            content: '';
-            position: absolute;
-            background: var(--black);
-            border-radius: 2px;
-        }
-
-        .cross::before {
-            width: 20px;
-            height: 4px;
-            top: 8px;
-            left: 0;
-        }
-
-        .cross::after {
-            width: 4px;
-            height: 20px;
-            top: 0;
-            left: 8px;
-        }
-
-        .logo-text h1 {
-            font-size: 1.5rem;
-            font-weight: 700;
-            background: linear-gradient(135deg, var(--primary), var(--primary-light));
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            background-clip: text;
-            text-shadow: 0 0 10px var(--primary-glow);
-        }
-
-        .user-controls {
-            display: flex;
-            align-items: center;
-            gap: 1rem;
-        }
-
-        .btn {
-            padding: 0.75rem 1.5rem;
-            border-radius: 10px;
-            cursor: pointer;
-            transition: all 0.3s ease;
-            display: flex;
-            align-items: center;
-            gap: 0.5rem;
-            font-weight: 500;
-            border: 1px solid var(--card-border);
-            background: rgba(79, 195, 247, 0.1);
-            color: var(--primary);
-            backdrop-filter: blur(12px);
-            -webkit-backdrop-filter: blur(12px);
-            text-decoration: none;
-            font-size: 0.9rem;
-        }
-
-        .btn:hover {
-            background: rgba(79, 195, 247, 0.2);
-            transform: translateY(-2px);
-            box-shadow: 0 0 10px var(--primary-glow);
-        }
-
-        .btn-primary {
-            background: linear-gradient(135deg, var(--primary), var(--primary-dark));
-            color: var(--black);
-            box-shadow: 0 0 15px var(--primary-glow);
-        }
-
-        .btn-primary:hover {
-            box-shadow: 0 0 25px var(--primary-glow);
-            transform: translateY(-2px);
-        }
-
-        main {
-            max-width: 1400px;
-            margin: 0 auto;
-            padding: 2rem 1.5rem;
-            animation: fadeIn 0.8s ease;
-        }
-
-        .info-setor {
-            background: var(--card-bg);
-            backdrop-filter: blur(20px);
-            -webkit-backdrop-filter: blur(20px);
-            border: 1px solid var(--card-border);
-            border-radius: 15px;
-            padding: 1.5rem;
-            margin-bottom: 2rem;
-            text-align: center;
-            box-shadow: var(--shadow);
-            position: relative;
-            overflow: hidden;
-        }
-
-        .info-setor::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: -100%;
-            width: 100%;
-            height: 100%;
-            background: linear-gradient(90deg, transparent, rgba(79, 195, 247, 0.1), transparent);
-            transition: left 0.5s;
-        }
-
-        .info-setor:hover::before {
-            left: 100%;
-        }
-
-        .info-setor h3 {
-            color: var(--primary);
-            margin-bottom: 0.5rem;
-            font-size: 1.3rem;
-            text-shadow: 0 0 5px var(--primary-glow);
-        }
-
-        .info-setor p {
-            color: var(--gray);
-        }
-
-        .nav-relatorios {
-            display: flex;
-            gap: 1rem;
-            margin-bottom: 2rem;
-            flex-wrap: wrap;
-        }
-
-        .nav-relatorios button {
-            padding: 1rem 1.5rem;
-            border: 1px solid var(--card-border);
-            background: var(--card-bg);
-            color: var(--gray);
-            border-radius: 10px;
-            cursor: pointer;
-            transition: all 0.3s ease;
-            display: flex;
-            align-items: center;
-            gap: 0.5rem;
-            font-weight: 500;
-            backdrop-filter: blur(12px);
-            -webkit-backdrop-filter: blur(12px);
-            flex: 1;
-            min-width: 200px;
-            justify-content: center;
-        }
-
-        .nav-relatorios button.active {
-            background: rgba(79, 195, 247, 0.15);
-            color: var(--primary);
-            border-color: var(--primary);
-            box-shadow: 0 0 10px var(--primary-glow);
-        }
-
-        .nav-relatorios button:hover:not(.active) {
-            background: rgba(79, 195, 247, 0.05);
-            color: var(--light);
-        }
-
-        .filtros {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-            gap: 1.5rem;
-            margin-bottom: 2rem;
-            padding: 1.5rem;
-            background: var(--card-bg);
-            backdrop-filter: blur(20px);
-            -webkit-backdrop-filter: blur(20px);
-            border-radius: 15px;
-            border: 1px solid var(--card-border);
-            box-shadow: var(--shadow);
-        }
-
-        .filtros label {
-            display: block;
-            margin-bottom: 0.5rem;
-            color: var(--primary);
-            font-size: 0.9rem;
-            font-weight: 500;
-            text-shadow: 0 0 5px var(--primary-glow);
-        }
-
-        .filtros select, .filtros input {
-            width: 100%;
-            padding: 0.75rem 1rem;
-            border-radius: 8px;
-            background: rgba(15, 23, 42, 0.4);
-            color: var(--light);
-            border: 1px solid var(--card-border);
-            font-size: 0.9rem;
-            transition: all 0.3s ease;
-            backdrop-filter: blur(8px);
-            cursor: pointer;
-        }
-
-        .filtros select:focus, .filtros input:focus {
-            outline: none;
-            border-color: var(--primary);
-            box-shadow: 0 0 0 3px var(--primary-glow);
-            background: rgba(15, 23, 42, 0.6);
-        }
-
-        .export-options {
-            display: flex;
-            gap: 1rem;
-            margin-bottom: 2rem;
-            flex-wrap: wrap;
-        }
-
-        .export-btn {
-            padding: 0.75rem 1.5rem;
-            border: none;
-            border-radius: 10px;
-            cursor: pointer;
-            font-weight: 600;
-            transition: all 0.3s ease;
-            display: inline-flex;
-            align-items: center;
-            gap: 0.5rem;
-            backdrop-filter: blur(12px);
-            -webkit-backdrop-filter: blur(12px);
-            color: white;
-            flex: 1;
-            min-width: 200px;
-            justify-content: center;
-        }
-
-        .export-pdf {
-            background: linear-gradient(135deg, #dc3545, #c82333);
-            box-shadow: 0 4px 15px rgba(220, 53, 69, 0.3);
-        }
-
-        .export-pdf:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 6px 20px rgba(220, 53, 69, 0.4);
-        }
-
-        .export-excel {
-            background: linear-gradient(135deg, #28a745, #218838);
-            box-shadow: 0 4px 15px rgba(40, 167, 69, 0.3);
-        }
-
-        .export-excel:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 6px 20px rgba(40, 167, 69, 0.4);
-        }
-
-        .loading {
-            text-align: center;
-            padding: 3rem;
-            color: var(--gray);
-            background: var(--card-bg);
-            border-radius: 15px;
-            border: 1px solid var(--card-border);
-            margin-bottom: 2rem;
-            backdrop-filter: blur(20px);
-            -webkit-backdrop-filter: blur(20px);
-        }
-
-        .error {
-            text-align: center;
-            padding: 2rem;
-            color: var(--danger);
-            background: rgba(239, 83, 80, 0.1);
-            border-radius: 15px;
-            border: 1px solid rgba(239, 83, 80, 0.3);
-            margin-bottom: 2rem;
-            backdrop-filter: blur(20px);
-            -webkit-backdrop-filter: blur(20px);
-        }
-
-        .aba-conteudo {
-            display: none;
-            animation: fadeInUp 0.5s ease;
-        }
-
-        .aba-conteudo.active {
-            display: block;
-        }
-
-        .cards-dashboard {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-            gap: 1.5rem;
-            margin-bottom: 2rem;
-        }
-
-        .card-stats {
-            background: var(--card-bg);
-            backdrop-filter: blur(20px);
-            -webkit-backdrop-filter: blur(20px);
-            border: 1px solid var(--card-border);
-            border-radius: 15px;
-            padding: 1.5rem;
-            text-align: center;
-            position: relative;
-            overflow: hidden;
-            box-shadow: var(--shadow);
-            transition: all 0.3s ease;
-        }
-
-        .card-stats:hover {
-            transform: translateY(-5px);
-            box-shadow: var(--shadow), var(--glow);
-            border-color: var(--primary);
-        }
-
-        .card-stats::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: 0;
-            right: 0;
-            height: 3px;
-            background: linear-gradient(90deg, var(--primary), var(--primary-light));
-            transform: scaleX(0);
-            transition: transform 0.4s ease;
-        }
-
-        .card-stats:hover::before {
-            transform: scaleX(1);
-        }
-
-        .card-stats h3 {
-            font-size: 0.9rem;
-            color: var(--gray);
-            margin-bottom: 0.75rem;
-        }
-
-        .card-stats .numero {
-            font-size: 2rem;
-            font-weight: bold;
-            margin: 0.75rem 0;
-            color: var(--primary);
-            text-shadow: 0 0 10px var(--primary-glow);
-        }
-
-        .card-stats div:last-child {
-            color: var(--gray);
-            font-size: 0.85rem;
-        }
-
-        .metricas-tempo {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-            gap: 1.5rem;
-            margin-bottom: 2rem;
-        }
-
-        .metrica-card {
-            background: var(--card-bg);
-            backdrop-filter: blur(20px);
-            border: 1px solid var(--card-border);
-            border-radius: 15px;
-            padding: 1.5rem;
-            box-shadow: var(--shadow);
-            transition: all 0.3s ease;
-        }
-
-        .metrica-card:hover {
-            transform: translateY(-3px);
-            box-shadow: var(--shadow), 0 0 15px var(--primary-glow);
-        }
-
-        .metrica-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 1rem;
-        }
-
-        .metrica-titulo {
-            color: var(--primary);
-            font-size: 1rem;
-            font-weight: 600;
-        }
-
-        .metrica-valor {
-            font-size: 1.8rem;
-            font-weight: bold;
-            color: var(--light);
-            text-shadow: 0 0 8px var(--primary-glow);
-        }
-
-        .progress-bar {
-            width: 100%;
-            height: 8px;
-            background: rgba(255, 255, 255, 0.1);
-            border-radius: 4px;
-            overflow: hidden;
-            margin-top: 0.5rem;
-        }
-
-        .progress-fill {
-            height: 100%;
-            background: linear-gradient(90deg, var(--primary), var(--primary-light));
-            border-radius: 4px;
-            transition: width 1s ease;
-            position: relative;
-        }
-
-        .progress-fill::after {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.3), transparent);
-            animation: shimmer 2s infinite;
-        }
-
-        .graficos-container {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
-            gap: 1.5rem;
-            margin-bottom: 2rem;
-        }
-
-        .grafico-card {
-            background: var(--card-bg);
-            backdrop-filter: blur(20px);
-            -webkit-backdrop-filter: blur(20px);
-            border: 1px solid var(--card-border);
-            border-radius: 15px;
-            padding: 1.5rem;
-            box-shadow: var(--shadow);
-            transition: all 0.3s ease;
-        }
-
-        .grafico-card:hover {
-            transform: translateY(-5px);
-            box-shadow: var(--shadow), var(--glow);
-            border-color: var(--primary);
-        }
-
-        .grafico-card h3 {
-            margin-bottom: 1rem;
-            color: var(--primary);
-            text-align: center;
-            text-shadow: 0 0 5px var(--primary-glow);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 0.5rem;
-            font-size: 1.1rem;
-        }
-
-        .grafico-wrapper {
-            position: relative;
-            height: 300px;
-            width: 100%;
-        }
-
-        .graficos-setores {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 1.5rem;
-            margin-bottom: 2rem;
-        }
-
-        .tabela-relatorios {
-            background: var(--card-bg);
-            backdrop-filter: blur(20px);
-            -webkit-backdrop-filter: blur(20px);
-            border: 1px solid var(--card-border);
-            border-radius: 15px;
-            overflow: hidden;
-            box-shadow: var(--shadow);
-            margin-bottom: 2rem;
-        }
-
-        .tabela-relatorios table {
-            width: 100%;
-            border-collapse: collapse;
-        }
-
-        .tabela-relatorios th,
-        .tabela-relatorios td {
-            padding: 1rem 1.25rem;
-            text-align: left;
-            border-bottom: 1px solid rgba(79, 195, 247, 0.1);
-        }
-
-        .tabela-relatorios th {
-            background: rgba(79, 195, 247, 0.1);
-            color: var(--primary);
-            font-weight: 600;
-            text-shadow: 0 0 5px var(--primary-glow);
-            position: sticky;
-            top: 0;
-        }
-
-        .tabela-relatorios tr:hover {
-            background: rgba(79, 195, 247, 0.05);
-        }
-
-        .status-badge {
-            padding: 0.4rem 0.75rem;
-            border-radius: 6px;
-            font-size: 0.8rem;
-            font-weight: bold;
-            display: inline-block;
-        }
-
-        .status-aberto { 
-            background: rgba(220, 53, 69, 0.2); 
-            color: #ff6b6b; 
-            border: 1px solid rgba(220, 53, 69, 0.3);
-        }
-        .status-andamento { 
-            background: rgba(255, 193, 7, 0.2); 
-            color: #ffd93d; 
-            border: 1px solid rgba(255, 193, 7, 0.3);
-        }
-        .status-aguardando { 
-            background: rgba(155, 89, 182, 0.2); 
-            color: #9b59b6; 
-            border: 1px solid rgba(155, 89, 182, 0.3);
-        }
-        .status-finalizado { 
-            background: rgba(25, 135, 84, 0.2); 
-            color: #51cf66; 
-            border: 1px solid rgba(25, 135, 84, 0.3);
-        }
-        .status-cancelado { 
-            background: rgba(108, 117, 125, 0.2); 
-            color: #adb5bd; 
-            border: 1px solid rgba(108, 117, 125, 0.3);
-        }
-
-        .prioridade {
-            padding: 0.3rem 0.6rem;
-            border-radius: 4px;
-            font-size: 0.75rem;
-            font-weight: bold;
-        }
-
-        .prioridade.baixa { background: rgba(40, 167, 69, 0.2); color: #51cf66; }
-        .prioridade.média { background: rgba(255, 193, 7, 0.2); color: #ffd93d; }
-        .prioridade.alta { background: rgba(253, 126, 20, 0.2); color: #ffa94d; }
-        .prioridade.crítica { background: rgba(220, 53, 69, 0.2); color: #ff6b6b; }
-
-        /* ✅ BADGES DE SLA */
-        .sla-badge {
-            padding: 0.35rem 0.7rem;
-            border-radius: 10px;
-            font-size: 0.75rem;
-            font-weight: bold;
-            display: inline-block;
-            text-transform: uppercase;
-        }
-
-        .sla-dentro {
-            background: rgba(25, 135, 84, 0.2);
-            color: #51cf66;
-            border: 1px solid rgba(25, 135, 84, 0.3);
-        }
-
-        .sla-fora {
-            background: rgba(220, 53, 69, 0.2);
-            color: #ff6b6b;
-            border: 1px solid rgba(220, 53, 69, 0.3);
-        }
-
-        .sla-aberto {
-            background: rgba(255, 193, 7, 0.2);
-            color: #ffd93d;
-            border: 1px solid rgba(255, 193, 7, 0.3);
-        }
-
-        /* Animações */
-        @keyframes fadeIn {
-            from { opacity: 0; }
-            to { opacity: 1; }
-        }
-
-        @keyframes fadeInUp {
-            from { 
-                opacity: 0;
-                transform: translateY(30px);
-            }
-            to { 
-                opacity: 1;
-                transform: translateY(0);
-            }
-        }
-
-        @keyframes neonPulse {
-            0%, 100% {
-                box-shadow: 0 0 20px var(--primary-glow);
-            }
-            50% {
-                box-shadow: 0 0 30px var(--primary-glow), 0 0 40px var(--primary-glow);
-            }
-        }
-
-        @keyframes shimmer {
-            0% { transform: translateX(-100%); }
-            100% { transform: translateX(100%); }
-        }
-
-        /* Responsividade */
-        @media (max-width: 1200px) {
-            .graficos-setores {
-                grid-template-columns: 1fr;
-            }
-        }
-
-        @media (max-width: 768px) {
-            header {
-                flex-direction: column;
-                gap: 1rem;
-                padding: 1rem;
-            }
-            
-            .user-controls {
-                width: 100%;
-                justify-content: center;
-                flex-wrap: wrap;
-            }
-            
-            main {
-                padding: 1rem;
-            }
-            
-            .graficos-container {
-                grid-template-columns: 1fr;
-            }
-            
-            .grafico-card {
-                padding: 1rem;
-            }
-            
-            .grafico-wrapper {
-                height: 250px;
-            }
-            
-            .tabela-relatorios th,
-            .tabela-relatorios td {
-                padding: 0.75rem 0.5rem;
-                font-size: 0.85rem;
-            }
-
-            .nav-relatorios button {
-                min-width: 150px;
-            }
-
-            .export-btn {
-                min-width: 150px;
-            }
-        }
-
-        @media (max-width: 480px) {
-            .cards-dashboard {
-                grid-template-columns: 1fr;
-            }
-            
-            .filtros {
-                grid-template-columns: 1fr;
-            }
-            
-            .nav-relatorios {
-                flex-direction: column;
-            }
-            
-            .nav-relatorios button {
-                justify-content: center;
-                min-width: 100%;
-            }
-
-            .export-options {
-                flex-direction: column;
-            }
-
-            .export-btn {
-                min-width: 100%;
-            }
-
-            .metricas-tempo {
-                grid-template-columns: 1fr;
-            }
-        }
-
-        /* Scrollbar personalizado */
-        ::-webkit-scrollbar {
-            width: 8px;
-        }
-
-        ::-webkit-scrollbar-track {
-            background: var(--black-light);
-            border-radius: 4px;
-        }
-
-        ::-webkit-scrollbar-thumb {
-            background: var(--primary);
-            border-radius: 4px;
-        }
-
-        ::-webkit-scrollbar-thumb:hover {
-            background: var(--primary-light);
-        }
-
-        /* Indicador de tempo real */
-        .tempo-real-indicator {
-            position: fixed;
-            top: 80px;
-            right: 20px;
-            background: var(--success);
-            color: white;
-            padding: 0.5rem 1rem;
-            border-radius: 20px;
-            font-size: 0.8rem;
-            font-weight: bold;
-            z-index: 100;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.3);
-            animation: pulse 2s infinite;
-        }
-
-        @keyframes pulse {
-            0%, 100% { opacity: 1; }
-            50% { opacity: 0.7; }
-        }
-
-        /* Estilos adicionais para os badges de prioridade */
-        .prioridade-badge {
-            padding: 0.3rem 0.7rem;
-            border-radius: 12px;
-            font-size: 0.75rem;
-            font-weight: bold;
-            text-transform: uppercase;
-            display: inline-flex;
-            align-items: center;
-            gap: 0.3rem;
-        }
-
-        .prioridade-baixa {
-            background: rgba(46, 204, 113, 0.2);
-            color: #2ecc71;
-            border: 1px solid rgba(46, 204, 113, 0.3);
-        }
-
-        .prioridade-media {
-            background: rgba(241, 196, 15, 0.2);
-            color: #f1c40f;
-            border: 1px solid rgba(241, 196, 15, 0.3);
-        }
-
-        .prioridade-alta {
-            background: rgba(230, 126, 34, 0.2);
-            color: #e67e22;
-            border: 1px solid rgba(230, 126, 34, 0.3);
-        }
-
-        .prioridade-critica {
-            background: rgba(231, 76, 60, 0.2);
-            color: #e74c3c;
-            border: 1px solid rgba(231, 76, 60, 0.3);
-            animation: pulse 2s infinite;
-        }
-
-        /* Indicador de eficiência */
-        .eficiencia-indicator {
-            display: flex;
-            align-items: center;
-            gap: 0.5rem;
-        }
-
-        .eficiencia-bar {
-            width: 60px;
-            height: 6px;
-            background: rgba(255, 255, 255, 0.1);
-            border-radius: 3px;
-            overflow: hidden;
-        }
-
-        .eficiencia-fill {
-            height: 100%;
-            background: linear-gradient(90deg, var(--primary), var(--primary-light));
-            border-radius: 3px;
-            transition: width 0.5s ease;
-        }
-
-        /* Modal de exportação */
-        .modal-export {
-            display: none;
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: rgba(0, 0, 0, 0.8);
-            z-index: 1000;
-            justify-content: center;
-            align-items: center;
-        }
-
-        .modal-export-content {
-            background: var(--card-bg);
-            backdrop-filter: blur(20px);
-            border: 1px solid var(--card-border);
-            border-radius: 15px;
-            padding: 2rem;
-            max-width: 500px;
-            width: 90%;
-            box-shadow: var(--shadow), var(--glow);
-        }
-
-        .modal-export-header {
-            display: flex;
-            justify-content: between;
-            align-items: center;
-            margin-bottom: 1.5rem;
-        }
-
-        .modal-export-header h3 {
-            color: var(--primary);
-            font-size: 1.3rem;
-        }
-
-        .close-modal {
-            background: none;
-            border: none;
-            color: var(--gray);
-            font-size: 1.5rem;
-            cursor: pointer;
-            transition: color 0.3s ease;
-        }
-
-        .close-modal:hover {
-            color: var(--primary);
-        }
-
-        .export-options-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-            gap: 1rem;
-            margin-bottom: 1.5rem;
-        }
-
-        .export-option {
-            background: rgba(79, 195, 247, 0.1);
-            border: 1px solid var(--card-border);
-            border-radius: 10px;
-            padding: 1.5rem;
-            text-align: center;
-            cursor: pointer;
-            transition: all 0.3s ease;
-        }
-
-        .export-option:hover {
-            background: rgba(79, 195, 247, 0.2);
-            transform: translateY(-2px);
-            border-color: var(--primary);
-        }
-
-        .export-option i {
-            font-size: 2rem;
-            color: var(--primary);
-            margin-bottom: 0.5rem;
-        }
-
-        .export-option h4 {
-            color: var(--light);
-            margin-bottom: 0.5rem;
-        }
-
-        .export-option p {
-            color: var(--gray);
-            font-size: 0.8rem;
-        }
-
-        .export-progress {
-            display: none;
-            text-align: center;
-            padding: 1rem;
-        }
-
-        .progress-text {
-            color: var(--primary);
-            margin-bottom: 0.5rem;
-        }
-    </style>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Kronos OS - Relatórios e Fase 3</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/jspdf-autotable@3.8.2/dist/jspdf.plugin.autotable.min.js"></script>
+  <style>
+    :root {
+      --bg: #071122;
+      --bg-soft: #0f1b2f;
+      --card: rgba(15, 27, 47, 0.82);
+      --border: rgba(79, 195, 247, 0.18);
+      --text: #f8fafc;
+      --muted: #a8b3c8;
+      --primary: #4fc3f7;
+      --primary-strong: #1fa9ea;
+      --success: #22c55e;
+      --warning: #f59e0b;
+      --danger: #ef4444;
+      --shadow: 0 18px 35px rgba(0,0,0,.35);
+    }
+    * { box-sizing: border-box; }
+    html, body { max-width: 100%; overflow-x: hidden; }
+    body {
+      margin: 0;
+      font-family: 'Segoe UI', system-ui, sans-serif;
+      color: var(--text);
+      background: radial-gradient(circle at top left, rgba(79,195,247,.14), transparent 28%),
+                  radial-gradient(circle at top right, rgba(59,130,246,.12), transparent 24%),
+                  linear-gradient(135deg, #071122, #0c1630 45%, #13223e 100%);
+      min-height: 100vh;
+    }
+    .container {
+      width: 100%;
+      max-width: 1440px;
+      margin: 0 auto;
+      padding: 24px;
+      overflow-x: clip;
+    }
+    .header, .card, .filter-bar, .toolbar {
+      background: var(--card);
+      border: 1px solid var(--border);
+      backdrop-filter: blur(18px);
+      border-radius: 22px;
+      box-shadow: var(--shadow);
+      min-width: 0;
+    }
+    .header {
+      padding: 22px;
+      display: flex;
+      justify-content: space-between;
+      gap: 18px;
+      align-items: center;
+      flex-wrap: wrap;
+      margin-bottom: 18px;
+    }
+    .brand {
+      display: flex;
+      gap: 16px;
+      align-items: center;
+    }
+    .brand-icon {
+      width: 58px;
+      height: 58px;
+      border-radius: 18px;
+      display: grid;
+      place-items: center;
+      background: linear-gradient(135deg, var(--primary), var(--primary-strong));
+      color: #05111f;
+      font-size: 1.4rem;
+      box-shadow: 0 0 22px rgba(79,195,247,.28);
+    }
+    h1 { margin: 0; font-size: 1.9rem; }
+    .sub { color: var(--muted); margin-top: 4px; }
+    .header-actions { display: flex; flex-wrap: wrap; gap: 10px; }
+    .btn {
+      border: 1px solid var(--border);
+      background: rgba(79,195,247,.08);
+      color: var(--text);
+      padding: 12px 16px;
+      border-radius: 14px;
+      text-decoration: none;
+      font-weight: 700;
+      cursor: pointer;
+      transition: .2s ease;
+      white-space: nowrap;
+    }
+    .btn:hover { transform: translateY(-1px); }
+    .btn-primary { background: linear-gradient(135deg, var(--primary), var(--primary-strong)); color: #041321; }
+    .btn-danger { background: rgba(239,68,68,.12); border-color: rgba(239,68,68,.24); color: #fecaca; }
+    .toolbar {
+      padding: 16px 18px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 16px;
+      flex-wrap: wrap;
+      margin-bottom: 18px;
+    }
+    .toolbar .group { display: flex; gap: 10px; flex-wrap: wrap; }
+    .toolbar small { color: var(--muted); }
+    .filter-bar {
+      padding: 16px 18px;
+      margin-bottom: 18px;
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+      gap: 12px;
+    }
+    .field { display: flex; flex-direction: column; gap: 8px; min-width: 0; }
+    .field label { font-size: .88rem; color: var(--muted); font-weight: 600; }
+    input, select {
+      width: 100%;
+      background: rgba(5, 17, 31, .7);
+      color: var(--text);
+      border: 1px solid rgba(148,163,184,.18);
+      border-radius: 12px;
+      padding: 12px 14px;
+      outline: none;
+    }
+    .actions-row {
+      display: flex;
+      gap: 10px;
+      align-items: end;
+      grid-column: span 2;
+      flex-wrap: wrap;
+      min-width: 0;
+    }
+    .stats {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+      gap: 14px;
+      margin-bottom: 18px;
+    }
+    .stat { padding: 18px; position: relative; overflow: hidden; }
+    .stat::after {
+      content: '';
+      position: absolute;
+      top: -20px;
+      right: -20px;
+      width: 92px;
+      height: 92px;
+      border-radius: 50%;
+      background: rgba(79,195,247,.08);
+    }
+    .stat-label { color: var(--muted); font-size: .9rem; }
+    .stat-value { font-size: 2rem; font-weight: 800; margin-top: 8px; }
+    .stat-help { color: #d6dfef; font-size: .86rem; margin-top: 8px; }
+    .grid-two {
+      display: grid;
+      grid-template-columns: minmax(0, 1.35fr) minmax(0, .95fr);
+      gap: 18px;
+      margin-bottom: 18px;
+    }
+    .grid-three {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 18px;
+      margin-bottom: 18px;
+      align-items: start;
+    }
+    .card { padding: 18px; overflow: hidden; min-width: 0; max-width: 100%; }
+    .card h3 { margin: 0 0 14px; }
+    .table-wrap { overflow-x: auto; overflow-y: hidden; max-width: 100%; -webkit-overflow-scrolling: touch; }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      min-width: 700px;
+    }
+    table.compact { min-width: 0; width: 100%; table-layout: fixed; }
+    th, td {
+      padding: 11px 10px;
+      border-bottom: 1px solid rgba(148,163,184,.12);
+      text-align: left;
+      font-size: .93rem;
+      word-break: break-word;
+    }
+    th { color: var(--muted); font-weight: 700; }
+    .pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 5px 10px;
+      border-radius: 999px;
+      font-size: .78rem;
+      font-weight: 700;
+      border: 1px solid rgba(148,163,184,.18);
+      background: rgba(148,163,184,.08);
+    }
+    .status-Aberto { background: rgba(59,130,246,.12); color: #bfdbfe; }
+    .status-Em-Andamento { background: rgba(245,158,11,.12); color: #fde68a; }
+    .status-Aguardando-Pecas, .status-Aguardando-Peças { background: rgba(239,68,68,.12); color: #fecaca; }
+    .status-Finalizado { background: rgba(34,197,94,.12); color: #bbf7d0; }
+    .prio-Critica, .prio-Crítica { background: rgba(239,68,68,.12); color: #fecaca; }
+    .prio-Alta { background: rgba(245,158,11,.12); color: #fde68a; }
+    .prio-Media, .prio-Média { background: rgba(59,130,246,.12); color: #bfdbfe; }
+    .prio-Baixa { background: rgba(34,197,94,.12); color: #bbf7d0; }
+    .legend { color: var(--muted); font-size: .9rem; }
+    .empty {
+      color: var(--muted);
+      text-align: center;
+      padding: 26px 14px;
+      border: 1px dashed rgba(148,163,184,.18);
+      border-radius: 14px;
+    }
+    .footer-note { color: var(--muted); font-size: .88rem; margin-top: 10px; }
+    .chart-wrap { position: relative; width: 100%; height: 240px; min-height: 240px; }
+    .chart-wrap canvas { width: 100% !important; height: 100% !important; display: block; }
+    @media (max-width: 1280px) {
+      .grid-three { grid-template-columns: 1fr 1fr; }
+      .grid-three .card:last-child { grid-column: auto; }
+    }
+    @media (max-width: 1200px) {
+      .filter-bar { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+      .stats { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+      .grid-two { grid-template-columns: 1fr; }
+    }
+    @media (max-width: 760px) {
+      .container { padding: 14px; }
+      .filter-bar, .grid-three { grid-template-columns: 1fr; }
+      .actions-row { grid-column: span 1; }
+      .stats { grid-template-columns: 1fr 1fr; }
+      .header { padding: 16px; }
+      .brand-icon { width: 48px; height: 48px; border-radius: 14px; }
+      h1 { font-size: 1.45rem; }
+      .toolbar .group, .header-actions { width: 100%; }
+      .toolbar .group .btn, .header-actions .btn { flex: 1; text-align: center; }
+    }
+  </style>
 </head>
 <body>
-    <!-- Modal de Exportação -->
-    <div id="modalExport" class="modal-export">
-        <div class="modal-export-content">
-            <div class="modal-export-header">
-                <h3><i class="fas fa-file-export"></i> Exportar Relatório</h3>
-                <button class="close-modal" onclick="fecharModalExport()">&times;</button>
-            </div>
-            
-            <div class="export-options-grid">
-                <div class="export-option" onclick="exportarRelatorioCompleto()">
-                    <i class="fas fa-file-pdf"></i>
-                    <h4>PDF Completo</h4>
-                    <p>Relatório detalhado com todas as análises e gráficos</p>
-                </div>
-                
-                <div class="export-option" onclick="exportarRelatorioExecutivo()">
-                    <i class="fas fa-chart-line"></i>
-                    <h4>PDF Executivo</h4>
-                    <p>Resumo executivo com métricas principais</p>
-                </div>
-                
-                <div class="export-option" onclick="exportarDadosDetalhados()">
-                    <i class="fas fa-table"></i>
-                    <h4>Dados Detalhados</h4>
-                    <p>Tabela completa com todas as OS em Excel</p>
-                </div>
-                
-                <div class="export-option" onclick="exportarDashboard()">
-                    <i class="fas fa-chart-bar"></i>
-                    <h4>Dashboard Visual</h4>
-                    <p>Captura do dashboard atual em PDF</p>
-                </div>
-            </div>
-            
-            <div id="exportProgress" class="export-progress">
-                <div class="progress-text">
-                    <i class="fas fa-spinner fa-spin"></i> Gerando relatório...
-                </div>
-                <div class="progress-bar">
-                    <div class="progress-fill" style="width: 0%"></div>
-                </div>
-            </div>
+  <div class="container">
+    <section class="header">
+      <div class="brand">
+        <div class="brand-icon"><i class="fas fa-chart-line"></i></div>
+        <div>
+          <h1>Relatórios e SLA - Fase 3</h1>
+          <div class="sub">Indicadores operacionais, ranking de técnicos, SLA e visão gerencial do Kronos, com filtro por TI, Manutenção ou ambos.</div>
         </div>
-    </div>
+      </div>
+      <div class="header-actions">
+        <a href="/admin-dashboard" class="btn"><i class="fas fa-gauge-high"></i> Admin</a>
+        <a href="/tecnico-dashboard" class="btn"><i class="fas fa-screwdriver-wrench"></i> Técnico</a>
+        <a href="/painel-tv" class="btn"><i class="fas fa-tv"></i> Painel TV</a>
+        <button id="btnSair" class="btn btn-danger"><i class="fas fa-right-from-bracket"></i> Sair</button>
+      </div>
+    </section>
 
-    <!-- Indicador de Tempo Real -->
-    <div class="tempo-real-indicator" id="tempoRealIndicator" style="display: none;">
-        <i class="fas fa-circle"></i> TEMPO REAL
-    </div>
+    <section class="toolbar">
+      <div>
+        <div id="usuarioAtual"><strong>Usuário:</strong> carregando...</div>
+        <small id="ultimaAtualizacao">Última atualização: --</small>
+      </div>
+      <div class="group">
+        <button id="btnExportarExcel" class="btn"><i class="fas fa-file-excel"></i> Excel</button>
+        <button id="btnExportarPdf" class="btn"><i class="fas fa-file-pdf"></i> PDF</button>
+        <button id="btnExportarCsv" class="btn"><i class="fas fa-file-csv"></i> CSV</button>
+        <button id="btnAtualizar" class="btn btn-primary"><i class="fas fa-rotate"></i> Atualizar</button>
+      </div>
+    </section>
 
-    <header>
-        <div class="logo-container">
-            <div class="logo-icon">
-                <div class="cross-container">
-                    <div class="cross-circle">
-                        <div class="cross"></div>
-                    </div>
-                </div>
-            </div>
-            <div class="logo-text">
-                <h1>Kronos OS - Relatórios em Tempo Real</h1>
-            </div>
+    <section class="filter-bar">
+      <div class="field">
+        <label>Período</label>
+        <select id="filtroPeriodo">
+          <option value="7">Últimos 7 dias</option>
+          <option value="30" selected>Últimos 30 dias</option>
+          <option value="90">Últimos 90 dias</option>
+          <option value="365">Último ano</option>
+          <option value="todos">Todo o período</option>
+        </select>
+      </div>
+      <div class="field">
+        <label>Setor técnico</label>
+        <select id="filtroSetorTecnico">
+          <option value="ambos" selected>Ambos</option>
+          <option value="TI">TI</option>
+          <option value="Manutenção">Manutenção</option>
+        </select>
+      </div>
+      <div class="field">
+        <label>Status</label>
+        <select id="filtroStatus">
+          <option value="todos">Todos</option>
+          <option>Aberto</option>
+          <option>Em Andamento</option>
+          <option>Aguardando Peças</option>
+          <option>Finalizado</option>
+          <option>Cancelado</option>
+        </select>
+      </div>
+      <div class="field">
+        <label>Prioridade</label>
+        <select id="filtroPrioridade">
+          <option value="todos">Todas</option>
+          <option>Baixa</option>
+          <option>Média</option>
+          <option>Alta</option>
+          <option>Crítica</option>
+        </select>
+      </div>
+      <div class="field">
+        <label>Data inicial</label>
+        <input id="filtroInicio" type="date">
+      </div>
+      <div class="field">
+        <label>Data final</label>
+        <input id="filtroFim" type="date">
+      </div>
+      <div class="actions-row">
+        <button id="btnAplicar" class="btn btn-primary"><i class="fas fa-filter"></i> Aplicar filtros</button>
+        <button id="btnLimpar" class="btn"><i class="fas fa-broom"></i> Limpar</button>
+      </div>
+    </section>
+
+    <section class="stats">
+      <div class="card stat"><div class="stat-label">Total de O.S.</div><div class="stat-value" id="stTotal">0</div><div class="stat-help">Chamados encontrados com os filtros atuais.</div></div>
+      <div class="card stat"><div class="stat-label">Backlog</div><div class="stat-value" id="stBacklog">0</div><div class="stat-help">Abertos, em andamento e aguardando peças.</div></div>
+      <div class="card stat"><div class="stat-label">Finalizadas</div><div class="stat-value" id="stFinalizadas">0</div><div class="stat-help">Ordens concluídas no período filtrado.</div></div>
+      <div class="card stat"><div class="stat-label">SLA cumprido</div><div class="stat-value" id="stSla">0%</div><div class="stat-help">Percentual das finalizadas dentro da meta.</div></div>
+      <div class="card stat"><div class="stat-label">Tempo médio</div><div class="stat-value" id="stTempo">0h</div><div class="stat-help">Média de resolução das O.S. finalizadas.</div></div>
+      <div class="card stat"><div class="stat-label">Críticas + Altas abertas</div><div class="stat-value" id="stCritAlta">0</div><div class="stat-help">Chamados com maior urgência ainda não concluídos.</div></div>
+      <div class="card stat"><div class="stat-label">Setor que mais solicita</div><div class="stat-value" id="stMaiorSolicitante">-</div><div class="stat-help" id="stMaiorSolicitanteHelp">Origem com mais O.S. no filtro atual.</div></div>
+    </section>
+
+    <section class="grid-two">
+      <div class="card">
+        <h3>Volume diário de aberturas</h3>
+        <div class="chart-wrap"><canvas id="chartAberturas"></canvas></div>
+        <div class="footer-note">Use os filtros acima para ver o comportamento da demanda ao longo do tempo.</div>
+      </div>
+      <div class="card">
+        <h3>SLA por prioridade</h3>
+        <div class="table-wrap">
+          <table class="compact">
+            <thead>
+              <tr>
+                <th>Prioridade</th>
+                <th>Meta</th>
+                <th>Finalizadas</th>
+                <th>Dentro SLA</th>
+                <th>% SLA</th>
+                <th>Tempo médio</th>
+              </tr>
+            </thead>
+            <tbody id="tabelaSla"></tbody>
+          </table>
         </div>
-        
-        <div class="user-controls">
-            <span id="userInfo" style="color: var(--gray); margin-right: 16px;"></span>
-            <button class="btn" onclick="voltarParaAreaAnterior()">
-                <i class="fas fa-arrow-left"></i> Voltar
-            </button>
-            <button class="btn" onclick="carregarRelatorios()">
-                <i class="fas fa-sync-alt"></i> Atualizar
-            </button>
+      </div>
+    </section>
+
+    <section class="grid-three">
+      <div class="card">
+        <h3>Ranking de técnicos</h3>
+        <div class="table-wrap">
+          <table class="compact">
+            <thead>
+              <tr>
+                <th>Técnico</th>
+                <th>Total</th>
+                <th>Finalizadas</th>
+                <th>% SLA</th>
+                <th>Tempo médio</th>
+              </tr>
+            </thead>
+            <tbody id="tabelaTecnicos"></tbody>
+          </table>
         </div>
-    </header>
-
-    <main>
-        <!-- Informação do Setor Específico -->
-        <div id="infoSetorContainer" class="info-setor" style="display: none;">
-            <h3><i class="fas fa-hospital"></i> Relatórios do Setor: <span id="setorNome"></span></h3>
-            <p>Visualizando dados específicos do seu setor de atuação</p>
+      </div>
+      <div class="card">
+        <h3>Resumo por setor de destino</h3>
+        <div class="table-wrap">
+          <table class="compact">
+            <thead>
+              <tr>
+                <th>Setor</th>
+                <th>Total</th>
+                <th>Finalizadas</th>
+                <th>Tempo médio</th>
+              </tr>
+            </thead>
+            <tbody id="tabelaSetores"></tbody>
+          </table>
         </div>
-
-        <!-- Navegação entre relatórios -->
-        <div class="nav-relatorios">
-            <button class="active" onclick="mostrarAba('dashboard')">
-                <i class="fas fa-chart-line"></i> Dashboard Geral
-            </button>
-            <button onclick="mostrarAba('detalhado')">
-                <i class="fas fa-list"></i> Relatório Detalhado
-            </button>
-            <button onclick="mostrarAba('metricas')">
-                <i class="fas fa-chart-bar"></i> Métricas Avançadas
-            </button>
-            <button onclick="mostrarAba('tecnicos')">
-                <i class="fas fa-users"></i> Desempenho por Setor
-            </button>
+      </div>
+      <div class="card">
+        <h3>Setores que mais solicitam</h3>
+        <div class="table-wrap">
+          <table class="compact">
+            <thead>
+              <tr>
+                <th>Setor de origem</th>
+                <th>Total</th>
+              </tr>
+            </thead>
+            <tbody id="tabelaSolicitantes"></tbody>
+          </table>
         </div>
-
-        <!-- Filtros Avançados -->
-        <div class="filtros">
-            <div>
-                <label><i class="fas fa-calendar"></i> Período:</label>
-                <select id="periodo" onchange="atualizarFiltros()">
-                    <option value="7">Últimos 7 dias</option>
-                    <option value="30" selected>Últimos 30 dias</option>
-                    <option value="90">Últimos 3 meses</option>
-                    <option value="365">Último ano</option>
-                    <option value="todos">Todo o período</option>
-                </select>
-            </div>
-
-            <div>
-                <label><i class="fas fa-calendar-day"></i> Data inicial:</label>
-                <input type="date" id="dataInicio" onchange="atualizarFiltros()">
-            </div>
-
-            <div>
-                <label><i class="fas fa-calendar-check"></i> Data final:</label>
-                <input type="date" id="dataFim" onchange="atualizarFiltros()">
-            </div>
-            
-            <div id="filtroSetorContainer">
-                <label><i class="fas fa-hospital"></i> Setor:</label>
-                <select id="setorFiltro" onchange="atualizarFiltros()">
-                    <option value="todos">Todos os Setores</option>
-                </select>
-            </div>
-            
-            <div>
-                <label><i class="fas fa-tasks"></i> Status:</label>
-                <select id="statusFiltro" onchange="atualizarFiltros()">
-                    <option value="todos">Todos os Status</option>
-                    <option value="Aberto">Aberto</option>
-                    <option value="Em Andamento">Em Andamento</option>
-                    <option value="Aguardando Peças">Aguardando Peças</option>
-                    <option value="Finalizado">Finalizado</option>
-                    <option value="Cancelado">Cancelado</option>
-                </select>
-            </div>
-
-            <div>
-                <label><i class="fas fa-bolt"></i> Prioridade:</label>
-                <select id="prioridadeFiltro" onchange="atualizarFiltros()">
-                    <option value="todos">Todas Prioridades</option>
-                    <option value="Baixa">Baixa</option>
-                    <option value="Média">Média</option>
-                    <option value="Alta">Alta</option>
-                    <option value="Crítica">Crítica</option>
-                </select>
-            </div>
+      </div>
+      <div class="card">
+        <h3>Top categorias</h3>
+        <div class="table-wrap">
+          <table class="compact">
+            <thead>
+              <tr>
+                <th>Categoria</th>
+                <th>Total</th>
+              </tr>
+            </thead>
+            <tbody id="tabelaCategorias"></tbody>
+          </table>
         </div>
-
-        <!-- Opções de Exportação -->
-        <div class="export-options">
-            <button class="export-btn export-pdf" onclick="abrirModalExport()">
-                <i class="fas fa-file-export"></i> Exportar Relatórios
-            </button>
-        </div>
-
-        <!-- Loading State -->
-        <div id="loadingState" class="loading">
-            <p><i class="fas fa-spinner fa-spin"></i> Carregando dados dos relatórios...</p>
-        </div>
-
-        <!-- Error State -->
-        <div id="errorState" class="error" style="display: none;">
-            <p><i class="fas fa-exclamation-triangle"></i> <span id="errorMessage">Erro ao carregar dados. Verifique sua conexão.</span></p>
-            <button class="btn" onclick="carregarRelatorios()" style="margin-top: 10px;">
-                <i class="fas fa-sync-alt"></i> Tentar Novamente
-            </button>
-        </div>
-
-        <!-- Aba Dashboard -->
-        <div id="aba-dashboard" class="aba-conteudo active">
-            <!-- Cards de Estatísticas -->
-            <div class="cards-dashboard">
-                <div class="card-stats">
-                    <h3>Total de OS</h3>
-                    <div class="numero" id="totalOS">0</div>
-                    <div>No período selecionado</div>
-                </div>
-                
-                <div class="card-stats">
-                    <h3>Taxa de Conclusão</h3>
-                    <div class="numero" id="taxaConclusao">0%</div>
-                    <div>OS Finalizadas</div>
-                </div>
-                
-                <div class="card-stats">
-                    <h3>Tempo Médio</h3>
-                    <div class="numero" id="tempoMedio">0h</div>
-                    <div>Resposta</div>
-                </div>
-                
-                <div class="card-stats">
-                    <h3>Setor Mais Demandado</h3>
-                    <div class="numero" id="setorTop">-</div>
-                    <div>Maior volume</div>
-                </div>
-
-                <div class="card-stats">
-                    <h3>Top TI</h3>
-                    <div class="numero" id="topCategoriaTI" style="font-size: 1.4rem; line-height: 1.2;">-</div>
-                    <div id="topCategoriaTIQuantidade">0 OS</div>
-                </div>
-
-                <div class="card-stats">
-                    <h3>Top Manutenção</h3>
-                    <div class="numero" id="topCategoriaManutencao" style="font-size: 1.4rem; line-height: 1.2;">-</div>
-                    <div id="topCategoriaManutencaoQuantidade">0 OS</div>
-                </div>
-
-                <div class="card-stats">
-                    <h3>OS em Andamento</h3>
-                    <div class="numero" id="osAndamento">0</div>
-                    <div>Atualmente</div>
-                </div>
-
-                <div class="card-stats">
-                    <h3>Aguardando Peças</h3>
-                    <div class="numero" id="osAguardando">0</div>
-                    <div>Pendentes</div>
-                </div>
-            </div>
-
-            <!-- Métricas de Tempo -->
-            <div class="metricas-tempo">
-                <div class="metrica-card">
-                    <div class="metrica-header">
-                        <div class="metrica-titulo">Tempo Médio de Resolução</div>
-                        <div class="metrica-valor" id="tempoResolucaoMedia">0h</div>
-                    </div>
-                    <div class="progress-bar">
-                        <div class="progress-fill" id="progressResolucao" style="width: 0%"></div>
-                    </div>
-                </div>
-                <div class="metrica-card">
-                    <div class="metrica-header">
-                        <div class="metrica-titulo">SLA Cumprido</div>
-                        <div class="metrica-valor" id="slaCumprido">0%</div>
-                    </div>
-                    <div class="progress-bar">
-                        <div class="progress-fill" id="progressSLA" style="width: 0%"></div>
-                    </div>
-                </div>
-                <div class="metrica-card">
-                    <div class="metrica-header">
-                        <div class="metrica-titulo">Eficiência Geral</div>
-                        <div class="metrica-valor" id="eficienciaGeral">0%</div>
-                    </div>
-                    <div class="progress-bar">
-                        <div class="progress-fill" id="progressEficiencia" style="width: 0%"></div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Gráficos de Setores -->
-            <div class="graficos-setores">
-                <div class="grafico-card">
-                    <h3><i class="fas fa-chart-pie"></i> Distribuição por Setor</h3>
-                    <div class="grafico-wrapper">
-                        <canvas id="graficoSetores"></canvas>
-                    </div>
-                </div>
-                <div class="grafico-card">
-                    <h3><i class="fas fa-chart-bar"></i> OS por Status</h3>
-                    <div class="grafico-wrapper">
-                        <canvas id="graficoStatus"></canvas>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Gráficos de Tendência -->
-            <div class="graficos-container">
-                <div class="grafico-card">
-                    <h3><i class="fas fa-chart-line"></i> Tendência de OS por Dia</h3>
-                    <div class="grafico-wrapper">
-                        <canvas id="graficoTendencia"></canvas>
-                    </div>
-                </div>
-                <div class="grafico-card">
-                    <h3><i class="fas fa-clock"></i> Tempo Médio por Setor</h3>
-                    <div class="grafico-wrapper">
-                        <canvas id="graficoTempoSetor"></canvas>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Gráficos de Prioridade -->
-            <div class="graficos-container">
-                <div class="grafico-card">
-                    <h3><i class="fas fa-exclamation-circle"></i> Distribuição por Prioridade</h3>
-                    <div class="grafico-wrapper">
-                        <canvas id="graficoPrioridade"></canvas>
-                    </div>
-                </div>
-                <div class="grafico-card">
-                    <h3><i class="fas fa-tachometer-alt"></i> SLA por Setor</h3>
-                    <div class="grafico-wrapper">
-                        <canvas id="graficoSLASetor"></canvas>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <!-- Aba Relatório Detalhado -->
-        <div id="aba-detalhado" class="aba-conteudo">
-            <div class="grafico-card">
-                <h3><i class="fas fa-list-alt"></i> Relatório Detalhado de Ordens de Serviço</h3>
-                <div class="tabela-relatorios">
-                    <table id="tabelaDetalhada">
-                        <thead>
-                            <tr>
-                                <th>ID</th>
-                                <th>Setor Origem</th>
-                                <th>Setor Destino</th>
-                                <th>Categoria</th>
-                                <th>Cliente</th>
-                                <th>Descrição</th>
-                                <th>Status</th>
-                                <th>Prioridade</th>
-                                <th>Data Abertura</th>
-                                <th>Tempo</th>
-                                <th>SLA</th>
-                                <th>Relatório Técnico</th>
-                            </tr>
-                        </thead>
-                        <tbody id="corpoTabelaDetalhada">
-                            <!-- Dados serão inseridos via JavaScript -->
-                        </tbody>
-                    </table>
-                </div>
-            </div>
-        </div>
-
-        <!-- Aba Métricas Avançadas -->
-        <div id="aba-metricas" class="aba-conteudo">
-            <div class="cards-dashboard">
-                <div class="card-stats">
-                    <h3>Primeira Resposta</h3>
-                    <div class="numero" id="primeiraResposta">0h</div>
-                    <div>Tempo médio</div>
-                </div>
-                
-                <div class="card-stats">
-                    <h3>Taxa de Reabertura</h3>
-                    <div class="numero" id="taxaReabertura">0%</div>
-                    <div>OS Reabertas</div>
-                </div>
-                
-                <div class="card-stats">
-                    <h3>Satisfação</h3>
-                    <div class="numero" id="satisfacao">0%</div>
-                    <div>Avaliação</div>
-                </div>
-                
-                <div class="card-stats">
-                    <h3>Custo Médio</h3>
-                    <div class="numero" id="custoMedio">R$ 0</div>
-                    <div>Por OS</div>
-                </div>
-            </div>
-
-            <div class="graficos-container">
-                <div class="grafico-card">
-                    <h3><i class="fas fa-chart-line"></i> Tendência de SLA</h3>
-                    <div class="grafico-wrapper">
-                        <canvas id="graficoTendenciaSLA"></canvas>
-                    </div>
-                </div>
-                <div class="grafico-card">
-                    <h3><i class="fas fa-chart-bar"></i> Métricas de Eficiência</h3>
-                    <div class="grafico-wrapper">
-                        <canvas id="graficoEficiencia"></canvas>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <!-- Aba Desempenho por Setor -->
-        <div id="aba-tecnicos" class="aba-conteudo">
-            <div class="grafico-card">
-                <h3><i class="fas fa-medal"></i> Ranking de Desempenho por Setor</h3>
-                <div class="tabela-relatorios">
-                    <table id="tabelaSetores">
-                        <thead>
-                            <tr>
-                                <th>Setor</th>
-                                <th>Total OS</th>
-                                <th>Finalizadas</th>
-                                <th>Taxa Conclusão</th>
-                                <th>Tempo Médio</th>
-                                <th>SLA Cumprido</th>
-                                <th>Eficiência</th>
-                            </tr>
-                        </thead>
-                        <tbody id="corpoTabelaSetores">
-                            <!-- Dados serão inseridos via JavaScript -->
-                        </tbody>
-                    </table>
-                </div>
-            </div>
-
-            <div class="graficos-container">
-                <div class="grafico-card">
-                    <h3><i class="fas fa-trophy"></i> Top Setores por Eficiência</h3>
-                    <div class="grafico-wrapper">
-                        <canvas id="graficoTopSetores"></canvas>
-                    </div>
-                </div>
-                <div class="grafico-card">
-                    <h3><i class="fas fa-chart-bar"></i> Comparativo de Desempenho</h3>
-                    <div class="grafico-wrapper">
-                        <canvas id="graficoComparativoSetores"></canvas>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </main>
-
-    <script>
-        // ✅ CONFIGURAÇÃO DO BANCO DE DADOS - MANTIDA EXATAMENTE COMO NO ORIGINAL
-        const DB_CONFIG = {
-            host: 'localhost',
-            user: 'root',
-            password: '',
-            database: 'kronos_os'
-        };
-
-        // ✅ SISTEMA DE RELATÓRIOS CORRIGIDO E FUNCIONAL
-        class RelatoriosSystem {
-            constructor() {
-                this.dadosRelatorios = null;
-                this.graficos = {};
-                this.intervaloAtualizacao = null;
-                this.usuario = null;
-                this.setorUsuario = null;
-                this.API_BASE_URL = window.location.origin;
-            }
-
-            // ✅ INICIALIZAR SISTEMA
-            async inicializar() {
-                if (!this.requireAuth()) return;
-                
-                this.usuario = this.getUser();
-                this.setorUsuario = localStorage.getItem('tecnico_setor_selecionado');
-                
-                this.configurarInterfaceUsuario();
-                await this.carregarSetores();
-                await this.carregarRelatorios();
-                this.iniciarAtualizacaoTempoReal();
-            }
-
-            // ✅ VERIFICAÇÃO DE AUTENTICAÇÃO SIMPLIFICADA
-            requireAuth() {
-                const token = localStorage.getItem('kronos_token');
-                const user = localStorage.getItem('kronos_user');
-                
-                if (!token || !user) {
-                    this.mostrarError('Usuário não autenticado');
-                    setTimeout(() => window.location.href = 'index.html', 2000);
-                    return false;
-                }
-                
-                return true;
-            }
-
-            getUser() {
-                try {
-                    return JSON.parse(localStorage.getItem('kronos_user') || '{}');
-                } catch {
-                    return { nome: 'Usuário' };
-                }
-            }
-
-            // ✅ CONFIGURAR INTERFACE BASEADA NO USUÁRIO
-            configurarInterfaceUsuario() {
-                const infoSetorContainer = document.getElementById('infoSetorContainer');
-                const filtroSetorContainer = document.getElementById('filtroSetorContainer');
-                
-                // Atualizar informações do usuário
-                document.getElementById('userInfo').textContent = `Usuário: ${this.usuario.nome?.split(' ')[0] || 'Usuário'}`;
-                
-                if (this.setorUsuario) {
-                    // Mostrar info do setor específico
-                    infoSetorContainer.style.display = 'block';
-                    document.getElementById('setorNome').textContent = this.setorUsuario;
-                    
-                    // Configurar filtro automaticamente
-                    setTimeout(() => {
-                        const setorFiltro = document.getElementById('setorFiltro');
-                        if (setorFiltro) {
-                            setorFiltro.value = this.setorUsuario;
-                        }
-                    }, 1000);
-                }
-            }
-
-            // ✅ CARREGAR DADOS DOS RELATÓRIOS - CORRIGIDO (SEM FALLBACK)
-            async carregarRelatorios() {
-                this.mostrarLoading(true);
-                this.esconderError();
-                
-                try {
-                    await this.carregarDadosReais();
-                    
-                    // Mostrar indicador de tempo real
-                    document.getElementById('tempoRealIndicator').style.display = 'block';
-                    
-                    // Atualizar interface
-                    this.atualizarDadosDashboard();
-                    this.atualizarGraficos();
-                    this.atualizarTabelas();
-                    
-                    this.mostrarLoading(false);
-                    this.mostrarNotificacao('Relatórios carregados com sucesso!');
-                    
-                } catch (error) {
-                    console.error('❌ Erro ao carregar relatórios:', error);
-                    
-                    // ❌ IMPORTANTE: Não gerar dados simulados, apenas mostrar erro
-                    this.dadosRelatorios = null;
-                    
-                    // Mostrar mensagem de erro clara para o usuário
-                    this.mostrarError('❌ ' + error.message);
-                    
-                    this.mostrarLoading(false);
-                    
-                    // Esconder indicador de tempo real em caso de erro
-                    document.getElementById('tempoRealIndicator').style.display = 'none';
-                }
-            }
-
-            // ✅ CARREGAR DADOS REAIS DA API - CORRIGIDO (SEM FALLBACK)
-            async carregarDadosReais() {
-                try {
-                    const token = localStorage.getItem('kronos_token');
-                    if (!token) throw new Error('Token não encontrado');
-
-                    // Obter parâmetros dos filtros
-                    const periodo = document.getElementById('periodo').value;
-                    const setor = document.getElementById('setorFiltro').value;
-                    const status = document.getElementById('statusFiltro').value;
-                    const prioridade = document.getElementById('prioridadeFiltro').value;
-                    const dataInicio = document.getElementById('dataInicio').value;
-                    const dataFim = document.getElementById('dataFim').value;
-
-                    // Construir URL com filtros
-                    let url = this.API_BASE_URL + '/api/relatorios';
-                    const params = new URLSearchParams();
-                    
-                    if (periodo && periodo !== 'todos') params.append('periodo', periodo);
-                    if (setor && setor !== 'todos') params.append('setor', setor);
-                    if (status && status !== 'todos') params.append('status', status);
-                    if (prioridade && prioridade !== 'todos') params.append('prioridade', prioridade);
-                    if (dataInicio) params.append('data_inicio', dataInicio);
-                    if (dataFim) params.append('data_fim', dataFim);
-                    
-                    if (params.toString()) {
-                        url += '?' + params.toString();
-                    }
-
-                    console.log('📊 Buscando relatórios:', url);
-
-                    const response = await fetch(url, {
-                        headers: {
-                            'Authorization': `Bearer ${token}`,
-                            'Content-Type': 'application/json'
-                        }
-                    });
-
-                    if (!response.ok) {
-                        let errorMsg = `Erro HTTP: ${response.status}`;
-                        
-                        // Mensagens mais específicas baseadas no status
-                        if (response.status === 401) {
-                            errorMsg = 'Sessão expirada. Faça login novamente.';
-                            setTimeout(() => window.location.href = 'index.html', 2000);
-                        } else if (response.status === 403) {
-                            errorMsg = 'Sem permissão para acessar relatórios.';
-                        } else if (response.status === 404) {
-                            errorMsg = 'API de relatórios não encontrada.';
-                        } else if (response.status >= 500) {
-                            errorMsg = 'Erro no servidor. Tente novamente mais tarde.';
-                        }
-                        
-                        throw new Error(errorMsg);
-                    }
-
-                    const dadosAPI = await response.json();
-                    
-                    if (dadosAPI && dadosAPI.success) {
-                        console.log('✅ Dados recebidos da API:', dadosAPI.dados);
-                        this.dadosRelatorios = this.processarDadosAPI(dadosAPI.dados);
-                        
-                        // Esconder indicador de erro se estava visível
-                        this.esconderError();
-                        
-                    } else {
-                        throw new Error(dadosAPI.message || 'Resposta inválida da API');
-                    }
-                    
-                } catch (error) {
-                    console.error('❌ Erro na API:', error);
-                    
-                    // ❌ NÃO USAR MAIS DADOS SIMULADOS
-                    // Lançar erro para ser capturado pelo carregarRelatorios()
-                    throw new Error(error.message || 'Erro ao carregar relatórios da API');
-                }
-            }
-
-            // ✅ CARREGAR SETORES DISPONÍVEIS
-            async carregarSetores() {
-                try {
-                    const token = localStorage.getItem('kronos_token');
-                    const response = await fetch(this.API_BASE_URL + '/api/relatorios/setores', {
-                        headers: {
-                            'Authorization': `Bearer ${token}`,
-                            'Content-Type': 'application/json'
-                        }
-                    });
-
-                    if (response.ok) {
-                        const data = await response.json();
-                        if (data.success && data.data) {
-                            this.adicionarOpcoesSetor(data.data);
-                        }
-                    }
-                } catch (error) {
-                    console.warn('⚠️ Erro ao carregar setores:', error);
-                    // Setores padrão como fallback apenas para o select, não para os dados
-                    this.adicionarOpcoesSetor(['TI', 'Manutenção', 'Enfermaria', 'UTI', 'Laboratório']);
-                }
-            }
-
-            adicionarOpcoesSetor(setores) {
-                const select = document.getElementById('setorFiltro');
-                if (!select) return;
-                
-                // Limpar opções existentes (exceto "Todos")
-                while (select.children.length > 1) {
-                    select.removeChild(select.lastChild);
-                }
-                
-                // Adicionar setores
-                setores.forEach(setor => {
-                    const option = document.createElement('option');
-                    option.value = setor;
-                    option.textContent = setor;
-                    select.appendChild(option);
-                });
-            }
-
-            // ✅ PROCESSAR DADOS DA API - CORRIGIDO
-            processarDadosAPI(dadosAPI) {
-                const ordensServico = dadosAPI.chamados || [];
-                const estatisticas = dadosAPI.estatisticas || {};
-                const agrupamentos = dadosAPI.agrupamentos || {};
-                
-                return {
-                    ordensServico,
-                    metricas: estatisticas,
-                    contagemSetores: agrupamentos.setoresExecutantes || {},
-                    contagemStatus: agrupamentos.status || {},
-                    contagemPrioridade: agrupamentos.prioridades || {},
-                    categoriasPorSetor: agrupamentos.categoriasPorSetor || {},
-                    tendenciaDiaria: this.gerarTendenciaDiaria(ordensServico),
-                    tempoPorSetor: agrupamentos.tempoMedioSetor || {},
-                    slaPorSetor: this.calcularSLAPorSetor(ordensServico),
-                    desempenhoSetores: this.calcularDesempenhoSetores(ordensServico)
-                };
-            }
-
-            // ✅ FUNÇÕES AUXILIARES PARA CÁLCULOS
-            calcularMetricas(ordensServico) {
-                const totalOS = ordensServico.length;
-                const osFinalizadas = ordensServico.filter(os => os.status === 'Finalizado').length;
-                const osAndamento = ordensServico.filter(os => os.status === 'Em Andamento').length;
-                const osAguardando = ordensServico.filter(os => os.status === 'Aguardando Peças').length;
-                const taxaConclusao = totalOS > 0 ? Math.round((osFinalizadas / totalOS) * 100) : 0;
-                
-                // Calcular tempo médio de resolução
-                let somaHoras = 0;
-                let totalComTempo = 0;
-                
-                ordensServico.forEach(os => {
-                    if (os.status === 'Finalizado' && os.data_abertura && os.data_fechamento) {
-                        const abertura = new Date(os.data_abertura);
-                        const fechamento = new Date(os.data_fechamento);
-                        const horas = Math.round((fechamento - abertura) / (1000 * 60 * 60));
-                        somaHoras += horas;
-                        totalComTempo++;
-                    }
-                });
-                
-                const tempoMedioResolucao = totalComTempo > 0 ? Math.round(somaHoras / totalComTempo) : 0;
-                
-                // Calcular SLA
-                let dentroSLA = 0;
-                ordensServico.forEach(os => {
-                    if (os.status === 'Finalizado' && os.data_abertura && os.data_fechamento) {
-                        const abertura = new Date(os.data_abertura);
-                        const fechamento = new Date(os.data_fechamento);
-                        const horas = Math.round((fechamento - abertura) / (1000 * 60 * 60));
-                        
-                        const limites = {
-                            'Baixa': 72,
-                            'Média': 48,
-                            'Alta': 24,
-                            'Crítica': 8
-                        };
-                        const limite = limites[os.prioridade] || 48;
-                        
-                        if (horas <= limite) dentroSLA++;
-                    }
-                });
-                
-                const taxaSLA = totalComTempo > 0 ? Math.round((dentroSLA / totalComTempo) * 100) : 0;
-                
-                // Setor mais demandado
-                const contagemSetores = this.contarPorSetor(ordensServico);
-                const setorTop = Object.keys(contagemSetores).length > 0 ? 
-                    Object.keys(contagemSetores).reduce((a, b) => 
-                        contagemSetores[a] > contagemSetores[b] ? a : b
-                    ) : 'N/A';
-                
-                return {
-                    totalOS,
-                    osFinalizadas,
-                    osAndamento,
-                    osAguardando,
-                    taxaConclusao,
-                    tempoMedioResolucao,
-                    taxaSLACumprido: taxaSLA,
-                    setorTop,
-                    primeiraResposta: 0,
-                    taxaReabertura: 0,
-                    satisfacao: 0,
-                    custoMedio: 0,
-                    eficienciaGeral: totalComTempo > 0 ? Math.round((taxaConclusao + taxaSLA) / 2) : 0
-                };
-            }
-
-            contarPorSetor(ordensServico) {
-                const contagem = {};
-                ordensServico.forEach(os => {
-                    const setor = os.setor_origem || 'Não informado';
-                    contagem[setor] = (contagem[setor] || 0) + 1;
-                });
-                return contagem;
-            }
-
-            contarPorStatus(ordensServico) {
-                const contagem = {};
-                ordensServico.forEach(os => {
-                    contagem[os.status] = (contagem[os.status] || 0) + 1;
-                });
-                return contagem;
-            }
-
-            contarPorPrioridade(ordensServico) {
-                const contagem = {};
-                ordensServico.forEach(os => {
-                    contagem[os.prioridade] = (contagem[os.prioridade] || 0) + 1;
-                });
-                return contagem;
-            }
-
-            gerarTendenciaDiaria(ordensServico) {
-                const tendencia = {};
-                const dataAtual = new Date();
-                
-                for (let i = 0; i < 30; i++) {
-                    const data = new Date(dataAtual);
-                    data.setDate(data.getDate() - i);
-                    const dataStr = data.toISOString().split('T')[0];
-                    
-                    const osDoDia = ordensServico.filter(os => {
-                        const dataOS = new Date(os.data_abertura).toISOString().split('T')[0];
-                        return dataOS === dataStr;
-                    });
-                    
-                    tendencia[dataStr] = osDoDia.length;
-                }
-                
-                return tendencia;
-            }
-
-            calcularTempoPorSetor(ordensServico) {
-                const tempos = {};
-                const contagem = {};
-                
-                ordensServico.forEach(os => {
-                    if (os.status === 'Finalizado' && os.data_abertura && os.data_fechamento && os.setor_destino) {
-                        const abertura = new Date(os.data_abertura);
-                        const fechamento = new Date(os.data_fechamento);
-                        const horas = Math.round((fechamento - abertura) / (1000 * 60 * 60));
-                        
-                        if (!tempos[os.setor_destino]) {
-                            tempos[os.setor_destino] = 0;
-                            contagem[os.setor_destino] = 0;
-                        }
-                        
-                        tempos[os.setor_destino] += horas;
-                        contagem[os.setor_destino]++;
-                    }
-                });
-                
-                const resultado = {};
-                Object.keys(tempos).forEach(setor => {
-                    resultado[setor] = contagem[setor] > 0 ? Math.round(tempos[setor] / contagem[setor]) : 0;
-                });
-                
-                return resultado;
-            }
-
-            calcularSLAPorSetor(ordensServico) {
-                const sla = {};
-                const dentroSLA = {};
-                const contagem = {};
-                
-                ordensServico.forEach(os => {
-                    if (os.status === 'Finalizado' && os.data_abertura && os.data_fechamento && os.setor_destino) {
-                        const abertura = new Date(os.data_abertura);
-                        const fechamento = new Date(os.data_fechamento);
-                        const horas = Math.round((fechamento - abertura) / (1000 * 60 * 60));
-                        
-                        const limites = {
-                            'Baixa': 72,
-                            'Média': 48,
-                            'Alta': 24,
-                            'Crítica': 8
-                        };
-                        const limite = limites[os.prioridade] || 48;
-                        
-                        if (!dentroSLA[os.setor_destino]) {
-                            dentroSLA[os.setor_destino] = 0;
-                            contagem[os.setor_destino] = 0;
-                        }
-                        
-                        contagem[os.setor_destino]++;
-                        if (horas <= limite) {
-                            dentroSLA[os.setor_destino]++;
-                        }
-                    }
-                });
-                
-                Object.keys(contagem).forEach(setor => {
-                    sla[setor] = contagem[setor] > 0 ? Math.round((dentroSLA[setor] / contagem[setor]) * 100) : 0;
-                });
-                
-                return sla;
-            }
-
-            calcularDesempenhoSetores(ordensServico) {
-                const setores = [...new Set(ordensServico.map(os => os.setor_origem))];
-                const desempenho = {};
-                
-                setores.forEach(setor => {
-                    const osSetor = ordensServico.filter(os => os.setor_origem === setor);
-                    const osFinalizadas = osSetor.filter(os => os.status === 'Finalizado').length;
-                    const totalOS = osSetor.length;
-                    const taxaConclusao = totalOS > 0 ? Math.round((osFinalizadas / totalOS) * 100) : 0;
-                    
-                    // Calcular SLA para o setor
-                    let dentroSLA = 0;
-                    let totalComTempo = 0;
-                    
-                    osSetor.forEach(os => {
-                        if (os.status === 'Finalizado' && os.data_abertura && os.data_fechamento) {
-                            const abertura = new Date(os.data_abertura);
-                            const fechamento = new Date(os.data_fechamento);
-                            const horas = Math.round((fechamento - abertura) / (1000 * 60 * 60));
-                            
-                            const limites = {
-                                'Baixa': 72,
-                                'Média': 48,
-                                'Alta': 24,
-                                'Crítica': 8
-                            };
-                            const limite = limites[os.prioridade] || 48;
-                            
-                            totalComTempo++;
-                            if (horas <= limite) dentroSLA++;
-                        }
-                    });
-                    
-                    const taxaSLA = totalComTempo > 0 ? Math.round((dentroSLA / totalComTempo) * 100) : 0;
-                    
-                    desempenho[setor] = {
-                        totalOS,
-                        osFinalizadas,
-                        taxaConclusao,
-                        tempoMedio: 0,
-                        taxaSLA,
-                        eficiencia: totalComTempo > 0 ? Math.round((taxaConclusao + taxaSLA) / 2) : 0
-                    };
-                });
-                
-                return desempenho;
-            }
-
-            // ✅ MÉTODO PARA OBTER CLASSE DO SLA
-            obterClasseSLA(status) {
-                if (status === 'Dentro do SLA') return 'sla-badge sla-dentro';
-                if (status === 'Fora do SLA') return 'sla-badge sla-fora';
-                return 'sla-badge sla-aberto';
-            }
-
-            // ✅ ATUALIZAR DADOS DO DASHBOARD - CORRIGIDO
-            atualizarDadosDashboard() {
-                if (!this.dadosRelatorios) return;
-                
-                const metricas = this.dadosRelatorios.metricas;
-                
-                // Atualizar cards principais
-                this.atualizarElemento('totalOS', metricas.totalOS || 0);
-                this.atualizarElemento('taxaConclusao', (metricas.taxaConclusao || 0) + '%');
-                this.atualizarElemento('tempoMedio', (metricas.tempoMedioResolucao || 0) + 'h');
-                this.atualizarElemento('setorTop', metricas.setorTop || '-');
-                this.atualizarElemento('topCategoriaTI', metricas.topCategoriaTI?.categoria || '-');
-                this.atualizarElemento('topCategoriaTIQuantidade', `${metricas.topCategoriaTI?.quantidade || 0} OS`);
-                this.atualizarElemento('topCategoriaManutencao', metricas.topCategoriaManutencao?.categoria || '-');
-                this.atualizarElemento('topCategoriaManutencaoQuantidade', `${metricas.topCategoriaManutencao?.quantidade || 0} OS`);
-                this.atualizarElemento('osAndamento', metricas.osAndamento || 0);
-                this.atualizarElemento('osAguardando', metricas.osAguardando || 0);
-                
-                // Atualizar métricas de tempo - CORRIGIDO
-                this.atualizarElemento('tempoResolucaoMedia', (metricas.tempoMedioResolucao || 0) + 'h');
-                this.atualizarElemento('slaCumprido', (metricas.taxaSLACumprido || 0) + '%');
-                this.atualizarElemento('eficienciaGeral', (metricas.eficienciaGeral || 0) + '%');
-                
-                // Atualizar barras de progresso
-                const maxTempoEsperado = 48; // 48 horas como referência máxima
-                const percentualTempo = metricas.tempoMedioResolucao ? 
-                    Math.min(100, (metricas.tempoMedioResolucao / maxTempoEsperado) * 100) : 0;
-                this.atualizarProgresso('progressResolucao', percentualTempo);
-                this.atualizarProgresso('progressSLA', metricas.taxaSLACumprido || 0);
-                this.atualizarProgresso('progressEficiencia', metricas.eficienciaGeral || 0);
-                
-                // Atualizar métricas avançadas
-                this.atualizarElemento('primeiraResposta', (metricas.primeiraResposta || 0) + 'h');
-                this.atualizarElemento('taxaReabertura', (metricas.taxaReabertura || 0) + '%');
-                this.atualizarElemento('satisfacao', (metricas.satisfacao || 0) + '%');
-                this.atualizarElemento('custoMedio', 'R$ ' + (metricas.custoMedio || 0).toLocaleString());
-            }
-
-            atualizarElemento(id, valor) {
-                const elemento = document.getElementById(id);
-                if (elemento) elemento.textContent = valor;
-            }
-
-            atualizarProgresso(id, percentual) {
-                const elemento = document.getElementById(id);
-                if (elemento) elemento.style.width = percentual + '%';
-            }
-
-            // ✅ ATUALIZAR GRÁFICOS - CORRIGIDO
-            atualizarGraficos() {
-                if (!this.dadosRelatorios) return;
-                
-                // Destruir gráficos existentes
-                Object.values(this.graficos).forEach(grafico => {
-                    if (grafico && typeof grafico.destroy === 'function') {
-                        grafico.destroy();
-                    }
-                });
-                
-                this.graficos = {};
-                
-                this.criarGraficoSetores();
-                this.criarGraficoStatus();
-                this.criarGraficoTendencia();
-                this.criarGraficoTempoSetor();
-                this.criarGraficoPrioridade();
-                this.criarGraficoSLASetor();
-                this.criarGraficoTendenciaSLA();
-                this.criarGraficoEficiencia();
-                this.criarGraficoTopSetores();
-                this.criarGraficoComparativoSetores();
-            }
-
-            // ✅ IMPLEMENTAÇÃO DOS GRÁFICOS CORRIGIDA
-            criarGraficoSetores() {
-                const ctx = document.getElementById('graficoSetores');
-                if (!ctx) return;
-                
-                const dados = this.dadosRelatorios.contagemSetores;
-                const labels = Object.keys(dados);
-                const valores = Object.values(dados);
-                
-                if (labels.length === 0) {
-                    ctx.parentNode.innerHTML = '<p style="color: var(--gray); text-align: center;">Sem dados disponíveis</p>';
-                    return;
-                }
-                
-                this.graficos.setores = new Chart(ctx, {
-                    type: 'pie',
-                    data: {
-                        labels: labels,
-                        datasets: [{
-                            data: valores,
-                            backgroundColor: [
-                                '#4FC3F7', '#BA68C8', '#66BB6A', '#FFA726', '#EF5350',
-                                '#29B6F6', '#7E57C2', '#26A69A', '#D4E157', '#FF7043'
-                            ],
-                            borderWidth: 2,
-                            borderColor: 'rgba(255,255,255,0.1)'
-                        }]
-                    },
-                    options: {
-                        responsive: true,
-                        maintainAspectRatio: false,
-                        plugins: {
-                            legend: {
-                                position: 'right',
-                                labels: {
-                                    color: '#CBD5E1',
-                                    font: { size: 11 }
-                                }
-                            }
-                        }
-                    }
-                });
-            }
-
-            criarGraficoStatus() {
-                const ctx = document.getElementById('graficoStatus');
-                if (!ctx) return;
-                
-                const dados = this.dadosRelatorios.contagemStatus;
-                const labels = Object.keys(dados);
-                const valores = Object.values(dados);
-                
-                if (labels.length === 0) {
-                    ctx.parentNode.innerHTML = '<p style="color: var(--gray); text-align: center;">Sem dados disponíveis</p>';
-                    return;
-                }
-                
-                this.graficos.status = new Chart(ctx, {
-                    type: 'doughnut',
-                    data: {
-                        labels: labels,
-                        datasets: [{
-                            data: valores,
-                            backgroundColor: [
-                                '#4FC3F7', // Aberto
-                                '#FFA726', // Em Andamento
-                                '#BA68C8', // Aguardando Peças
-                                '#66BB6A', // Finalizado
-                                '#EF5350'  // Cancelado
-                            ],
-                            borderWidth: 2,
-                            borderColor: 'rgba(255,255,255,0.1)'
-                        }]
-                    },
-                    options: {
-                        responsive: true,
-                        maintainAspectRatio: false,
-                        plugins: {
-                            legend: {
-                                position: 'right',
-                                labels: {
-                                    color: '#CBD5E1',
-                                    font: { size: 11 }
-                                }
-                            }
-                        }
-                    }
-                });
-            }
-
-            criarGraficoTendencia() {
-                const ctx = document.getElementById('graficoTendencia');
-                if (!ctx) return;
-                
-                const dados = this.dadosRelatorios.tendenciaDiaria;
-                const labels = Object.keys(dados).slice(0, 15).map(data => {
-                    const date = new Date(data);
-                    return `${date.getDate()}/${date.getMonth() + 1}`;
-                }).reverse();
-                
-                const valores = Object.values(dados).slice(0, 15).reverse();
-                
-                if (valores.every(v => v === 0)) {
-                    ctx.parentNode.innerHTML = '<p style="color: var(--gray); text-align: center;">Sem dados de tendência disponíveis</p>';
-                    return;
-                }
-                
-                this.graficos.tendencia = new Chart(ctx, {
-                    type: 'line',
-                    data: {
-                        labels: labels,
-                        datasets: [{
-                            label: 'OS por Dia',
-                            data: valores,
-                            borderColor: '#4FC3F7',
-                            backgroundColor: 'rgba(79, 195, 247, 0.1)',
-                            borderWidth: 2,
-                            fill: true,
-                            tension: 0.4
-                        }]
-                    },
-                    options: {
-                        responsive: true,
-                        maintainAspectRatio: false,
-                        plugins: {
-                            legend: {
-                                labels: {
-                                    color: '#CBD5E1'
-                                }
-                            }
-                        },
-                        scales: {
-                            x: {
-                                grid: { color: 'rgba(255,255,255,0.1)' },
-                                ticks: { color: '#CBD5E1' }
-                            },
-                            y: {
-                                grid: { color: 'rgba(255,255,255,0.1)' },
-                                ticks: { color: '#CBD5E1' }
-                            }
-                        }
-                    }
-                });
-            }
-
-            criarGraficoTempoSetor() {
-                const ctx = document.getElementById('graficoTempoSetor');
-                if (!ctx) return;
-                
-                const dados = this.dadosRelatorios.tempoPorSetor;
-                const labels = Object.keys(dados);
-                const valores = Object.values(dados);
-                
-                if (labels.length === 0 || valores.every(v => v === 0)) {
-                    ctx.parentNode.innerHTML = '<p style="color: var(--gray); text-align: center;">Sem dados de tempo por setor</p>';
-                    return;
-                }
-                
-                this.graficos.tempoSetor = new Chart(ctx, {
-                    type: 'bar',
-                    data: {
-                        labels: labels,
-                        datasets: [{
-                            label: 'Horas',
-                            data: valores,
-                            backgroundColor: '#BA68C8',
-                            borderColor: '#BA68C8',
-                            borderWidth: 1
-                        }]
-                    },
-                    options: {
-                        responsive: true,
-                        maintainAspectRatio: false,
-                        plugins: {
-                            legend: {
-                                labels: {
-                                    color: '#CBD5E1'
-                                }
-                            }
-                        },
-                        scales: {
-                            x: {
-                                grid: { color: 'rgba(255,255,255,0.1)' },
-                                ticks: { color: '#CBD5E1' }
-                            },
-                            y: {
-                                grid: { color: 'rgba(255,255,255,0.1)' },
-                                ticks: { color: '#CBD5E1' }
-                            }
-                        }
-                    }
-                });
-            }
-
-            criarGraficoPrioridade() {
-                const ctx = document.getElementById('graficoPrioridade');
-                if (!ctx) return;
-                
-                const dados = this.dadosRelatorios.contagemPrioridade;
-                const labels = Object.keys(dados);
-                const valores = Object.values(dados);
-                
-                if (labels.length === 0) {
-                    ctx.parentNode.innerHTML = '<p style="color: var(--gray); text-align: center;">Sem dados de prioridade</p>';
-                    return;
-                }
-                
-                this.graficos.prioridade = new Chart(ctx, {
-                    type: 'doughnut',
-                    data: {
-                        labels: labels,
-                        datasets: [{
-                            data: valores,
-                            backgroundColor: [
-                                '#66BB6A', // Baixa
-                                '#4FC3F7', // Média
-                                '#FFA726', // Alta
-                                '#EF5350'  // Crítica
-                            ],
-                            borderWidth: 2,
-                            borderColor: 'rgba(255,255,255,0.1)'
-                        }]
-                    },
-                    options: {
-                        responsive: true,
-                        maintainAspectRatio: false,
-                        plugins: {
-                            legend: {
-                                position: 'right',
-                                labels: {
-                                    color: '#CBD5E1',
-                                    font: { size: 11 }
-                                }
-                            }
-                        }
-                    }
-                });
-            }
-
-            criarGraficoSLASetor() {
-                const ctx = document.getElementById('graficoSLASetor');
-                if (!ctx) return;
-                
-                const dados = this.dadosRelatorios.slaPorSetor;
-                const labels = Object.keys(dados);
-                const valores = Object.values(dados);
-                
-                if (labels.length === 0) {
-                    ctx.parentNode.innerHTML = '<p style="color: var(--gray); text-align: center;">Sem dados de SLA por setor</p>';
-                    return;
-                }
-                
-                this.graficos.slaSetor = new Chart(ctx, {
-                    type: 'radar',
-                    data: {
-                        labels: labels,
-                        datasets: [{
-                            label: 'SLA Cumprido (%)',
-                            data: valores,
-                            backgroundColor: 'rgba(79, 195, 247, 0.2)',
-                            borderColor: '#4FC3F7',
-                            borderWidth: 2,
-                            pointBackgroundColor: '#4FC3F7'
-                        }]
-                    },
-                    options: {
-                        responsive: true,
-                        maintainAspectRatio: false,
-                        scales: {
-                            r: {
-                                angleLines: { color: 'rgba(255,255,255,0.1)' },
-                                grid: { color: 'rgba(255,255,255,0.1)' },
-                                pointLabels: { color: '#CBD5E1' },
-                                ticks: { 
-                                    color: '#CBD5E1',
-                                    backdropColor: 'transparent'
-                                }
-                            }
-                        }
-                    }
-                });
-            }
-
-            criarGraficoTendenciaSLA() {
-                const ctx = document.getElementById('graficoTendenciaSLA');
-                if (!ctx) return;
-                
-                // Se não houver dados suficientes, mostrar mensagem
-                if (!this.dadosRelatorios.metricas.taxaSLACumprido) {
-                    ctx.parentNode.innerHTML = '<p style="color: var(--gray); text-align: center;">Dados insuficientes para tendência de SLA</p>';
-                    return;
-                }
-                
-                const labels = ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun'];
-                const valores = Array(6).fill(this.dadosRelatorios.metricas.taxaSLACumprido || 0);
-                
-                this.graficos.tendenciaSLA = new Chart(ctx, {
-                    type: 'line',
-                    data: {
-                        labels: labels,
-                        datasets: [{
-                            label: 'SLA (%)',
-                            data: valores,
-                            borderColor: '#66BB6A',
-                            backgroundColor: 'rgba(102, 187, 106, 0.1)',
-                            borderWidth: 2,
-                            fill: true,
-                            tension: 0.4
-                        }]
-                    },
-                    options: {
-                        responsive: true,
-                        maintainAspectRatio: false,
-                        plugins: {
-                            legend: {
-                                labels: {
-                                    color: '#CBD5E1'
-                                }
-                            }
-                        },
-                        scales: {
-                            x: {
-                                grid: { color: 'rgba(255,255,255,0.1)' },
-                                ticks: { color: '#CBD5E1' }
-                            },
-                            y: {
-                                grid: { color: 'rgba(255,255,255,0.1)' },
-                                ticks: { color: '#CBD5E1' }
-                            }
-                        }
-                    }
-                });
-            }
-
-            criarGraficoEficiencia() {
-                const ctx = document.getElementById('graficoEficiencia');
-                if (!ctx) return;
-                
-                const metricas = this.dadosRelatorios.metricas;
-                
-                const labels = ['Tempo Médio', 'Taxa Conclusão', 'SLA', 'Satisfação'];
-                const valores = [
-                    metricas.tempoMedioResolucao ? Math.min(100, (metricas.tempoMedioResolucao / 48) * 100) : 0,
-                    metricas.taxaConclusao || 0,
-                    metricas.taxaSLACumprido || 0,
-                    metricas.satisfacao || 0
-                ];
-                
-                this.graficos.eficiencia = new Chart(ctx, {
-                    type: 'bar',
-                    data: {
-                        labels: labels,
-                        datasets: [{
-                            label: 'Pontuação (%)',
-                            data: valores,
-                            backgroundColor: [
-                                '#4FC3F7', '#BA68C8', '#66BB6A', '#FFA726'
-                            ]
-                        }]
-                    },
-                    options: {
-                        responsive: true,
-                        maintainAspectRatio: false,
-                        plugins: {
-                            legend: {
-                                labels: {
-                                    color: '#CBD5E1'
-                                }
-                            }
-                        },
-                        scales: {
-                            x: {
-                                grid: { color: 'rgba(255,255,255,0.1)' },
-                                ticks: { color: '#CBD5E1' }
-                            },
-                            y: {
-                                grid: { color: 'rgba(255,255,255,0.1)' },
-                                ticks: { color: '#CBD5E1' }
-                            }
-                        }
-                    }
-                });
-            }
-
-            criarGraficoTopSetores() {
-                const ctx = document.getElementById('graficoTopSetores');
-                if (!ctx) return;
-                
-                const desempenho = this.dadosRelatorios.desempenhoSetores;
-                
-                if (Object.keys(desempenho).length === 0) {
-                    ctx.parentNode.innerHTML = '<p style="color: var(--gray); text-align: center;">Sem dados de desempenho por setor</p>';
-                    return;
-                }
-                
-                // Ordenar por eficiência
-                const setoresOrdenados = Object.entries(desempenho)
-                    .sort(([,a], [,b]) => b.eficiencia - a.eficiencia)
-                    .slice(0, 5);
-                
-                const labels = setoresOrdenados.map(([setor]) => setor);
-                const valores = setoresOrdenados.map(([,dados]) => dados.eficiencia);
-                
-                this.graficos.topSetores = new Chart(ctx, {
-                    type: 'bar',
-                    data: {
-                        labels: labels,
-                        datasets: [{
-                            label: 'Eficiência (%)',
-                            data: valores,
-                            backgroundColor: '#4FC3F7'
-                        }]
-                    },
-                    options: {
-                        indexAxis: 'y',
-                        responsive: true,
-                        maintainAspectRatio: false,
-                        plugins: {
-                            legend: {
-                                labels: {
-                                    color: '#CBD5E1'
-                                }
-                            }
-                        },
-                        scales: {
-                            x: {
-                                grid: { color: 'rgba(255,255,255,0.1)' },
-                                ticks: { color: '#CBD5E1' }
-                            },
-                            y: {
-                                grid: { color: 'rgba(255,255,255,0.1)' },
-                                ticks: { color: '#CBD5E1' }
-                            }
-                        }
-                    }
-                });
-            }
-
-            criarGraficoComparativoSetores() {
-                const ctx = document.getElementById('graficoComparativoSetores');
-                if (!ctx) return;
-                
-                const desempenho = this.dadosRelatorios.desempenhoSetores;
-                
-                if (Object.keys(desempenho).length === 0) {
-                    ctx.parentNode.innerHTML = '<p style="color: var(--gray); text-align: center;">Sem dados comparativos</p>';
-                    return;
-                }
-                
-                const setores = Object.keys(desempenho).slice(0, 5);
-                const taxasConclusao = setores.map(setor => desempenho[setor].taxaConclusao);
-                const taxasSLA = setores.map(setor => desempenho[setor].taxaSLA);
-                
-                this.graficos.comparativoSetores = new Chart(ctx, {
-                    type: 'bar',
-                    data: {
-                        labels: setores,
-                        datasets: [
-                            {
-                                label: 'Taxa Conclusão (%)',
-                                data: taxasConclusao,
-                                backgroundColor: '#4FC3F7'
-                            },
-                            {
-                                label: 'SLA (%)',
-                                data: taxasSLA,
-                                backgroundColor: '#66BB6A'
-                            }
-                        ]
-                    },
-                    options: {
-                        responsive: true,
-                        maintainAspectRatio: false,
-                        plugins: {
-                            legend: {
-                                labels: {
-                                    color: '#CBD5E1'
-                                }
-                            }
-                        },
-                        scales: {
-                            x: {
-                                grid: { color: 'rgba(255,255,255,0.1)' },
-                                ticks: { color: '#CBD5E1' }
-                            },
-                            y: {
-                                grid: { color: 'rgba(255,255,255,0.1)' },
-                                ticks: { color: '#CBD5E1' }
-                            }
-                        }
-                    }
-                });
-            }
-
-            // ✅ ATUALIZAR TABELAS - CORRIGIDO
-            atualizarTabelas() {
-                this.atualizarTabelaDetalhada();
-                this.atualizarTabelaSetores();
-            }
-
-            // ✅ ATUALIZAR TABELA DETALHADA COM COLUNAS DE TEMPO E SLA - CORRIGIDO
-            atualizarTabelaDetalhada() {
-                const tbody = document.getElementById('corpoTabelaDetalhada');
-                if (!tbody) return;
-                
-                const ordensServico = this.dadosRelatorios.ordensServico || [];
-                
-                tbody.innerHTML = '';
-                
-                if (ordensServico.length === 0) {
-                    const row = document.createElement('tr');
-                    row.innerHTML = '<td colspan="12" style="text-align: center; padding: 2rem;">Nenhuma ordem de serviço encontrada</td>';
-                    tbody.appendChild(row);
-                    return;
-                }
-                
-                ordensServico.slice(0, 50).forEach(os => {
-                    const row = document.createElement('tr');
-                    
-                    // Usar os dados já processados pelo backend
-                    const tempo = os.tempo_resolucao_horas !== null 
-                        ? os.tempo_resolucao_horas + 'h' 
-                        : '-';
-                    
-                    const classeSLA = this.obterClasseSLA(os.sla_status);
-                    
-                    // Formatar data
-                    const dataAbertura = new Date(os.data_abertura);
-                    const dataFormatada = dataAbertura.toLocaleDateString('pt-BR') + ' ' + 
-                        dataAbertura.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
-                    
-                    row.innerHTML = `
-                        <td>#${os.id}</td>
-                        <td>${os.setor_origem || 'N/A'}</td>
-                        <td>${os.setor_destino || 'N/A'}</td>
-                        <td>${os.categoria || 'Geral'}</td>
-                        <td>${os.cliente || 'N/A'}</td>
-                        <td>${os.descricao || 'Sem descrição'}</td>
-                        <td><span class="status-badge status-${this.formatarStatusClass(os.status)}">${os.status}</span></td>
-                        <td><span class="prioridade-badge prioridade-${this.formatarPrioridadeClass(os.prioridade)}">${os.prioridade}</span></td>
-                        <td>${dataFormatada}</td>
-                        <td>${tempo}</td>
-                        <td><span class="${classeSLA}">${os.sla_status || 'Em aberto'}</span></td>
-                        <td>${os.relato_tecnico || '-'}</td>
-                    `;
-                    
-                    tbody.appendChild(row);
-                });
-            }
-
-            atualizarTabelaSetores() {
-                const tbody = document.getElementById('corpoTabelaSetores');
-                if (!tbody) return;
-                
-                const desempenho = this.dadosRelatorios.desempenhoSetores || {};
-                
-                tbody.innerHTML = '';
-                
-                if (Object.keys(desempenho).length === 0) {
-                    const row = document.createElement('tr');
-                    row.innerHTML = '<td colspan="7" style="text-align: center; padding: 2rem;">Nenhum dado de desempenho por setor disponível</td>';
-                    tbody.appendChild(row);
-                    return;
-                }
-                
-                Object.entries(desempenho)
-                    .sort(([,a], [,b]) => b.eficiencia - a.eficiencia)
-                    .forEach(([setor, dados]) => {
-                        const row = document.createElement('tr');
-                        
-                        row.innerHTML = `
-                            <td><strong>${setor}</strong></td>
-                            <td>${dados.totalOS}</td>
-                            <td>${dados.osFinalizadas}</td>
-                            <td>${dados.taxaConclusao}%</td>
-                            <td>${dados.tempoMedio}h</td>
-                            <td>${dados.taxaSLA}%</td>
-                            <td>
-                                <div class="eficiencia-indicator">
-                                    <div class="eficiencia-bar">
-                                        <div class="eficiencia-fill" style="width: ${dados.eficiencia}%"></div>
-                                    </div>
-                                    <span>${dados.eficiencia}%</span>
-                                </div>
-                            </td>
-                        `;
-                        
-                        tbody.appendChild(row);
-                    });
-            }
-
-            formatarStatusClass(status) {
-                if (!status) return 'aberto';
-                return status.toLowerCase().replace(' ', '');
-            }
-
-            formatarPrioridadeClass(prioridade) {
-                if (!prioridade) return 'media';
-                return prioridade.toLowerCase();
-            }
-
-            // ✅ SISTEMA DE EXPORTAÇÃO PDF CORRIGIDO - AGORA EXTRAI DADOS REAIS
-            async exportarRelatorioCompleto() {
-                if (!this.dadosRelatorios) {
-                    this.mostrarError('Nenhum dado disponível para exportação');
-                    return;
-                }
-                
-                this.mostrarProgressoExportacao(true);
-                
-                try {
-                    const { jsPDF } = window.jspdf;
-                    const doc = new jsPDF();
-                    
-                    // Configurações do documento
-                    const pageWidth = doc.internal.pageSize.getWidth();
-                    const margin = 20;
-                    let yPos = margin;
-                    
-                    // Cabeçalho profissional
-                    this.adicionarCabecalhoPDF(doc, 'Relatório Completo de OS', yPos);
-                    yPos = 60;
-                    
-                    // Resumo Executivo com dados reais
-                    yPos = this.adicionarResumoExecutivoPDF(doc, yPos);
-                    
-                    // Métricas Detalhadas com dados reais
-                    yPos = this.adicionarMetricasDetalhadasPDF(doc, yPos);
-                    
-                    // Análise por Setor com dados reais
-                    yPos = this.adicionarAnaliseSetoresPDF(doc, yPos);
-                    
-                    // Tabela de OS Detalhada
-                    yPos = this.adicionarTabelaOSPDF(doc, yPos);
-                    
-                    // Salvar PDF
-                    const fileName = `Relatorio_Kronos_OS_${this.formatarDataArquivo()}.pdf`;
-                    doc.save(fileName);
-                    
-                    this.mostrarProgressoExportacao(false);
-                    this.mostrarNotificacao('📊 Relatório completo gerado com sucesso!');
-                    
-                } catch (error) {
-                    console.error('❌ Erro ao gerar relatório completo:', error);
-                    this.mostrarProgressoExportacao(false);
-                    this.mostrarError('Erro ao gerar relatório: ' + error.message);
-                }
-            }
-
-            async exportarRelatorioExecutivo() {
-                if (!this.dadosRelatorios) {
-                    this.mostrarError('Nenhum dado disponível para exportação');
-                    return;
-                }
-                
-                this.mostrarProgressoExportacao(true);
-                
-                try {
-                    const { jsPDF } = window.jspdf;
-                    const doc = new jsPDF();
-                    
-                    const pageWidth = doc.internal.pageSize.getWidth();
-                    const margin = 20;
-                    let yPos = margin;
-                    
-                    // Cabeçalho executivo
-                    this.adicionarCabecalhoExecutivoPDF(doc, 'Relatório Executivo', yPos);
-                    yPos = 50;
-                    
-                    // Métricas Principais com dados reais
-                    yPos = this.adicionarMetricasPrincipaisPDF(doc, yPos);
-                    
-                    // KPIs Chave com dados reais
-                    yPos = this.adicionarKPIsPDF(doc, yPos);
-                    
-                    // Insights Executivos
-                    yPos = this.adicionarInsightsExecutivosPDF(doc, yPos);
-                    
-                    const fileName = `Relatorio_Executivo_Kronos_${this.formatarDataArquivo()}.pdf`;
-                    doc.save(fileName);
-                    
-                    this.mostrarProgressoExportacao(false);
-                    this.mostrarNotificacao('📈 Relatório executivo gerado com sucesso!');
-                    
-                } catch (error) {
-                    console.error('❌ Erro ao gerar relatório executivo:', error);
-                    this.mostrarProgressoExportacao(false);
-                    this.mostrarError('Erro ao gerar relatório executivo: ' + error.message);
-                }
-            }
-
-            // ✅ FUNÇÕES DE EXPORTAÇÃO PDF CORRIGIDAS - AGORA USAM DADOS REAIS
-            adicionarCabecalhoPDF(doc, titulo, yPos) {
-                // Logo e título
-                doc.setFillColor(15, 23, 42);
-                doc.rect(0, 0, doc.internal.pageSize.getWidth(), 50, 'F');
-                
-                doc.setTextColor(79, 195, 247);
-                doc.setFontSize(20);
-                doc.setFont('helvetica', 'bold');
-                doc.text('KRONOS OS', 20, 20);
-                
-                doc.setFontSize(16);
-                doc.text(titulo, 20, 30);
-                
-                // Informações do relatório
-                doc.setTextColor(255, 255, 255);
-                doc.setFontSize(10);
-                doc.setFont('helvetica', 'normal');
-                doc.text(`Gerado em: ${new Date().toLocaleString('pt-BR')}`, 20, 40);
-                doc.text(`Usuário: ${this.usuario.nome || 'N/A'}`, 20, 45);
-                
-                // Linha divisória
-                doc.setDrawColor(79, 195, 247);
-                doc.setLineWidth(0.5);
-                doc.line(20, 52, doc.internal.pageSize.getWidth() - 20, 52);
-            }
-
-            adicionarCabecalhoExecutivoPDF(doc, titulo, yPos) {
-                // Cabeçalho executivo
-                doc.setFillColor(15, 23, 42);
-                doc.rect(0, 0, doc.internal.pageSize.getWidth(), 40, 'F');
-                
-                doc.setTextColor(79, 195, 247);
-                doc.setFontSize(18);
-                doc.setFont('helvetica', 'bold');
-                doc.text('RELATÓRIO EXECUTIVO', 20, 20);
-                
-                doc.setFontSize(12);
-                doc.text('Kronos OS - Sistema de Gestão', 20, 30);
-                
-                // Linha divisória
-                doc.setDrawColor(79, 195, 247);
-                doc.setLineWidth(0.5);
-                doc.line(20, 42, doc.internal.pageSize.getWidth() - 20, 42);
-            }
-
-            adicionarResumoExecutivoPDF(doc, yPos) {
-                if (!this.dadosRelatorios) return yPos;
-                
-                const metricas = this.dadosRelatorios.metricas;
-                
-                doc.setTextColor(0, 0, 0);
-                doc.setFontSize(16);
-                doc.setFont('helvetica', 'bold');
-                doc.text('RESUMO EXECUTIVO', 20, yPos);
-                yPos += 15;
-                
-                doc.setFontSize(10);
-                doc.setFont('helvetica', 'normal');
-                
-                const resumo = [
-                    `• Total de Ordens de Serviço: ${metricas.totalOS || 0}`,
-                    `• Taxa de Conclusão: ${metricas.taxaConclusao || 0}%`,
-                    `• Tempo Médio de Resolução: ${metricas.tempoMedioResolucao || 0}h`,
-                    `• SLA Cumprido: ${metricas.taxaSLACumprido || 0}%`,
-                    `• Eficiência Geral: ${metricas.eficienciaGeral || 0}%`,
-                    `• Setor Mais Demandado: ${metricas.setorTop || 'N/A'}`
-                ];
-                
-                resumo.forEach(item => {
-                    if (yPos > 250) {
-                        doc.addPage();
-                        yPos = 20;
-                    }
-                    doc.text(item, 25, yPos);
-                    yPos += 6;
-                });
-                
-                yPos += 10;
-                return yPos;
-            }
-
-            adicionarMetricasPrincipaisPDF(doc, yPos) {
-                if (!this.dadosRelatorios) return yPos;
-                
-                const metricas = this.dadosRelatorios.metricas;
-                
-                doc.setTextColor(0, 0, 0);
-                doc.setFontSize(14);
-                doc.setFont('helvetica', 'bold');
-                doc.text('MÉTRICAS PRINCIPAIS', 20, yPos);
-                yPos += 12;
-                
-                doc.setFontSize(10);
-                doc.setFont('helvetica', 'normal');
-                
-                const metricasPrincipais = [
-                    `Total OS: ${metricas.totalOS || 0}`,
-                    `OS Finalizadas: ${metricas.osFinalizadas || 0}`,
-                    `OS em Andamento: ${metricas.osAndamento || 0}`,
-                    `Aguardando Peças: ${metricas.osAguardando || 0}`,
-                    `Taxa Conclusão: ${metricas.taxaConclusao || 0}%`,
-                    `Tempo Médio: ${metricas.tempoMedioResolucao || 0}h`,
-                    `SLA Cumprido: ${metricas.taxaSLACumprido || 0}%`
-                ];
-                
-                // Layout em duas colunas
-                const col1X = 25;
-                const col2X = 110;
-                let currentCol = col1X;
-                
-                metricasPrincipais.forEach((item, index) => {
-                    if (yPos > 250) {
-                        doc.addPage();
-                        yPos = 20;
-                    }
-                    
-                    doc.text(`• ${item}`, currentCol, yPos);
-                    
-                    if (index % 2 === 0) {
-                        currentCol = col2X;
-                    } else {
-                        currentCol = col1X;
-                        yPos += 6;
-                    }
-                });
-                
-                if (currentCol === col2X) yPos += 6;
-                yPos += 10;
-                return yPos;
-            }
-
-            adicionarKPIsPDF(doc, yPos) {
-                if (!this.dadosRelatorios) return yPos;
-                
-                const metricas = this.dadosRelatorios.metricas;
-                
-                doc.setTextColor(0, 0, 0);
-                doc.setFontSize(14);
-                doc.setFont('helvetica', 'bold');
-                doc.text('INDICADORES CHAVE (KPIs)', 20, yPos);
-                yPos += 12;
-                
-                doc.setFontSize(10);
-                doc.setFont('helvetica', 'normal');
-                
-                const kpis = [
-                    `Primeira Resposta: ${metricas.primeiraResposta || 0}h`,
-                    `Taxa de Reabertura: ${metricas.taxaReabertura || 0}%`,
-                    `Satisfação do Cliente: ${metricas.satisfacao || 0}%`,
-                    `Custo Médio por OS: R$ ${metricas.custoMedio || 0}`,
-                    `Eficiência Operacional: ${metricas.eficienciaGeral || 0}%`
-                ];
-                
-                kpis.forEach(item => {
-                    if (yPos > 250) {
-                        doc.addPage();
-                        yPos = 20;
-                    }
-                    doc.text(`• ${item}`, 25, yPos);
-                    yPos += 6;
-                });
-                
-                yPos += 10;
-                return yPos;
-            }
-
-            adicionarMetricasDetalhadasPDF(doc, yPos) {
-                if (!this.dadosRelatorios) return yPos;
-                
-                doc.addPage();
-                yPos = 20;
-                
-                doc.setTextColor(0, 0, 0);
-                doc.setFontSize(16);
-                doc.setFont('helvetica', 'bold');
-                doc.text('ANÁLISE DETALHADA DE MÉTRICAS', 20, yPos);
-                yPos += 15;
-                
-                const metricas = this.dadosRelatorios.metricas;
-                const contagemSetores = this.dadosRelatorios.contagemSetores;
-                const contagemStatus = this.dadosRelatorios.contagemStatus;
-                
-                if (Object.keys(contagemSetores).length > 0) {
-                    doc.setFontSize(12);
-                    doc.setFont('helvetica', 'bold');
-                    doc.text('Distribuição por Setor:', 20, yPos);
-                    yPos += 8;
-                    
-                    doc.setFontSize(10);
-                    doc.setFont('helvetica', 'normal');
-                    
-                    Object.entries(contagemSetores).forEach(([setor, quantidade]) => {
-                        if (yPos > 250) {
-                            doc.addPage();
-                            yPos = 20;
-                        }
-                        doc.text(`• ${setor}: ${quantidade} OS`, 25, yPos);
-                        yPos += 6;
-                    });
-                    
-                    yPos += 10;
-                }
-                
-                if (Object.keys(contagemStatus).length > 0) {
-                    doc.setFontSize(12);
-                    doc.setFont('helvetica', 'bold');
-                    doc.text('Distribuição por Status:', 20, yPos);
-                    yPos += 8;
-                    
-                    doc.setFontSize(10);
-                    doc.setFont('helvetica', 'normal');
-                    
-                    Object.entries(contagemStatus).forEach(([status, quantidade]) => {
-                        if (yPos > 250) {
-                            doc.addPage();
-                            yPos = 20;
-                        }
-                        doc.text(`• ${status}: ${quantidade} OS`, 25, yPos);
-                        yPos += 6;
-                    });
-                    
-                    yPos += 10;
-                }
-                
-                return yPos;
-            }
-
-            adicionarAnaliseSetoresPDF(doc, yPos) {
-                if (!this.dadosRelatorios) return yPos;
-                
-                doc.addPage();
-                yPos = 20;
-                
-                doc.setTextColor(0, 0, 0);
-                doc.setFontSize(16);
-                doc.setFont('helvetica', 'bold');
-                doc.text('DESEMPENHO POR SETOR', 20, yPos);
-                yPos += 15;
-                
-                const desempenhoSetores = this.dadosRelatorios.desempenhoSetores;
-                
-                if (Object.keys(desempenhoSetores).length === 0) {
-                    doc.text('Nenhum dado de desempenho por setor disponível', 20, yPos);
-                    return yPos + 10;
-                }
-                
-                doc.setFontSize(10);
-                doc.setFont('helvetica', 'normal');
-                
-                // Cabeçalho da tabela
-                doc.setFillColor(79, 195, 247);
-                doc.rect(20, yPos, 170, 8, 'F');
-                doc.setTextColor(255, 255, 255);
-                doc.setFont('helvetica', 'bold');
-                
-                doc.text('Setor', 25, yPos + 5);
-                doc.text('Total OS', 70, yPos + 5);
-                doc.text('Finalizadas', 100, yPos + 5);
-                doc.text('Conclusão', 130, yPos + 5);
-                doc.text('Eficiência', 160, yPos + 5);
-                
-                yPos += 10;
-                doc.setTextColor(0, 0, 0);
-                doc.setFont('helvetica', 'normal');
-                
-                Object.entries(desempenhoSetores).forEach(([setor, dados]) => {
-                    if (yPos > 250) {
-                        doc.addPage();
-                        yPos = 20;
-                        // Adicionar cabeçalho novamente
-                        doc.setFillColor(79, 195, 247);
-                        doc.rect(20, yPos, 170, 8, 'F');
-                        doc.setTextColor(255, 255, 255);
-                        doc.setFont('helvetica', 'bold');
-                        doc.text('Setor', 25, yPos + 5);
-                        doc.text('Total OS', 70, yPos + 5);
-                        doc.text('Finalizadas', 100, yPos + 5);
-                        doc.text('Conclusão', 130, yPos + 5);
-                        doc.text('Eficiência', 160, yPos + 5);
-                        yPos += 10;
-                        doc.setTextColor(0, 0, 0);
-                        doc.setFont('helvetica', 'normal');
-                    }
-                    
-                    doc.text(setor, 25, yPos + 5);
-                    doc.text(dados.totalOS.toString(), 70, yPos + 5);
-                    doc.text(dados.osFinalizadas.toString(), 100, yPos + 5);
-                    doc.text(dados.taxaConclusao + '%', 130, yPos + 5);
-                    doc.text(dados.eficiencia + '%', 160, yPos + 5);
-                    
-                    yPos += 6;
-                });
-                
-                yPos += 10;
-                return yPos;
-            }
-
-            adicionarTabelaOSPDF(doc, yPos) {
-                if (!this.dadosRelatorios) return yPos;
-                
-                doc.addPage();
-                yPos = 20;
-                
-                doc.setTextColor(0, 0, 0);
-                doc.setFontSize(16);
-                doc.setFont('helvetica', 'bold');
-                doc.text('ORDENS DE SERVIÇO - DETALHES', 20, yPos);
-                yPos += 12;
-                
-                const ordensServico = this.dadosRelatorios.ordensServico || [];
-                
-                if (ordensServico.length === 0) {
-                    doc.text('Nenhuma ordem de serviço encontrada', 20, yPos);
-                    return yPos + 10;
-                }
-                
-                const ordensLimitadas = ordensServico.slice(0, 30); // Limitar para caber no PDF
-                
-                doc.setFontSize(8);
-                
-                // Cabeçalho da tabela
-                doc.setFillColor(79, 195, 247);
-                doc.rect(20, yPos, 170, 6, 'F');
-                doc.setTextColor(255, 255, 255);
-                doc.setFont('helvetica', 'bold');
-                
-                doc.text('ID', 22, yPos + 4);
-                doc.text('Setor', 35, yPos + 4);
-                doc.text('Status', 70, yPos + 4);
-                doc.text('Prioridade', 95, yPos + 4);
-                doc.text('Data', 130, yPos + 4);
-                doc.text('Cliente', 150, yPos + 4);
-                
-                yPos += 8;
-                doc.setTextColor(0, 0, 0);
-                doc.setFont('helvetica', 'normal');
-                
-                ordensLimitadas.forEach(os => {
-                    if (yPos > 270) {
-                        doc.addPage();
-                        yPos = 20;
-                        // Adicionar cabeçalho novamente
-                        doc.setFillColor(79, 195, 247);
-                        doc.rect(20, yPos, 170, 6, 'F');
-                        doc.setTextColor(255, 255, 255);
-                        doc.setFont('helvetica', 'bold');
-                        doc.text('ID', 22, yPos + 4);
-                        doc.text('Setor', 35, yPos + 4);
-                        doc.text('Status', 70, yPos + 4);
-                        doc.text('Prioridade', 95, yPos + 4);
-                        doc.text('Data', 130, yPos + 4);
-                        doc.text('Cliente', 150, yPos + 4);
-                        yPos += 8;
-                        doc.setTextColor(0, 0, 0);
-                        doc.setFont('helvetica', 'normal');
-                    }
-                    
-                    const dataAbertura = new Date(os.data_abertura);
-                    const dataFormatada = dataAbertura.toLocaleDateString('pt-BR');
-                    
-                    doc.text(`#${os.id}`, 22, yPos + 4);
-                    doc.text(os.setor_origem || 'N/A', 35, yPos + 4);
-                    doc.text(os.status, 70, yPos + 4);
-                    doc.text(os.prioridade, 95, yPos + 4);
-                    doc.text(dataFormatada, 130, yPos + 4);
-                    doc.text(os.cliente || 'N/A', 150, yPos + 4);
-                    
-                    yPos += 5;
-                });
-                
-                return yPos;
-            }
-
-            adicionarInsightsExecutivosPDF(doc, yPos) {
-                if (!this.dadosRelatorios) return yPos;
-                
-                const metricas = this.dadosRelatorios.metricas;
-                
-                doc.setTextColor(0, 0, 0);
-                doc.setFontSize(14);
-                doc.setFont('helvetica', 'bold');
-                doc.text('INSIGHTS E RECOMENDAÇÕES', 20, yPos);
-                yPos += 12;
-                
-                doc.setFontSize(10);
-                doc.setFont('helvetica', 'normal');
-                
-                const insights = this.gerarInsights(metricas);
-                
-                insights.forEach(insight => {
-                    if (yPos > 250) {
-                        doc.addPage();
-                        yPos = 20;
-                    }
-                    doc.text(`• ${insight}`, 25, yPos);
-                    yPos += 6;
-                });
-                
-                yPos += 10;
-                return yPos;
-            }
-
-            gerarInsights(metricas) {
-                const insights = [];
-                
-                if (metricas.totalOS === 0) {
-                    insights.push("Nenhuma ordem de serviço encontrada no período selecionado");
-                    insights.push("Verifique os filtros aplicados ou crie novas ordens de serviço");
-                    return insights;
-                }
-                
-                if (metricas.taxaConclusao >= 80) {
-                    insights.push("Excelente taxa de conclusão - manter os processos atuais");
-                } else if (metricas.taxaConclusao >= 60) {
-                    insights.push("Taxa de conclusão satisfatória - oportunidades de melhoria identificadas");
-                } else if (metricas.taxaConclusao > 0) {
-                    insights.push("Taxa de conclusão abaixo do esperado - recomenda-se revisão dos processos");
-                }
-                
-                if (metricas.tempoMedioResolucao <= 24 && metricas.tempoMedioResolucao > 0) {
-                    insights.push("Tempo de resolução dentro do esperado - boa eficiência operacional");
-                } else if (metricas.tempoMedioResolucao <= 48 && metricas.tempoMedioResolucao > 0) {
-                    insights.push("Tempo de resolução aceitável - considerar otimizações");
-                } else if (metricas.tempoMedioResolucao > 48) {
-                    insights.push("Tempo de resolução elevado - recomenda-se análise de gargalos");
-                }
-                
-                if (metricas.taxaSLACumprido >= 90) {
-                    insights.push("SLA excelente - superando expectativas dos clientes");
-                } else if (metricas.taxaSLACumprido >= 75) {
-                    insights.push("SLA dentro do aceitável - manter monitoramento contínuo");
-                } else if (metricas.taxaSLACumprido > 0) {
-                    insights.push("SLA abaixo do contratado - atenção necessária para cumprimento");
-                }
-                
-                insights.push("Recomenda-se revisão mensal dos indicadores chave");
-                insights.push("Manter comunicação pró-ativa com setores de maior demanda");
-                
-                return insights;
-            }
-
-            async exportarDadosDetalhados() {
-                if (!this.dadosRelatorios) {
-                    this.mostrarError('Nenhum dado disponível para exportação');
-                    return;
-                }
-                
-                try {
-                    this.mostrarNotificacao('📋 Gerando arquivo com dados detalhados...');
-                    
-                    const dados = this.dadosRelatorios.ordensServico || [];
-                    
-                    if (dados.length === 0) {
-                        this.mostrarError('Nenhum dado para exportar');
-                        return;
-                    }
-                    
-                    const csvContent = this.converterParaCSVDetalhado(dados);
-                    
-                    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-                    const link = document.createElement('a');
-                    const url = URL.createObjectURL(blob);
-                    
-                    link.setAttribute('href', url);
-                    link.setAttribute('download', `Dados_Detalhados_OS_${this.formatarDataArquivo()}.csv`);
-                    link.style.visibility = 'hidden';
-                    
-                    document.body.appendChild(link);
-                    link.click();
-                    document.body.removeChild(link);
-                    
-                    this.mostrarNotificacao('✅ Arquivo Excel gerado com sucesso!');
-                    
-                } catch (error) {
-                    console.error('❌ Erro ao exportar dados detalhados:', error);
-                    this.mostrarError('Erro ao exportar dados: ' + error.message);
-                }
-            }
-
-            async exportarDashboard() {
-                if (!this.dadosRelatorios) {
-                    this.mostrarError('Nenhum dado disponível para exportação');
-                    return;
-                }
-                
-                this.mostrarProgressoExportacao(true);
-                
-                try {
-                    const dashboardElement = document.getElementById('aba-dashboard');
-                    const canvas = await html2canvas(dashboardElement, {
-                        scale: 2,
-                        useCORS: true,
-                        logging: false,
-                        backgroundColor: '#0F172A'
-                    });
-                    
-                    const imgData = canvas.toDataURL('image/png');
-                    const { jsPDF } = window.jspdf;
-                    const doc = new jsPDF('p', 'mm', 'a4');
-                    
-                    const imgWidth = 210;
-                    const pageHeight = 295;
-                    const imgHeight = (canvas.height * imgWidth) / canvas.width;
-                    let heightLeft = imgHeight;
-                    let position = 0;
-                    
-                    doc.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight);
-                    heightLeft -= pageHeight;
-                    
-                    while (heightLeft >= 0) {
-                        position = heightLeft - imgHeight;
-                        doc.addPage();
-                        doc.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight);
-                        heightLeft -= pageHeight;
-                    }
-                    
-                    doc.save(`Dashboard_Kronos_${this.formatarDataArquivo()}.pdf`);
-                    this.mostrarProgressoExportacao(false);
-                    this.mostrarNotificacao('📊 Dashboard exportado com sucesso!');
-                    
-                } catch (error) {
-                    console.error('❌ Erro ao exportar dashboard:', error);
-                    this.mostrarProgressoExportacao(false);
-                    this.mostrarError('Erro ao exportar dashboard: ' + error.message);
-                }
-            }
-
-            // ✅ FUNÇÕES UTILITÁRIAS
-            formatarDataArquivo() {
-                return new Date().toISOString().split('T')[0].replace(/-/g, '');
-            }
-
-            converterParaCSVDetalhado(dados) {
-                const headers = ['ID', 'Setor Origem', 'Setor Destino', 'Categoria', 'Cliente', 'Descrição', 'Status', 'Prioridade', 'Data Abertura', 'Data Fechamento', 'Tempo (h)', 'SLA', 'Relatório Técnico'];
-                const rows = dados.map(os => {
-                    const abertura = new Date(os.data_abertura);
-                    const fechamento = os.data_fechamento ? new Date(os.data_fechamento) : null;
-                    const tempo = os.tempo_resolucao_horas !== null ? os.tempo_resolucao_horas : '-';
-                    
-                    return [
-                        os.id,
-                        os.setor_origem || 'N/A',
-                        os.setor_destino || 'N/A',
-                        os.categoria || 'Geral',
-                        os.cliente || 'N/A',
-                        `"${(os.descricao || 'Sem descrição').replace(/"/g, '""')}"`,
-                        os.status || 'Aberto',
-                        os.prioridade || 'Média',
-                        abertura.toLocaleDateString('pt-BR'),
-                        fechamento ? fechamento.toLocaleDateString('pt-BR') : '-',
-                        tempo,
-                        os.sla_status || 'Em aberto',
-                        `"${(os.relato_tecnico || '-').replace(/"/g, '""')}"`
-                    ];
-                });
-                
-                return '\uFEFF' + [headers, ...rows].map(row => row.join(';')).join('\r\n');
-            }
-
-            mostrarProgressoExportacao(mostrar) {
-                const progress = document.getElementById('exportProgress');
-                if (progress) {
-                    progress.style.display = mostrar ? 'block' : 'none';
-                }
-                
-                if (mostrar) {
-                    this.animarProgresso();
-                }
-            }
-
-            animarProgresso() {
-                const progressFill = document.querySelector('#exportProgress .progress-fill');
-                if (progressFill) {
-                    let width = 0;
-                    const interval = setInterval(() => {
-                        if (width >= 100) {
-                            clearInterval(interval);
-                        } else {
-                            width += 2;
-                            progressFill.style.width = width + '%';
-                        }
-                    }, 50);
-                }
-            }
-
-            // ✅ ATUALIZAÇÃO EM TEMPO REAL
-            iniciarAtualizacaoTempoReal() {
-                // Atualizar a cada 2 minutos
-                this.intervaloAtualizacao = setInterval(() => {
-                    this.carregarRelatorios();
-                }, 120000); // 2 minutos
-            }
-
-            pararAtualizacaoTempoReal() {
-                if (this.intervaloAtualizacao) {
-                    clearInterval(this.intervaloAtualizacao);
-                }
-            }
-
-            // ✅ FUNÇÕES DE INTERFACE
-            mostrarLoading(mostrar) {
-                const elemento = document.getElementById('loadingState');
-                if (elemento) elemento.style.display = mostrar ? 'block' : 'none';
-            }
-
-            mostrarError(mensagem) {
-                const errorMessage = document.getElementById('errorMessage');
-                const errorState = document.getElementById('errorState');
-                
-                if (errorMessage) errorMessage.textContent = mensagem;
-                if (errorState) errorState.style.display = 'block';
-                
-                // Esconder loading se estiver visível
-                this.mostrarLoading(false);
-            }
-
-            esconderError() {
-                const errorState = document.getElementById('errorState');
-                if (errorState) errorState.style.display = 'none';
-            }
-
-            mostrarNotificacao(mensagem) {
-                // Criar notificação temporária
-                const notificacao = document.createElement('div');
-                notificacao.style.cssText = `
-                    position: fixed;
-                    top: 20px;
-                    right: 20px;
-                    background: var(--success);
-                    color: white;
-                    padding: 12px 20px;
-                    border-radius: 8px;
-                    z-index: 10000;
-                    box-shadow: var(--shadow);
-                    animation: slideIn 0.3s ease;
-                `;
-                notificacao.textContent = mensagem;
-                document.body.appendChild(notificacao);
-                
-                setTimeout(() => {
-                    notificacao.remove();
-                }, 3000);
-            }
+      </div>
+    </section>
+
+    <section class="card">
+      <h3>Chamados recentes</h3>
+      <div class="legend">Mostra os 50 chamados mais recentes de acordo com os filtros aplicados.</div>
+      <div class="table-wrap" style="margin-top: 12px;">
+        <table>
+          <thead>
+            <tr>
+              <th>ID</th>
+              <th>Origem</th>
+              <th>Destino</th>
+              <th>Categoria</th>
+              <th>Prioridade</th>
+              <th>Status</th>
+              <th>Técnico</th>
+              <th>Abertura</th>
+              <th>Tempo</th>
+            </tr>
+          </thead>
+          <tbody id="tabelaChamados"></tbody>
+        </table>
+      </div>
+    </section>
+  </div>
+
+  <script>
+    const token = localStorage.getItem('kronos_token');
+    const user = JSON.parse(localStorage.getItem('kronos_user') || 'null');
+
+    if (!token || !user) {
+      window.location.href = '/admin';
+    }
+
+    document.getElementById('usuarioAtual').innerHTML = `<strong>Usuário:</strong> ${user?.nome || '-'} (${user?.tipo || '-'})`;
+
+    const state = {
+      chamadosRecentes: [],
+      chart: null,
+      relatorios: null,
+      dashboard: null,
+      sla: null
+    };
+
+    const els = {
+      periodo: document.getElementById('filtroPeriodo'),
+      setorTecnico: document.getElementById('filtroSetorTecnico'),
+      status: document.getElementById('filtroStatus'),
+      prioridade: document.getElementById('filtroPrioridade'),
+      inicio: document.getElementById('filtroInicio'),
+      fim: document.getElementById('filtroFim'),
+      ultimaAtualizacao: document.getElementById('ultimaAtualizacao')
+    };
+
+    function formatDate(value) {
+      if (!value) return '-';
+      return new Date(value).toLocaleString('pt-BR');
+    }
+
+    function formatHours(value) {
+      const n = Number(value);
+      return Number.isFinite(n) && n > 0 ? `${n.toFixed(2)}h` : '-';
+    }
+
+    function numberOrZero(value) {
+      const n = Number(value);
+      return Number.isFinite(n) ? n : 0;
+    }
+
+    function paramsFromFilters() {
+      const params = new URLSearchParams();
+      if (els.periodo.value) params.set('periodo', els.periodo.value);
+      if (els.setorTecnico.value) params.set('setor_tecnico', els.setorTecnico.value);
+      if (els.status.value) params.set('status', els.status.value);
+      if (els.prioridade.value) params.set('prioridade', els.prioridade.value);
+      if (els.inicio.value) params.set('data_inicio', els.inicio.value);
+      if (els.fim.value) params.set('data_fim', els.fim.value);
+      return params;
+    }
+
+    function nomeArquivo(base, ext) {
+      const hoje = new Date().toISOString().slice(0, 10);
+      return `${base}-${hoje}.${ext}`;
+    }
+
+    async function apiGet(path) {
+      const response = await fetch(path, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      const data = await response.json();
+      if (!response.ok || data.success === false) {
+        throw new Error(data.message || 'Erro ao carregar dados');
+      }
+      return data;
+    }
+    function fillTable(tbodyId, rowsHtml, emptyMessage = 'Sem dados para o filtro atual.', colSpan = 10) {
+      const tbody = document.getElementById(tbodyId);
+      tbody.innerHTML = rowsHtml || `<tr><td colspan="${colSpan}"><div class="empty">${emptyMessage}</div></td></tr>`;
+    }
+
+    function renderStats(relatorios, dashboard) {
+      const estat = relatorios.estatisticas || {};
+      const maiorSolicitante = relatorios.maiorSolicitante || null;
+      document.getElementById('stTotal').textContent = estat.total || 0;
+      document.getElementById('stBacklog').textContent = dashboard.backlog || 0;
+      document.getElementById('stFinalizadas').textContent = estat.finalizadas || 0;
+      document.getElementById('stSla').textContent = `${estat.sla_percentual || 0}%`;
+      document.getElementById('stTempo').textContent = `${numberOrZero(estat.tempo_medio_resolucao).toFixed(2)}h`;
+      document.getElementById('stCritAlta').textContent = dashboard.prioridade_elevada_aberta || 0;
+      document.getElementById('stMaiorSolicitante').textContent = maiorSolicitante ? maiorSolicitante.setor_origem : '-';
+      document.getElementById('stMaiorSolicitanteHelp').textContent = maiorSolicitante ? `${maiorSolicitante.total} O.S. no filtro atual.` : 'Origem com mais O.S. no filtro atual.';
+    }
+
+    function renderSlaTable(rows) {
+      fillTable('tabelaSla', (rows || []).map((row) => `
+        <tr>
+          <td><span class="pill prio-${(row.prioridade || '').replace('í','i').replace('é','e')}">${row.prioridade}</span></td>
+          <td>${row.meta_horas}h</td>
+          <td>${row.finalizadas}</td>
+          <td>${row.dentro_sla}</td>
+          <td>${row.sla_percentual}%</td>
+          <td>${formatHours(row.tempo_medio)}</td>
+        </tr>
+      `).join(''), 'Nenhum dado de SLA disponível.', 6);
+    }
+
+    function renderTecnicos(rows) {
+      fillTable('tabelaTecnicos', (rows || []).map((row) => `
+        <tr>
+          <td>${row.tecnico}</td>
+          <td>${row.total}</td>
+          <td>${row.finalizadas}</td>
+          <td>${row.sla_percentual}%</td>
+          <td>${formatHours(row.tempo_medio)}</td>
+        </tr>
+      `).join(''), 'Nenhum técnico encontrado no período.', 5);
+    }
+
+    function renderSetores(rows) {
+      fillTable('tabelaSetores', (rows || []).map((row) => `
+        <tr>
+          <td>${row.setor}</td>
+          <td>${row.total}</td>
+          <td>${row.finalizadas}</td>
+          <td>${formatHours(row.tempo_medio)}</td>
+        </tr>
+      `).join(''), 'Nenhum setor encontrado.', 4);
+    }
+
+    function renderSolicitantes(rows) {
+      fillTable('tabelaSolicitantes', (rows || []).map((row) => `
+        <tr>
+          <td>${row.setor_origem}</td>
+          <td>${row.total}</td>
+        </tr>
+      `).join(''), 'Nenhum setor solicitante encontrado.', 2);
+    }
+
+    function renderCategorias(rows) {
+      fillTable('tabelaCategorias', (rows || []).map((row) => `
+        <tr>
+          <td>${row.categoria}</td>
+          <td>${row.total}</td>
+        </tr>
+      `).join(''), 'Nenhuma categoria encontrada.', 2);
+    }
+
+    function renderChamados(rows) {
+      state.chamadosRecentes = rows || [];
+      fillTable('tabelaChamados', (rows || []).map((row) => `
+        <tr>
+          <td>#${row.id}</td>
+          <td>${row.setor_origem || '-'}</td>
+          <td>${row.setor_destino || '-'}</td>
+          <td>${row.categoria || 'Geral'}</td>
+          <td><span class="pill prio-${(row.prioridade || '').replace('í','i').replace('é','e')}">${row.prioridade || '-'}</span></td>
+          <td><span class="pill status-${(row.status || '').replaceAll(' ', '-').replace('ç','c').replace('ã','a')}">${row.status || '-'}</span></td>
+          <td>${row.tecnico_responsavel_nome || 'Não atribuído'}</td>
+          <td>${formatDate(row.data_abertura)}</td>
+          <td>${formatHours(row.tempo_resolucao_horas)}</td>
+        </tr>
+      `).join(''), 'Nenhum chamado encontrado.', 9);
+    }
+
+    function montarSerieFallback(rows) {
+      const mapa = new Map();
+      (rows || []).forEach((row) => {
+        if (!row.data_abertura) return;
+        const chave = new Date(row.data_abertura).toISOString().slice(0, 10);
+        mapa.set(chave, (mapa.get(chave) || 0) + 1);
+      });
+      return Array.from(mapa.entries())
+        .sort((a, b) => a[0].localeCompare(b[0]))
+        .map(([referencia, total]) => ({ referencia, total }));
+    }
+
+    function renderChart(series) {
+      const canvas = document.getElementById('chartAberturas');
+      const ctx = canvas?.getContext('2d');
+      const serieUsada = (series && series.length) ? series : montarSerieFallback(state.chamadosRecentes || []);
+      const labels = (serieUsada || []).map((item) => {
+        const [ano, mes, dia] = String(item.referencia).split('-');
+        return `${dia}/${mes}`;
+      });
+      const data = (serieUsada || []).map((item) => Number(item.total || 0));
+
+      if (!ctx) return;
+      if (state.chart) state.chart.destroy();
+      state.chart = new Chart(ctx, {
+        type: 'line',
+        data: {
+          labels,
+          datasets: [{
+            label: 'Aberturas por dia',
+            data,
+            borderColor: '#4fc3f7',
+            backgroundColor: 'rgba(79,195,247,.12)',
+            borderWidth: 2,
+            tension: 0.3,
+            fill: true,
+            pointRadius: 3
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: { legend: { labels: { color: '#e2e8f0' } } },
+          scales: {
+            x: { ticks: { color: '#a8b3c8' }, grid: { color: 'rgba(148,163,184,.1)' } },
+            y: { ticks: { color: '#a8b3c8' }, grid: { color: 'rgba(148,163,184,.1)' }, beginAtZero: true, precision: 0 }
+          }
         }
+      });
+    }
 
-        // ✅ INICIALIZAÇÃO DO SISTEMA
-        let relatoriosSystem;
+    async function carregarTudo() {
+      try {
+        const query = paramsFromFilters().toString();
+        const [relatorios, dashboard, sla] = await Promise.all([
+          apiGet(`/api/relatorios?${query}`),
+          apiGet(`/api/relatorios/dashboard/resumo?${query}`),
+          apiGet(`/api/relatorios/sla/resumo?${query}`)
+        ]);
 
-        document.addEventListener('DOMContentLoaded', function() {
-            relatoriosSystem = new RelatoriosSystem();
-            relatoriosSystem.inicializar();
-        });
+        state.relatorios = relatorios.dados || {};
+        state.dashboard = dashboard.data || {};
+        state.sla = sla.data || [];
 
-        // ✅ FUNÇÕES GLOBAIS PARA OS BOTÕES
-        function carregarRelatorios() {
-            if (relatoriosSystem) {
-                relatoriosSystem.carregarRelatorios();
-            }
-        }
+        renderStats(state.relatorios, state.dashboard);
+        renderSlaTable(state.sla);
+        renderTecnicos(state.relatorios.rankingTecnicos || []);
+        renderSetores(state.relatorios.resumoSetores || []);
+        renderSolicitantes(state.relatorios.resumoSolicitantes || []);
+        renderCategorias(state.relatorios.rankingCategorias || []);
+        renderChamados(state.relatorios.chamadosRecentes || []);
+        renderChart(state.dashboard.serie_aberturas || []);
+        els.ultimaAtualizacao.textContent = `Última atualização: ${new Date().toLocaleString('pt-BR')}`;
+      } catch (error) {
+        alert(error.message || 'Erro ao carregar relatórios.');
+      }
+    }
 
-        function atualizarFiltros() {
-            carregarRelatorios();
-        }
+    function exportarCsv() {
+      if (!state.chamadosRecentes.length) {
+        alert('Não há chamados para exportar no filtro atual.');
+        return;
+      }
 
-        function mostrarAba(aba) {
-            // Atualizar botões de navegação
-            document.querySelectorAll('.nav-relatorios button').forEach(btn => {
-                btn.classList.remove('active');
-            });
-            event.target.classList.add('active');
-            
-            // Mostrar aba selecionada
-            document.querySelectorAll('.aba-conteudo').forEach(div => {
-                div.classList.remove('active');
-            });
-            document.getElementById(`aba-${aba}`).classList.add('active');
-        }
+      const header = ['ID', 'Setor de Origem', 'Setor de Destino', 'Categoria', 'Prioridade', 'Status', 'Técnico Responsável', 'Data de Abertura', 'Tempo de Resolução (h)'];
+      const lines = state.chamadosRecentes.map((row) => [
+        row.id,
+        row.setor_origem || '',
+        row.setor_destino || '',
+        row.categoria || '',
+        row.prioridade || '',
+        row.status || '',
+        row.tecnico_responsavel_nome || 'Não atribuído',
+        formatDate(row.data_abertura),
+        numberOrZero(row.tempo_resolucao_horas).toFixed(2)
+      ]);
 
-        function voltarParaAreaAnterior() {
-            const setorUsuario = localStorage.getItem('tecnico_setor_selecionado');
-            if (setorUsuario) {
-                window.location.href = 'tecnico-dashboard.html';
-            } else {
-                window.location.href = 'dashboard.html';
-            }
-        }
+      const csv = [header, ...lines]
+        .map((cols) => cols.map((col) => `"${String(col).replaceAll('"', '""')}"`).join(';'))
+        .join('\n');
 
-        // ✅ SISTEMA DE EXPORTAÇÃO CORRIGIDO
-        function abrirModalExport() {
-            document.getElementById('modalExport').style.display = 'flex';
-        }
+      const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = nomeArquivo('kronos-relatorios', 'csv');
+      link.click();
+      URL.revokeObjectURL(url);
+    }
 
-        function fecharModalExport() {
-            document.getElementById('modalExport').style.display = 'none';
-        }
+    function exportarExcel() {
+      if (!state.relatorios || !state.dashboard || !state.sla) {
+        alert('Atualize os relatórios antes de exportar.');
+        return;
+      }
 
-        function exportarRelatorioCompleto() {
-            if (relatoriosSystem) {
-                relatoriosSystem.exportarRelatorioCompleto();
-                fecharModalExport();
-            }
-        }
+      const wb = XLSX.utils.book_new();
+      const estat = state.relatorios.estatisticas || {};
+      const resumo = [
+        ['Indicador', 'Valor'],
+        ['Total de O.S.', estat.total || 0],
+        ['Backlog', state.dashboard.backlog || 0],
+        ['Finalizadas', estat.finalizadas || 0],
+        ['SLA cumprido (%)', `${estat.sla_percentual || 0}%`],
+        ['Tempo médio de resolução', `${numberOrZero(estat.tempo_medio_resolucao).toFixed(2)}h`],
+        ['Críticas + Altas abertas', state.dashboard.prioridade_elevada_aberta || 0],
+        ['Abertas hoje', state.dashboard.abertas_hoje || 0],
+        ['Finalizadas hoje', state.dashboard.finalizadas_hoje || 0],
+        ['Aguardando peças', state.dashboard.aguardando_pecas || 0],
+        ['Setor que mais solicita', state.relatorios.maiorSolicitante?.setor_origem || '-'],
+        ['Total do maior solicitante', state.relatorios.maiorSolicitante?.total || 0]
+      ];
+      const wsResumo = XLSX.utils.aoa_to_sheet(resumo);
+      wsResumo['!cols'] = [{ wch: 30 }, { wch: 18 }];
+      XLSX.utils.book_append_sheet(wb, wsResumo, 'Resumo');
 
-        function exportarRelatorioExecutivo() {
-            if (relatoriosSystem) {
-                relatoriosSystem.exportarRelatorioExecutivo();
-                fecharModalExport();
-            }
-        }
+      const chamados = (state.chamadosRecentes || []).map((row) => ({
+        ID: row.id,
+        'Setor de Origem': row.setor_origem || '',
+        'Setor de Destino': row.setor_destino || '',
+        Categoria: row.categoria || 'Geral',
+        Prioridade: row.prioridade || '',
+        Status: row.status || '',
+        'Técnico Responsável': row.tecnico_responsavel_nome || 'Não atribuído',
+        'Data de Abertura': formatDate(row.data_abertura),
+        'Data de Fechamento': formatDate(row.data_fechamento),
+        'Tempo de Resolução (h)': numberOrZero(row.tempo_resolucao_horas).toFixed(2)
+      }));
+      const wsChamados = XLSX.utils.json_to_sheet(chamados);
+      wsChamados['!cols'] = [
+        { wch: 8 }, { wch: 20 }, { wch: 20 }, { wch: 18 }, { wch: 12 },
+        { wch: 18 }, { wch: 24 }, { wch: 22 }, { wch: 22 }, { wch: 20 }
+      ];
+      XLSX.utils.book_append_sheet(wb, wsChamados, 'Chamados');
 
-        function exportarDadosDetalhados() {
-            if (relatoriosSystem) {
-                relatoriosSystem.exportarDadosDetalhados();
-                fecharModalExport();
-            }
-        }
+      const tecnicos = (state.relatorios.rankingTecnicos || []).map((row) => ({
+        Técnico: row.tecnico,
+        Total: row.total,
+        Finalizadas: row.finalizadas,
+        'SLA (%)': `${row.sla_percentual}%`,
+        'Tempo médio': formatHours(row.tempo_medio)
+      }));
+      XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(tecnicos), 'Técnicos');
 
-        function exportarDashboard() {
-            if (relatoriosSystem) {
-                relatoriosSystem.exportarDashboard();
-                fecharModalExport();
-            }
-        }
+      const setores = (state.relatorios.resumoSetores || []).map((row) => ({
+        Setor: row.setor,
+        Total: row.total,
+        Finalizadas: row.finalizadas,
+        'Tempo médio': formatHours(row.tempo_medio)
+      }));
+      XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(setores), 'Setores');
 
-        // ✅ ANIMAÇÃO DO INDICADOR DE TEMPO REAL
-        setInterval(() => {
-            const indicator = document.getElementById('tempoRealIndicator');
-            if (indicator && indicator.style.display !== 'none') {
-                indicator.style.opacity = indicator.style.opacity === '0.7' ? '1' : '0.7';
-            }
-        }, 1000);
+      const solicitantes = (state.relatorios.resumoSolicitantes || []).map((row) => ({
+        'Setor de Origem': row.setor_origem,
+        Total: row.total
+      }));
+      XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(solicitantes), 'Solicitantes');
 
-        // Fechar modal ao clicar fora
-        window.addEventListener('click', function(event) {
-            const modal = document.getElementById('modalExport');
-            if (event.target === modal) {
-                fecharModalExport();
-            }
-        });
-    </script>
+      const categorias = (state.relatorios.rankingCategorias || []).map((row) => ({
+        Categoria: row.categoria,
+        Total: row.total
+      }));
+      XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(categorias), 'Categorias');
+
+      const slaRows = (state.sla || []).map((row) => ({
+        Prioridade: row.prioridade,
+        'Meta (h)': row.meta_horas,
+        Finalizadas: row.finalizadas,
+        'Dentro do SLA': row.dentro_sla,
+        'Fora do SLA': row.fora_sla,
+        'SLA (%)': `${row.sla_percentual}%`,
+        'Tempo médio': formatHours(row.tempo_medio)
+      }));
+      XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(slaRows), 'SLA');
+
+      XLSX.writeFile(wb, nomeArquivo('kronos-relatorios', 'xlsx'));
+    }
+
+    function exportarPdf() {
+      if (!state.relatorios || !state.dashboard || !state.sla) {
+        alert('Atualize os relatórios antes de exportar.');
+        return;
+      }
+
+      const { jsPDF } = window.jspdf;
+      const doc = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4' });
+      const estat = state.relatorios.estatisticas || {};
+      const filtros = [
+        `Período: ${els.periodo.options[els.periodo.selectedIndex]?.text || '-'}`,
+        `Setor técnico: ${els.setorTecnico.value || 'ambos'}`,
+        `Status: ${els.status.value || 'todos'}`,
+        `Prioridade: ${els.prioridade.value || 'todos'}`
+      ].join(' | ');
+
+      doc.setFontSize(18);
+      doc.text('Kronos OS - Relatórios Gerenciais', 14, 14);
+      doc.setFontSize(10);
+      doc.text(`Gerado em: ${new Date().toLocaleString('pt-BR')}`, 14, 21);
+      doc.text(filtros, 14, 27);
+
+      doc.autoTable({
+        startY: 32,
+        head: [['Indicador', 'Valor', 'Indicador', 'Valor']],
+        body: [
+          ['Total de O.S.', estat.total || 0, 'Backlog', state.dashboard.backlog || 0],
+          ['Finalizadas', estat.finalizadas || 0, 'SLA cumprido', `${estat.sla_percentual || 0}%`],
+          ['Tempo médio', `${numberOrZero(estat.tempo_medio_resolucao).toFixed(2)}h`, 'Críticas + Altas abertas', state.dashboard.prioridade_elevada_aberta || 0],
+          ['Abertas hoje', state.dashboard.abertas_hoje || 0, 'Finalizadas hoje', state.dashboard.finalizadas_hoje || 0],
+          ['Setor que mais solicita', state.relatorios.maiorSolicitante?.setor_origem || '-', 'Total', state.relatorios.maiorSolicitante?.total || 0]
+        ],
+        styles: { fontSize: 9 },
+        headStyles: { fillColor: [13, 39, 76] }
+      });
+
+      doc.autoTable({
+        startY: doc.lastAutoTable.finalY + 6,
+        head: [['Prioridade', 'Meta', 'Finalizadas', 'Dentro SLA', '% SLA', 'Tempo médio']],
+        body: (state.sla || []).map((row) => [
+          row.prioridade,
+          `${row.meta_horas}h`,
+          row.finalizadas,
+          row.dentro_sla,
+          `${row.sla_percentual}%`,
+          formatHours(row.tempo_medio)
+        ]),
+        styles: { fontSize: 8 },
+        headStyles: { fillColor: [13, 39, 76] }
+      });
+
+      doc.autoTable({
+        startY: doc.lastAutoTable.finalY + 6,
+        head: [['Setor de origem', 'Total']],
+        body: (state.relatorios.resumoSolicitantes || []).slice(0, 10).map((row) => [row.setor_origem, row.total]),
+        styles: { fontSize: 8 },
+        headStyles: { fillColor: [13, 39, 76] }
+      });
+
+      doc.autoTable({
+        startY: doc.lastAutoTable.finalY + 6,
+        head: [['ID', 'Origem', 'Destino', 'Categoria', 'Prioridade', 'Status', 'Técnico', 'Abertura']],
+        body: (state.chamadosRecentes || []).slice(0, 20).map((row) => [
+          `#${row.id}`,
+          row.setor_origem || '-',
+          row.setor_destino || '-',
+          row.categoria || 'Geral',
+          row.prioridade || '-',
+          row.status || '-',
+          row.tecnico_responsavel_nome || 'Não atribuído',
+          formatDate(row.data_abertura)
+        ]),
+        styles: { fontSize: 7.5 },
+        headStyles: { fillColor: [13, 39, 76] }
+      });
+
+      doc.save(nomeArquivo('kronos-relatorios', 'pdf'));
+    }
+
+    document.getElementById('btnAplicar').addEventListener('click', carregarTudo);
+    document.getElementById('btnAtualizar').addEventListener('click', carregarTudo);
+    document.getElementById('btnExportarCsv').addEventListener('click', exportarCsv);
+    document.getElementById('btnExportarExcel').addEventListener('click', exportarExcel);
+    document.getElementById('btnExportarPdf').addEventListener('click', exportarPdf);
+    document.getElementById('btnLimpar').addEventListener('click', () => {
+      els.periodo.value = '30';
+      els.setorTecnico.value = 'ambos';
+      els.status.value = 'todos';
+      els.prioridade.value = 'todos';
+      els.inicio.value = '';
+      els.fim.value = '';
+      carregarTudo();
+    });
+    document.getElementById('btnSair').addEventListener('click', () => {
+      localStorage.removeItem('kronos_user');
+      localStorage.removeItem('kronos_token');
+      localStorage.removeItem('tecnico_setor_selecionado');
+      window.location.href = '/admin';
+    });
+
+    (async function init() {
+      await carregarTudo();
+    })();
+  </script>
 </body>
 </html>

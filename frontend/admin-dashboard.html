@@ -149,9 +149,52 @@
     }
     .loading { color:var(--gray); }
     .status-line { display:flex; gap:1rem; flex-wrap:wrap; margin-top:.75rem; color:#cbd5e1; font-size:.94rem; }
+
+    .toolbar-inline { display:flex; gap:.75rem; flex-wrap:wrap; }
+    .users-toolbar { display:flex; justify-content:space-between; align-items:center; gap:1rem; flex-wrap:wrap; margin-bottom:1rem; }
+    .search-input {
+      min-width:260px; padding:.72rem .95rem; border-radius:12px; border:1px solid rgba(79,195,247,.2);
+      background:rgba(15,23,42,.85); color:var(--light); font-weight:600; outline:none;
+    }
+    .user-grid { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:.9rem; }
+    .user-card {
+      border:1px solid rgba(148,163,184,.14); border-radius:18px; padding:1rem; background:rgba(15,23,42,.45);
+      display:flex; flex-direction:column; gap:.75rem;
+    }
+    .user-top { display:flex; justify-content:space-between; gap:1rem; flex-wrap:wrap; }
+    .user-name { font-weight:800; color:#e2e8f0; }
+    .user-email { color:var(--gray); font-size:.92rem; word-break:break-word; }
+    .user-actions { display:flex; gap:.6rem; flex-wrap:wrap; }
+    .btn-sm { padding:.6rem .9rem; border-radius:12px; font-size:.9rem; }
+    .btn-warning { background:rgba(245,158,11,.12); color:#fde68a; border:1px solid rgba(245,158,11,.28); }
+    .btn-success { background:rgba(34,197,94,.12); color:#bbf7d0; border:1px solid rgba(34,197,94,.28); }
+    .modal-overlay {
+      position:fixed; inset:0; background:rgba(2,6,23,.75); display:none; align-items:center; justify-content:center;
+      padding:1rem; z-index:9999;
+    }
+    .modal-overlay.show { display:flex; }
+    .modal-box {
+      width:min(720px, 100%); max-height:90vh; overflow:auto; background:rgba(15,23,42,.92);
+      border:1px solid var(--card-border); border-radius:24px; padding:1.4rem; box-shadow:var(--shadow); backdrop-filter:blur(20px);
+    }
+    .modal-head { display:flex; justify-content:space-between; align-items:center; gap:1rem; margin-bottom:1rem; }
+    .modal-title { font-size:1.25rem; font-weight:800; }
+    .close-btn { background:transparent; color:var(--gray); border:none; font-size:1.6rem; cursor:pointer; }
+    .form-grid { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:1rem; }
+    .form-group { display:flex; flex-direction:column; gap:.45rem; }
+    .form-group.full { grid-column:1 / -1; }
+    .form-label { color:var(--primary-light); font-weight:700; font-size:.94rem; }
+    .form-input, .form-select {
+      width:100%; padding:.82rem .95rem; border-radius:12px; border:1px solid rgba(79,195,247,.2);
+      background:rgba(15,23,42,.85); color:var(--light); outline:none;
+    }
+    .form-help { color:var(--gray); font-size:.85rem; }
+    .modal-footer { display:flex; justify-content:flex-end; gap:.75rem; flex-wrap:wrap; margin-top:1rem; }
+
     @media (max-width: 1100px) {
       .hero, .content-grid { grid-template-columns: 1fr; }
       .stats-grid { grid-template-columns: repeat(2,minmax(0,1fr)); }
+      .user-grid, .form-grid { grid-template-columns:1fr; }
     }
     @media (max-width: 700px) {
       .dashboard-container { padding: 1rem .85rem 2rem; }
@@ -174,6 +217,7 @@
       <div class="header-actions">
         <a class="btn btn-secondary" href="/solicitante"><i class="fas fa-user"></i> Solicitante</a>
         <a class="btn btn-secondary" href="/tecnico"><i class="fas fa-user-gear"></i> Técnico</a>
+        <button class="btn btn-primary" id="btnNovoUsuarioTopo"><i class="fas fa-user-plus"></i> Cadastrar usuário</button>
         <button class="btn btn-danger" id="btnSair"><i class="fas fa-right-from-bracket"></i> Sair</button>
       </div>
     </header>
@@ -262,7 +306,27 @@
               <div class="shortcut-title">Área técnica</div>
               <div class="shortcut-text">Acesso rápido ao fluxo técnico por setor.</div>
             </a>
+            <button class="shortcut" type="button" id="btnNovoUsuarioCard">
+              <i class="fas fa-user-plus"></i>
+              <div class="shortcut-title">Cadastrar usuário</div>
+              <div class="shortcut-text">Criar solicitante, técnico ou administrador diretamente no painel.</div>
+            </button>
           </div>
+        </div>
+
+
+        <div class="card">
+          <div class="section-title">
+            <h3>Gerenciar usuários</h3>
+            <div class="toolbar-inline">
+              <button class="btn btn-primary" type="button" id="btnNovoUsuarioLista"><i class="fas fa-user-plus"></i> Novo usuário</button>
+            </div>
+          </div>
+          <div class="users-toolbar">
+            <input type="text" id="filtroUsuarios" class="search-input" placeholder="Pesquisar por nome, email, setor ou tipo...">
+            <div class="filter-helper" id="resumoUsuarios">Carregando usuários...</div>
+          </div>
+          <div id="listaUsuarios" class="user-grid"></div>
         </div>
 
         <div class="card">
@@ -276,6 +340,84 @@
     </section>
   </div>
 
+
+  <div id="modalUsuario" class="modal-overlay">
+    <div class="modal-box">
+      <div class="modal-head">
+        <div>
+          <div class="modal-title" id="modalUsuarioTitulo">Cadastrar usuário</div>
+          <div class="filter-helper" id="modalUsuarioSubtitulo">Preencha os dados do novo usuário do sistema.</div>
+        </div>
+        <button class="close-btn" type="button" id="btnFecharModalUsuario">&times;</button>
+      </div>
+      <form id="formUsuarioAdmin">
+        <input type="hidden" id="usuarioIdEdicao">
+        <div class="form-grid">
+          <div class="form-group">
+            <label class="form-label" for="usuarioNome">Nome</label>
+            <input class="form-input" id="usuarioNome" required>
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="usuarioEmail">Email</label>
+            <input class="form-input" id="usuarioEmail" type="email" required>
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="usuarioTipo">Tipo</label>
+            <select class="form-select" id="usuarioTipo" required>
+              <option value="solicitante">Solicitante</option>
+              <option value="tecnico">Técnico</option>
+              <option value="admin">Administrador</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="usuarioSetor">Setor</label>
+            <select class="form-select" id="usuarioSetor" required></select>
+          </div>
+          <div class="form-group full">
+            <label class="form-label" for="usuarioSenha">Senha</label>
+            <input class="form-input" id="usuarioSenha" type="password" placeholder="Mínimo de 6 caracteres">
+            <div class="form-help" id="ajudaSenhaUsuario">Na edição, deixe em branco para manter a senha atual.</div>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button class="btn btn-secondary" type="button" id="btnCancelarModalUsuario">Cancelar</button>
+          <button class="btn btn-primary" type="submit" id="btnSalvarUsuario"><i class="fas fa-floppy-disk"></i> Salvar usuário</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+
+  <div id="modalResetSenha" class="modal-overlay">
+    <div class="modal-box">
+      <div class="modal-head">
+        <div>
+          <div class="modal-title">Resetar senha do usuário</div>
+          <div class="filter-helper" id="modalResetSenhaSubtitulo">Defina uma nova senha para o usuário selecionado.</div>
+        </div>
+        <button class="close-btn" type="button" id="btnFecharModalResetSenha">&times;</button>
+      </div>
+      <form id="formResetSenhaUsuario">
+        <input type="hidden" id="resetSenhaUsuarioId">
+        <div class="form-grid">
+          <div class="form-group full">
+            <label class="form-label" for="resetSenhaNova">Nova senha</label>
+            <input class="form-input" id="resetSenhaNova" type="password" placeholder="Mínimo de 6 caracteres" required>
+          </div>
+          <div class="form-group full">
+            <label class="form-label" for="resetSenhaConfirmacao">Confirmar nova senha</label>
+            <input class="form-input" id="resetSenhaConfirmacao" type="password" placeholder="Repita a nova senha" required>
+            <div class="form-help">Use esta opção para redefinir a senha sem alterar os demais dados do usuário.</div>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button class="btn btn-secondary" type="button" id="btnCancelarModalResetSenha">Cancelar</button>
+          <button class="btn btn-primary" type="submit" id="btnSalvarResetSenha"><i class="fas fa-key"></i> Salvar nova senha</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
 <script>
 const API_BASE_URL = window.location.origin;
 const token = localStorage.getItem('kronos_token');
@@ -283,6 +425,13 @@ const user = JSON.parse(localStorage.getItem('kronos_user') || 'null');
 const headers = token ? { 'Authorization': `Bearer ${token}` } : {};
 let listaOSCompleta = [];
 let filtroSetorAtual = 'todas';
+let listaUsuariosCompleta = [];
+let modoEdicaoUsuario = false;
+
+const setoresSolicitante = [
+  'Pronto Socorro','Recepção','Ambulatório','Administrativo','RH','Financeiro','Hotelaria','Assistência Social','Direção','Faturamento','Maternidade','Clínica Médica','Clínica Cirúrgica','Centro Cirúrgico','Tomografia','Mamografia','HEMOPI','Núcleos','UTI','Farmácia','Almoxarifado','Nutrição','Laboratório','Fisioterapia'
+];
+const setoresTecnicos = ['TI', 'Manutenção'];
 
 function logout() {
   localStorage.removeItem('kronos_user');
@@ -478,6 +627,203 @@ async function carregarPreventivas() {
   }
 }
 
+
+function obterHeadersJson() {
+  return {
+    'Content-Type': 'application/json',
+    ...(token ? { 'Authorization': `Bearer ${token}` } : {})
+  };
+}
+
+function abrirModalUsuario(usuario = null) {
+  modoEdicaoUsuario = Boolean(usuario);
+  document.getElementById('formUsuarioAdmin').reset();
+  document.getElementById('usuarioIdEdicao').value = usuario?.id || '';
+  document.getElementById('usuarioNome').value = usuario?.nome || '';
+  document.getElementById('usuarioEmail').value = usuario?.email || '';
+  document.getElementById('usuarioTipo').value = usuario?.tipo || 'solicitante';
+  preencherSetoresPorTipo();
+  document.getElementById('usuarioSetor').value = usuario?.setor || (document.getElementById('usuarioSetor').options[0]?.value || '');
+  document.getElementById('usuarioSenha').value = '';
+  document.getElementById('modalUsuarioTitulo').textContent = modoEdicaoUsuario ? 'Editar usuário' : 'Cadastrar usuário';
+  document.getElementById('modalUsuarioSubtitulo').textContent = modoEdicaoUsuario ? 'Atualize os dados do usuário selecionado.' : 'Preencha os dados do novo usuário do sistema.';
+  document.getElementById('ajudaSenhaUsuario').textContent = modoEdicaoUsuario
+    ? 'Na edição, deixe em branco para manter a senha atual.'
+    : 'Defina uma senha com pelo menos 6 caracteres.';
+  document.getElementById('usuarioSenha').required = !modoEdicaoUsuario;
+  document.getElementById('modalUsuario').classList.add('show');
+}
+
+function fecharModalUsuario() {
+  document.getElementById('modalUsuario').classList.remove('show');
+}
+
+function preencherSetoresPorTipo() {
+  const tipo = document.getElementById('usuarioTipo').value;
+  const select = document.getElementById('usuarioSetor');
+  const setores = tipo === 'tecnico' ? setoresTecnicos : tipo === 'admin' ? ['TI'] : setoresSolicitante;
+  select.innerHTML = setores.map(setor => `<option value="${escapeHtml(setor)}">${escapeHtml(setor)}</option>`).join('');
+}
+
+function renderizarUsuarios(lista) {
+  const container = document.getElementById('listaUsuarios');
+  const resumo = document.getElementById('resumoUsuarios');
+  resumo.textContent = `${lista.length} usuário(s) exibido(s) de ${listaUsuariosCompleta.length}.`;
+
+  if (!lista.length) {
+    container.innerHTML = '<div class="empty" style="grid-column:1 / -1;">Nenhum usuário encontrado para o filtro informado.</div>';
+    return;
+  }
+
+  container.innerHTML = lista.map(usuario => `
+    <div class="user-card">
+      <div class="user-top">
+        <div>
+          <div class="user-name">${escapeHtml(usuario.nome || 'Usuário')}</div>
+          <div class="user-email">${escapeHtml(usuario.email || 'Sem email')}</div>
+        </div>
+        <div class="tag-row">
+          <span class="tag ${classeSetor(usuario.setor)}">${escapeHtml(usuario.setor || '—')}</span>
+          <span class="tag">${escapeHtml(usuario.tipo || 'solicitante')}</span>
+        </div>
+      </div>
+      <div class="user-actions">
+        <button class="btn btn-secondary btn-sm" type="button" onclick="editarUsuario(${usuario.id})"><i class="fas fa-pen"></i> Editar</button>
+        <button class="btn btn-primary btn-sm" type="button" onclick="abrirModalResetSenha(${usuario.id})"><i class="fas fa-key"></i> Resetar senha</button>
+        <button class="btn btn-danger btn-sm" type="button" onclick="excluirUsuario(${usuario.id}, '${escapeHtml(usuario.nome || '').replace(/'/g, "&#39;")}')"><i class="fas fa-trash"></i> Excluir</button>
+      </div>
+    </div>
+  `).join('');
+}
+
+function filtrarUsuarios() {
+  const termo = String(document.getElementById('filtroUsuarios').value || '').toLowerCase().trim();
+  if (!termo) {
+    renderizarUsuarios(listaUsuariosCompleta);
+    return;
+  }
+
+  const filtrados = listaUsuariosCompleta.filter(usuario => {
+    return [usuario.nome, usuario.email, usuario.setor, usuario.tipo]
+      .filter(Boolean)
+      .some(valor => String(valor).toLowerCase().includes(termo));
+  });
+
+  renderizarUsuarios(filtrados);
+}
+
+async function carregarUsuarios() {
+  try {
+    const response = await fetch(`${API_BASE_URL}/api/usuarios`, { headers });
+    const payload = await response.json();
+    if (!response.ok || !payload.success) throw new Error(payload.message || 'Erro ao carregar usuários');
+    listaUsuariosCompleta = Array.isArray(payload.users) ? payload.users : [];
+    filtrarUsuarios();
+  } catch (error) {
+    document.getElementById('listaUsuarios').innerHTML = '<div class="empty" style="grid-column:1 / -1;">Não foi possível carregar os usuários.</div>';
+    document.getElementById('resumoUsuarios').textContent = 'Falha ao carregar usuários.';
+  }
+}
+
+function editarUsuario(id) {
+  const usuario = listaUsuariosCompleta.find(item => Number(item.id) === Number(id));
+  if (!usuario) return;
+  abrirModalUsuario(usuario);
+}
+
+async function excluirUsuario(id, nome) {
+  const usuario = listaUsuariosCompleta.find(item => Number(item.id) === Number(id));
+  const nomeLimpo = usuario?.nome || nome || 'este usuário';
+  if (!confirm(`Deseja realmente excluir ${nomeLimpo}?`)) return;
+
+  try {
+    const response = await fetch(`${API_BASE_URL}/api/usuarios/${id}`, {
+      method: 'DELETE',
+      headers: obterHeadersJson()
+    });
+    const payload = await response.json();
+    if (!response.ok || !payload.success) throw new Error(payload.message || 'Erro ao excluir usuário');
+    await carregarUsuarios();
+    await carregarStatus();
+    alert('Usuário excluído com sucesso.');
+  } catch (error) {
+    alert(error.message || 'Não foi possível excluir o usuário.');
+  }
+}
+
+async function salvarUsuarioAdmin(event) {
+  event.preventDefault();
+  const id = document.getElementById('usuarioIdEdicao').value;
+  const body = {
+    nome: document.getElementById('usuarioNome').value.trim(),
+    email: document.getElementById('usuarioEmail').value.trim(),
+    tipo: document.getElementById('usuarioTipo').value,
+    setor: document.getElementById('usuarioSetor').value,
+    senha: document.getElementById('usuarioSenha').value
+  };
+
+  try {
+    const response = await fetch(`${API_BASE_URL}/api/usuarios${id ? `/${id}` : ''}`, {
+      method: id ? 'PUT' : 'POST',
+      headers: obterHeadersJson(),
+      body: JSON.stringify(body)
+    });
+    const payload = await response.json();
+    if (!response.ok || !payload.success) throw new Error(payload.message || 'Erro ao salvar usuário');
+    fecharModalUsuario();
+    await Promise.all([carregarUsuarios(), carregarStatus()]);
+    alert(id ? 'Usuário atualizado com sucesso.' : 'Usuário cadastrado com sucesso.');
+  } catch (error) {
+    alert(error.message || 'Não foi possível salvar o usuário.');
+  }
+}
+
+
+function abrirModalResetSenha(id) {
+  const usuario = listaUsuariosCompleta.find(item => Number(item.id) === Number(id));
+  if (!usuario) return;
+  document.getElementById('resetSenhaUsuarioId').value = usuario.id;
+  document.getElementById('resetSenhaNova').value = '';
+  document.getElementById('resetSenhaConfirmacao').value = '';
+  document.getElementById('modalResetSenhaSubtitulo').textContent = `Defina uma nova senha para ${usuario.nome || 'o usuário'} (${usuario.email || 'sem email'}).`;
+  document.getElementById('modalResetSenha').classList.add('show');
+}
+
+function fecharModalResetSenha() {
+  document.getElementById('modalResetSenha').classList.remove('show');
+}
+
+async function salvarResetSenhaUsuario(event) {
+  event.preventDefault();
+  const id = document.getElementById('resetSenhaUsuarioId').value;
+  const senha = document.getElementById('resetSenhaNova').value;
+  const confirmacao = document.getElementById('resetSenhaConfirmacao').value;
+
+  if (!senha || senha.length < 6) {
+    alert('A nova senha deve ter pelo menos 6 caracteres.');
+    return;
+  }
+
+  if (senha !== confirmacao) {
+    alert('A confirmação da senha não confere.');
+    return;
+  }
+
+  try {
+    const response = await fetch(`${API_BASE_URL}/api/usuarios/${id}/reset-password`, {
+      method: 'POST',
+      headers: obterHeadersJson(),
+      body: JSON.stringify({ senha })
+    });
+    const payload = await response.json();
+    if (!response.ok || !payload.success) throw new Error(payload.message || 'Erro ao resetar senha');
+    fecharModalResetSenha();
+    alert('Senha redefinida com sucesso.');
+  } catch (error) {
+    alert(error.message || 'Não foi possível redefinir a senha.');
+  }
+}
+
 function atualizarHorario() {
   document.getElementById('horaAtualizacao').textContent = `Atualização: ${new Date().toLocaleString('pt-BR')}`;
 }
@@ -485,12 +831,26 @@ function atualizarHorario() {
 async function iniciar() {
   if (!ensureAdmin()) return;
   document.getElementById('btnSair').addEventListener('click', logout);
+  document.getElementById('btnNovoUsuarioTopo').addEventListener('click', () => abrirModalUsuario());
+  document.getElementById('btnNovoUsuarioCard').addEventListener('click', () => abrirModalUsuario());
+  document.getElementById('btnNovoUsuarioLista').addEventListener('click', () => abrirModalUsuario());
+  document.getElementById('btnFecharModalUsuario').addEventListener('click', fecharModalUsuario);
+  document.getElementById('btnCancelarModalUsuario').addEventListener('click', fecharModalUsuario);
+  document.getElementById('btnFecharModalResetSenha').addEventListener('click', fecharModalResetSenha);
+  document.getElementById('btnCancelarModalResetSenha').addEventListener('click', fecharModalResetSenha);
+  document.getElementById('usuarioTipo').addEventListener('change', preencherSetoresPorTipo);
+  document.getElementById('formUsuarioAdmin').addEventListener('submit', salvarUsuarioAdmin);
+  document.getElementById('formResetSenhaUsuario').addEventListener('submit', salvarResetSenhaUsuario);
+  document.getElementById('filtroUsuarios').addEventListener('input', filtrarUsuarios);
+  document.getElementById('modalUsuario').addEventListener('click', (event) => { if (event.target.id === 'modalUsuario') fecharModalUsuario(); });
+  document.getElementById('modalResetSenha').addEventListener('click', (event) => { if (event.target.id === 'modalResetSenha') fecharModalResetSenha(); });
   document.getElementById('filtroSetorOS').addEventListener('change', (event) => {
     filtroSetorAtual = event.target.value;
     atualizarPainelOS();
   });
   atualizarHorario();
-  await Promise.all([carregarStatus(), carregarOS(), carregarPreventivas()]);
+  preencherSetoresPorTipo();
+  await Promise.all([carregarStatus(), carregarOS(), carregarPreventivas(), carregarUsuarios()]);
 }
 
 iniciar();
@@ -500,6 +860,7 @@ setInterval(() => {
     carregarStatus();
     carregarOS();
     carregarPreventivas();
+    carregarUsuarios();
   }
 }, 30000);
 </script>

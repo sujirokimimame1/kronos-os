@@ -663,6 +663,11 @@
             overflow: hidden;
         }
 
+        .btn-assumir { 
+            background: transparent;
+            color: #60A5FA;
+            border: 1px solid rgba(96, 165, 250, 0.35);
+        }
         .btn-andamento { 
             background: transparent;
             color: #FFD93D;
@@ -1692,6 +1697,9 @@
         const API_BASE_URL = window.location.origin;
         let userSetor = '';
         let currentOSData = null;
+        let ultimoHashOS = null;
+        let carregamentoInicialConcluido = false;
+        let atualizacaoSilenciosaEmAndamento = false;
 
         // 🔒 PROTEÇÃO DE ACESSO AO DASHBOARD TÉCNICO
         document.addEventListener('DOMContentLoaded', function () {
@@ -1701,7 +1709,7 @@
 
             if (!token || !user) {
                 alert('Faça login para continuar.');
-                window.location.href = 'index.html';
+                window.location.href = 'acesso-tecnico.html';
                 return;
             }
 
@@ -1745,9 +1753,13 @@
         let audioTested = false;
         let isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
         
-        // ✅ SISTEMA DE NOTIFICAÇÃO (PRESERVADO)
+        // ✅ SISTEMA DE NOTIFICAÇÃO (RESTAURADO)
         let notificationEnabled = localStorage.getItem('kronos_notifications') !== 'false';
         let todasOSAnteriores = [];
+        let idsOSConhecidas = new Set();
+        let novasOSPendentes = new Set();
+        let primeiroCarregamentoNotificacoes = true;
+        let avisoDestravarSomExibido = false;
         
         // ✅ WEBSOCKET PARA TEMPO REAL (PRESERVADO)
         let socket = null;
@@ -2261,7 +2273,7 @@
             
             if (!user || !token) {
                 showToast('Acesso não autorizado', 'error');
-                setTimeout(() => window.location.href = 'index.html', 2000);
+                setTimeout(() => window.location.href = 'acesso-tecnico.html', 2000);
                 return false;
             }
             
@@ -2282,17 +2294,25 @@
                 return true;
             } catch (e) {
                 console.error('Erro:', e);
-                window.location.href = 'index.html';
+                window.location.href = 'acesso-tecnico.html';
                 return false;
             }
         }
 
-        // ✅ FUNÇÃO CARREGAR OS ATUALIZADA COM BANCO LOCAL (PRESERVADA)
-        async function carregarOSsSetor() {
+        // ✅ FUNÇÃO CARREGAR OS ATUALIZADA COM BANCO LOCAL (AJUSTADA PARA EVITAR PISCADA)
+        async function carregarOSsSetor(silencioso = false) {
+            if (atualizacaoSilenciosaEmAndamento) return;
+
             try {
-                mostrarLoading(true);
+                atualizacaoSilenciosaEmAndamento = true;
+
+                if (!silencioso && !carregamentoInicialConcluido) {
+                    mostrarLoading(true);
+                }
+
                 const token = localStorage.getItem('kronos_token');
-                
+                let osList = [];
+
                 try {
                     const controller = new AbortController();
                     const timeoutId = setTimeout(() => controller.abort(), 5000);
@@ -2307,49 +2327,84 @@
 
                     clearTimeout(timeoutId);
 
-                    if (response.ok) {
-                        const data = await response.json();
-                        let osList = [];
-                        
-                        if (data.success && data.data) {
-                            osList = data.data;
-                        } else if (Array.isArray(data)) {
-                            osList = data;
-                        }
-                        
-                        await Promise.all(osList.map(os => salvarOSNoBanco(os)));
-                        
-                        todasOS = osList;
-                        console.log(`✅ ${osList.length} OS carregadas do servidor`);
-                    } else {
+                    if (!response.ok) {
                         throw new Error(`Erro HTTP: ${response.status}`);
                     }
-                    
+
+                    const data = await response.json();
+
+                    if (data.success && data.data) {
+                        osList = data.data;
+                    } else if (Array.isArray(data)) {
+                        osList = data;
+                    }
+
+                    await Promise.all(osList.map(os => salvarOSNoBanco(os)));
                 } catch (error) {
                     console.warn('⚠️ Erro ao carregar do servidor, usando banco local:', error);
-                    
+
                     try {
                         const osLocal = await obterOSDoBanco();
-                        todasOS = osLocal.filter(os => os.setor_destino === userSetor);
-                        console.log(`✅ ${todasOS.length} OS carregadas do banco local`);
-                        
-                        showToast('Modo offline - Dados carregados do cache', 'warning');
+                        osList = osLocal.filter(os => os.setor_destino === userSetor);
+
+                        if (!silencioso) {
+                            showToast('Modo offline - Dados carregados do cache', 'warning');
+                        }
                     } catch (localError) {
                         console.error('❌ Erro ao carregar do banco local:', localError);
-                        todasOS = [];
+                        osList = [];
                     }
                 }
-                
+
+                const novoHash = JSON.stringify(
+                    osList.map(os => [
+                        os.id,
+                        os.status,
+                        os.prioridade,
+                        os.tecnico_id || '',
+                        os.tecnico_nome || '',
+                        os.data_fechamento || '',
+                        os.data_atualizacao || ''
+                    ])
+                );
+
+                if (ultimoHashOS === novoHash) {
+                    if (!carregamentoInicialConcluido) {
+                        todasOS = osList;
+                        verificarNovasOS(todasOS);
+                        atualizarEstatisticas(todasOS);
+                        atualizarContadoresAbas();
+                        aplicarFiltros();
+                        atualizarContadorNovasOS();
+                        mostrarLoading(false);
+                        carregamentoInicialConcluido = true;
+                    }
+                    return;
+                }
+
+                ultimoHashOS = novoHash;
+                todasOS = osList;
+
                 verificarNovasOS(todasOS);
                 atualizarEstatisticas(todasOS);
                 atualizarContadoresAbas();
                 aplicarFiltros();
                 atualizarContadorNovasOS();
-                mostrarLoading(false);
-                
+
+                if (!carregamentoInicialConcluido) {
+                    mostrarLoading(false);
+                    carregamentoInicialConcluido = true;
+                }
+
+                console.log(`✅ ${osList.length} OS sincronizadas`);
             } catch (error) {
                 console.error('❌ Erro crítico:', error);
-                mostrarError(true, `Erro ao carregar OS: ${error.message}`);
+
+                if (!carregamentoInicialConcluido) {
+                    mostrarError(true, `Erro ao carregar OS: ${error.message}`);
+                }
+            } finally {
+                atualizacaoSilenciosaEmAndamento = false;
             }
         }
 
@@ -2396,52 +2451,79 @@
             }
         }
 
-        // ✅ VERIFICAR NOVAS OS (PRESERVADA)
+        // ✅ VERIFICAR NOVAS OS (RESTAURADA)
         function verificarNovasOS(osAtuais) {
-            if (todasOSAnteriores.length === 0) {
-                todasOSAnteriores = osAtuais;
+            const listaAtual = Array.isArray(osAtuais) ? osAtuais : [];
+            const idsAtuais = new Set(listaAtual.map(os => String(os.id)));
+
+            if (primeiroCarregamentoNotificacoes) {
+                idsOSConhecidas = idsAtuais;
+                todasOSAnteriores = [...listaAtual];
+                primeiroCarregamentoNotificacoes = false;
+                atualizarContadorNovasOS();
                 return;
             }
 
-            const novasOS = osAtuais.filter(osAtual => 
-                !todasOSAnteriores.some(osAnterior => osAnterior.id === osAtual.id)
-            );
+            const novasOS = listaAtual.filter(osAtual => !idsOSConhecidas.has(String(osAtual.id)));
 
-            if (novasOS.length > 0 && notificationEnabled && sistemaAudio.podeTocar()) {
+            if (novasOS.length > 0) {
                 novasOS.forEach(os => {
-                    if (os.status === 'Aberto') {
-                        switch(os.prioridade) {
-                            case 'Crítica':
-                            case 'Alta':
-                                sistemaAudio.tocarSomNovaOSCritica();
-                                showToast(
-                                    `🚨 NOVA OS ${os.prioridade} #${os.id} - ${os.setor_origem}`,
-                                    'urgent',
-                                    6000
-                                );
-                                break;
-                            case 'Média':
-                                sistemaAudio.tocarSomNovaOSMedia();
-                                showToast(
-                                    `📋 Nova OS Média #${os.id} - ${os.setor_origem}`,
-                                    'info',
-                                    5000
-                                );
-                                break;
-                            case 'Baixa':
-                                sistemaAudio.tocarSomNovaOSBaixa();
-                                showToast(
-                                    `📄 Nova OS Baixa #${os.id} - ${os.setor_origem}`,
-                                    'success',
-                                    4000
-                                );
-                                break;
-                        }
+                    if ((os.status || '') === 'Aberto') {
+                        novasOSPendentes.add(String(os.id));
+                    }
+
+                    if (notificationEnabled) {
+                        notificarNovaOS(os);
                     }
                 });
             }
 
-            todasOSAnteriores = osAtuais;
+            idsOSConhecidas = idsAtuais;
+            todasOSAnteriores = [...listaAtual];
+            atualizarContadorNovasOS();
+        }
+
+        function notificarNovaOS(os) {
+            if (!os || os.status !== 'Aberto') return;
+
+            const origem = os.setor_origem || 'Setor não informado';
+
+            switch(os.prioridade) {
+                case 'Crítica':
+                case 'Alta':
+                    if (sistemaAudio.podeTocar()) {
+                        sistemaAudio.tocarSomNovaOSCritica();
+                    } else {
+                        avisarSomPendente();
+                    }
+                    showToast(`🚨 NOVA OS ${os.prioridade} #${os.id} - ${origem}`, 'urgent', 6000);
+                    break;
+                case 'Média':
+                    if (sistemaAudio.podeTocar()) {
+                        sistemaAudio.tocarSomNovaOSMedia();
+                    } else {
+                        avisarSomPendente();
+                    }
+                    showToast(`📋 Nova OS Média #${os.id} - ${origem}`, 'info', 5000);
+                    break;
+                default:
+                    if (sistemaAudio.podeTocar()) {
+                        sistemaAudio.tocarSomNovaOSBaixa();
+                    } else {
+                        avisarSomPendente();
+                    }
+                    showToast(`📄 Nova OS Baixa #${os.id} - ${origem}`, 'success', 4000);
+                    break;
+            }
+        }
+
+        function avisarSomPendente() {
+            if (!audioEnabled || sistemaAudio.podeTocar() || avisoDestravarSomExibido) return;
+            avisoDestravarSomExibido = true;
+            showToast('🔔 Nova OS recebida. Clique em qualquer lugar da tela para habilitar o som.', 'warning', 5000);
+            setTimeout(() => {
+                avisoDestravarSomExibido = false;
+            }, 6000);
         }
 
         // ✅ FUNÇÃO AUXILIAR: Obter classe CSS para prioridade (PRESERVADA)
@@ -2594,11 +2676,18 @@
 
                             <div class="sla-resumo">${resumoSLA.mensagem}</div>
                         </div>
+
+                        ${(os.tecnico_responsavel_nome || '').trim() ? `
+                            <div style="margin: 12px 0 4px 0; color: #cbd5e1; font-size: 0.92rem;">
+                                <i class="fas fa-user-check" style="color: #60a5fa; margin-right: 6px;"></i>
+                                Responsável: <strong style="color: #ffffff;">${os.tecnico_responsavel_nome}</strong>
+                            </div>
+                        ` : ''}
                         
                         <div class="os-actions">
                             ${os.status === 'Aberto' ? `
-                                <button class="btn-action btn-andamento" onclick="iniciarAtendimento(${os.id})" id="btn-iniciar-${os.id}">
-                                    <i class="fas fa-play-circle"></i> Iniciar Atendimento
+                                <button class="btn-action btn-assumir" onclick="assumirChamado(${os.id})" id="btn-assumir-${os.id}">
+                                    <i class="fas fa-hand-paper"></i> Assumir Chamado
                                 </button>
                             ` : ''}
                             
@@ -2653,6 +2742,50 @@
             novaJanela.document.close();
         }
 
+        async function assumirChamado(osId) {
+            const button = document.getElementById(`btn-assumir-${osId}`);
+            const originalText = button ? button.innerHTML : '';
+
+            try {
+                if (button) {
+                    button.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Assumindo...';
+                    button.classList.add('btn-loading');
+                    button.disabled = true;
+                }
+
+                const token = localStorage.getItem('kronos_token');
+                const response = await fetch(`${API_BASE_URL}/api/os/${osId}/assumir`, {
+                    method: 'PUT',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${token}`
+                    }
+                });
+
+                const resultado = await response.json().catch(() => ({}));
+
+                if (!response.ok || resultado.success === false) {
+                    throw new Error(resultado.message || 'Erro ao assumir chamado');
+                }
+
+                if (sistemaAudio.podeTocar()) {
+                    sistemaAudio.tocarSomInicioAtendimento();
+                }
+
+                showToast(`✅ Chamado da OS #${osId} assumido com sucesso!`, 'success');
+                setTimeout(() => carregarOSsSetor(true), 300);
+            } catch (error) {
+                console.error('❌ Erro ao assumir chamado:', error);
+                showToast(`Erro ao assumir chamado: ${error.message}`, 'error');
+
+                if (button) {
+                    button.innerHTML = originalText;
+                    button.classList.remove('btn-loading');
+                    button.disabled = false;
+                }
+            }
+        }
+
         // ✅ BOTÃO INICIAR ATENDIMENTO COM SOM MODERNO (PRESERVADO)
         async function iniciarAtendimento(osId) {
             const button = document.getElementById(`btn-iniciar-${osId}`);
@@ -2686,7 +2819,7 @@
                     }
                     
                     showToast(`🎯 Atendimento da OS #${osId} iniciado!`, 'success');
-                    setTimeout(() => carregarOSsSetor(), 300);
+                    setTimeout(() => carregarOSsSetor(true), 300);
                 } else {
                     throw new Error('Erro ao iniciar atendimento');
                 }
@@ -2731,7 +2864,7 @@
                     }
                     
                     showToast(`⏳ OS #${osId} marcada como Aguardando Peças!`, 'info');
-                    setTimeout(() => carregarOSsSetor(), 300);
+                    setTimeout(() => carregarOSsSetor(true), 300);
                 } else {
                     throw new Error('Erro ao atualizar status');
                 }
@@ -2776,7 +2909,7 @@
                     }
                     
                     showToast(`🎯 OS #${osId} retomada!`, 'success');
-                    setTimeout(() => carregarOSsSetor(), 300);
+                    setTimeout(() => carregarOSsSetor(true), 300);
                 } else {
                     throw new Error('Erro ao retomar atendimento');
                 }
@@ -2868,7 +3001,7 @@
                     
                     showToast(mensagem, 'success');
                     fecharModal();
-                    setTimeout(() => carregarOSsSetor(), 300);
+                    setTimeout(() => carregarOSsSetor(true), 300);
                 } else {
                     throw new Error('Erro ao atualizar OS');
                 }
@@ -2920,15 +3053,20 @@
         // ✅ INICIALIZAR BOTÃO DE NOTIFICAÇÕES (PRESERVADO)
         function inicializarBotaoNotificacoes() {
             const btn = document.getElementById('btnNotificacoes');
+            const contadorAtual = document.getElementById('contadorNovasOS');
+            const contadorHTML = contadorAtual ? contadorAtual.outerHTML : '<span class="notification-badge" id="contadorNovasOS">0</span>';
+
             if (notificationEnabled) {
-                btn.innerHTML = '<i class="fas fa-bell"></i> Notificações: ON';
+                btn.innerHTML = `<i class="fas fa-bell"></i> Notificações: ON ${contadorHTML}`;
                 btn.classList.remove('btn-secondary');
                 btn.classList.add('btn-info');
             } else {
-                btn.innerHTML = '<i class="fas fa-bell-slash"></i> Notificações: OFF';
+                btn.innerHTML = `<i class="fas fa-bell-slash"></i> Notificações: OFF ${contadorHTML}`;
                 btn.classList.remove('btn-info');
                 btn.classList.add('btn-secondary');
             }
+
+            atualizarContadorNovasOS();
         }
 
         // ✅ ALTERNAR NOTIFICAÇÕES (PRESERVADO)
@@ -2951,14 +3089,13 @@
             const contadorNovas = document.getElementById('contadorNovasOS');
             if (!contadorNovas) return;
 
-            const novasOS = todasOS.filter(os => 
-                os.status === 'Aberto' && 
-                !todasOSAnteriores.some(osAnt => osAnt.id === os.id)
-            );
+            const totalPendentes = [...novasOSPendentes].filter(id =>
+                todasOS.some(os => String(os.id) === id && os.status === 'Aberto')
+            ).length;
 
-            if (novasOS.length > 0 && notificationEnabled) {
-                contadorNovas.textContent = novasOS.length;
-                contadorNovas.style.display = 'inline-block';
+            if (totalPendentes > 0 && notificationEnabled) {
+                contadorNovas.textContent = totalPendentes;
+                contadorNovas.style.display = 'inline-flex';
             } else {
                 contadorNovas.style.display = 'none';
             }
@@ -3124,52 +3261,79 @@
         // ✅ POLLING SUAVE COMO FALLBACK (PRESERVADO)
         function usarPollingSuave() {
             if (pollingInterval) clearInterval(pollingInterval);
-            pollingInterval = setInterval(carregarOSsSetor, 30000);
+            pollingInterval = setInterval(() => carregarOSsSetor(true), 5000);
         }
 
         // ✅ HANDLERS PARA MENSAGENS WEBSOCKET (PRESERVADO)
         function handleNovaOS(os) {
             console.log('🆕 Nova OS recebida via WebSocket:', os);
-            
-            if (notificationEnabled && sistemaAudio.podeTocar()) {
-                switch(os.prioridade) {
-                    case 'Crítica':
-                    case 'Alta':
-                        sistemaAudio.tocarSomNovaOSCritica();
-                        showToast(
-                            `🚨 NOVA OS ${os.prioridade} #${os.id} - ${os.setor_origem}`,
-                            'urgent',
-                            6000
-                        );
-                        break;
-                    case 'Média':
-                        sistemaAudio.tocarSomNovaOSMedia();
-                        showToast(
-                            `📋 Nova OS Média #${os.id} - ${os.setor_origem}`,
-                            'info',
-                            5000
-                        );
-                        break;
-                    case 'Baixa':
-                        sistemaAudio.tocarSomNovaOSBaixa();
-                        showToast(
-                            `📄 Nova OS Baixa #${os.id} - ${os.setor_origem}`,
-                            'success',
-                            4000
-                        );
-                        break;
-                }
+
+            if (!os || os.setor_destino !== userSetor) return;
+
+            const index = todasOS.findIndex(item => item.id === os.id);
+
+            if (index === -1) {
+                todasOS.unshift(os);
+            } else {
+                todasOS[index] = os;
             }
-            
-            carregarOSsSetor();
+
+            if (os.status === 'Aberto') {
+                novasOSPendentes.add(String(os.id));
+            }
+
+            if (notificationEnabled) {
+                notificarNovaOS(os);
+            }
+
+            ultimoHashOS = JSON.stringify(
+                todasOS.map(item => [
+                    item.id,
+                    item.status,
+                    item.prioridade,
+                    item.tecnico_id || '',
+                    item.tecnico_nome || '',
+                    item.data_fechamento || '',
+                    item.data_atualizacao || ''
+                ])
+            );
+
+            atualizarEstatisticas(todasOS);
+            atualizarContadoresAbas();
+            aplicarFiltros();
+            atualizarContadorNovasOS();
         }
 
         function handleOSAtualizada(os) {
+            if (!os) return;
+
             const index = todasOS.findIndex(o => o.id === os.id);
-            if (index !== -1) {
+
+            if (os.setor_destino !== userSetor) {
+                if (index !== -1) {
+                    todasOS.splice(index, 1);
+                }
+            } else if (index !== -1) {
                 todasOS[index] = os;
-                aplicarFiltros();
+            } else {
+                todasOS.unshift(os);
             }
+
+            ultimoHashOS = JSON.stringify(
+                todasOS.map(item => [
+                    item.id,
+                    item.status,
+                    item.prioridade,
+                    item.tecnico_id || '',
+                    item.tecnico_nome || '',
+                    item.data_fechamento || '',
+                    item.data_atualizacao || ''
+                ])
+            );
+
+            atualizarEstatisticas(todasOS);
+            atualizarContadoresAbas();
+            aplicarFiltros();
         }
 
         // ✅ RESETAR VISUALIZAÇÃO (PRESERVADO)
@@ -3193,7 +3357,7 @@
                 localStorage.removeItem('kronos_user');
                 localStorage.removeItem('kronos_token');
                 localStorage.removeItem('tecnico_setor_selecionado');
-                window.location.href = 'index.html';
+                window.location.href = 'acesso-tecnico.html';
             }
         }
 
@@ -3663,7 +3827,7 @@
                 inicializarWebSocket();
                 
                 // Carregamento inicial
-                carregarOSsSetor();
+                await carregarOSsSetor(false);
                 
                 // ✅ CORREÇÃO: Mostrar modal de destravamento se necessário (apenas mobile)
                 if (isMobile && audioEnabled && !sistemaAudio.unlocked) {
@@ -3696,6 +3860,20 @@
                 button.click();
             }
         }, { passive: false });
+
+
+        ['click', 'touchstart', 'keydown'].forEach((eventName) => {
+            window.addEventListener(eventName, async () => {
+                if (audioEnabled && !sistemaAudio.unlocked) {
+                    const ativado = await sistemaAudio.destravar();
+                    if (ativado) {
+                        audioUnlocked = true;
+                        atualizarBotoesSom();
+                        mostrarStatusSom('🔊 Som habilitado para novas O.S.', true);
+                    }
+                }
+            }, { passive: true });
+        });
 
         // ✅ EVENT LISTENERS PARA MOBILE - CORRIGIDOS
         window.addEventListener('click', function(event) {

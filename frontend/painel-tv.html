@@ -300,7 +300,7 @@
       <div class="group">
         <button class="toggle-pill" id="enableSoundBtn" onclick="alternarSomPainel()"><i class="fa-solid fa-volume-high"></i> Som ativo</button>
         <button class="toggle-pill" id="enableVoiceBtn" onclick="alternarVozPainel()"><i class="fa-solid fa-bullhorn"></i> Anúncio por voz</button>
-        <span class="sound-badge"><i class="fa-solid fa-wave-square"></i> Alerta sonoro moderno para novas O.S.</span>
+        <span class="sound-badge" id="soundStatusBadge"><i class="fa-solid fa-hand-pointer"></i> Clique em qualquer lugar do painel para liberar o som</span>
       </div>
       <div class="group">
         <label class="sound-badge" for="volumeRange"><i class="fa-solid fa-sliders"></i> Volume <span id="volumeLabel">92%</span></label>
@@ -408,6 +408,8 @@
     let idsConhecidos = new Set();
     let primeiroCarregamento = true;
     let audioCtx = null;
+    let audioUnlocked = false;
+    let unlockToastShown = false;
     const painelSom = {
       habilitado: localStorage.getItem('kronos_painel_sound_enabled') !== 'false',
       voz: localStorage.getItem('kronos_painel_voice_enabled') !== 'false',
@@ -537,11 +539,12 @@
           <div><strong>Destino:</strong> ${normalizarSetor(os.setor_destino)}</div>
           <div><strong>Categoria:</strong> ${os.categoria || 'Não informada'}</div>
           <div><strong>Cliente:</strong> ${os.cliente || 'Não informado'}</div>
+          <div><strong>Técnico:</strong> ${os.tecnico_responsavel_nome || 'Não assumido'}</div>
           <div><strong>ID:</strong> #${os.id}</div>
         </div>
         <div class="os-footer">
           <span class="status-badge ${classeStatus(status)}">${status.toUpperCase()}</span>
-          <span>${formatarData(os.data_abertura)}</span>
+          <span>${formatarData(os.updated_at || os.data_abertura)}</span>
         </div>
       `;
       return card;
@@ -604,10 +607,42 @@
     }
 
 
+    function atualizarStatusSomUI() {
+      const badge = document.getElementById('soundStatusBadge');
+      if (!badge) return;
+      if (!painelSom.habilitado) {
+        badge.innerHTML = '<i class="fa-solid fa-volume-xmark"></i> Som desativado no painel';
+        return;
+      }
+      if (audioUnlocked) {
+        badge.innerHTML = '<i class="fa-solid fa-circle-check"></i> Som liberado para novos chamados';
+        return;
+      }
+      badge.innerHTML = '<i class="fa-solid fa-hand-pointer"></i> Clique em qualquer lugar do painel para liberar o som';
+    }
+
+    async function desbloquearAudioPainel() {
+      try {
+        const ctx = getAudioCtx();
+        if (ctx && ctx.state === 'suspended') {
+          await ctx.resume();
+        }
+        audioUnlocked = true;
+        unlockToastShown = false;
+        atualizarStatusSomUI();
+        return true;
+      } catch (_) {
+        audioUnlocked = false;
+        atualizarStatusSomUI();
+        return false;
+      }
+    }
+
     function inicializarControlesSom() {
       document.getElementById('volumeRange').value = Math.round((painelSom.volume || 0.92) * 100);
       document.getElementById('volumeLabel').textContent = `${Math.round((painelSom.volume || 0.92) * 100)}%`;
       sincronizarBotoesSom();
+      atualizarStatusSomUI();
     }
 
     function sincronizarBotoesSom() {
@@ -623,7 +658,8 @@
       painelSom.habilitado = !painelSom.habilitado;
       localStorage.setItem('kronos_painel_sound_enabled', String(painelSom.habilitado));
       sincronizarBotoesSom();
-      if (painelSom.habilitado) testarSomPainel();
+      atualizarStatusSomUI();
+      if (painelSom.habilitado) { desbloquearAudioPainel().finally(() => testarSomPainel()); }
     }
 
     function alternarVozPainel() {
@@ -664,6 +700,10 @@
       if (!painelSom.habilitado) return;
       const ctx = getAudioCtx();
       if (!ctx) return;
+      if (!audioUnlocked) {
+        atualizarStatusSomUI();
+        return;
+      }
       if (ctx.state === 'suspended') ctx.resume().catch(() => {});
       const agora = ctx.currentTime + 0.02;
       const volume = Math.max(0.04, painelSom.volume * 0.12);
@@ -701,7 +741,7 @@
       clearTimeout(window.overlayTimer);
       window.overlayTimer = setTimeout(() => overlay.classList.remove('show'), prioridade === 'Crítica' ? 7000 : 4500);
 
-      if (painelSom.voz && 'speechSynthesis' in window) {
+      if (painelSom.voz && audioUnlocked && 'speechSynthesis' in window) {
         try {
           window.speechSynthesis.cancel();
           
@@ -724,8 +764,10 @@
     }
 
     function testarSomPainel() {
-      tocarSomAlerta('Alta');
-      anunciarNovaOS({ prioridade: 'Alta', setor_destino: setorAtual, setor_origem: 'Teste', descricao: 'Teste de alerta do painel.' });
+      desbloquearAudioPainel().finally(() => {
+        tocarSomAlerta('Alta');
+        anunciarNovaOS({ prioridade: 'Alta', setor_destino: setorAtual, setor_origem: 'Teste', descricao: 'Teste de alerta do painel.' });
+      });
     }
 
     function mostrarFlashCritico() {
@@ -753,6 +795,13 @@
         </div>
       `;
       container.prepend(el);
+      if (!audioUnlocked && painelSom.habilitado && !unlockToastShown) {
+        unlockToastShown = true;
+        const badge = document.getElementById('soundStatusBadge');
+        if (badge) {
+          badge.innerHTML = '<i class="fa-solid fa-triangle-exclamation"></i> Houve novo chamado. Clique no painel para habilitar o som';
+        }
+      }
       tocarSomAlerta(prioridade);
       anunciarNovaOS(os);
       if (prioridade === 'Crítica' || prioridade === 'Alta') mostrarFlashCritico();
@@ -775,6 +824,7 @@
         const payload = await response.json();
         if (!response.ok || payload.success === false) throw new Error(payload.message || 'Erro ao carregar O.S.');
         estatisticasPainel = payload.stats || { total_geral: 0, total_dia_nao_finalizado: 0 };
+        window.resumoSetoresApi = payload.resumoSetores || {};
         todasOS = Array.isArray(payload) ? payload : (payload.data || []);
         todasOS = todasOS.map(os => ({
           ...os,
@@ -800,11 +850,18 @@
       }
     }
 
+    ['click', 'touchstart', 'keydown'].forEach((evt) => {
+      window.addEventListener(evt, () => {
+        if (!audioUnlocked && painelSom.habilitado) desbloquearAudioPainel();
+      }, { passive: true });
+    });
+
     document.getElementById('modalLista').addEventListener('click', (event) => {
       if (event.target.id === 'modalLista') fecharModal();
     });
 
     inicializarControlesSom();
+    atualizarStatusSomUI();
     setInterval(carregarOS, 5000);
     carregarOS();
   </script>

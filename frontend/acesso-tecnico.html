@@ -35,8 +35,8 @@ body::before{content:'';position:fixed;inset:0;background:radial-gradient(circle
 .badge-wrap{text-align:center}
 .form-group{margin-bottom:16px}
 label{display:block;margin-bottom:8px;color:#dbe7f4;font-weight:600}
-input{width:100%;padding:14px 16px;border-radius:14px;border:1px solid rgba(148,163,184,.25);background:rgba(15,23,42,.72);color:white;outline:none}
-input:focus{border-color:var(--primary);box-shadow:0 0 0 3px rgba(79,195,247,.15)}
+input, select{width:100%;padding:14px 16px;border-radius:14px;border:1px solid rgba(148,163,184,.25);background:rgba(15,23,42,.72);color:white;outline:none}
+input:focus, select:focus{border-color:var(--primary);box-shadow:0 0 0 3px rgba(79,195,247,.15)}
 .btn{width:100%;border:none;border-radius:14px;padding:14px 16px;font-size:1rem;font-weight:700;cursor:pointer;transition:.2s}
 .btn-primary{background:linear-gradient(135deg,var(--primary),var(--primary-dark));color:#0F172A}
 .btn-primary:hover{transform:translateY(-1px)}
@@ -48,13 +48,21 @@ input:focus{border-color:var(--primary);box-shadow:0 0 0 3px rgba(79,195,247,.15
 .links{display:flex;justify-content:space-between;gap:12px;margin-top:18px;flex-wrap:wrap}
 .links a{color:var(--primary-light);text-decoration:none;font-weight:600}
 .small{font-size:.9rem;color:var(--gray)}
-</style>
+.modal{display:none;position:fixed;inset:0;background:rgba(0,0,0,.65);backdrop-filter:blur(6px);align-items:center;justify-content:center;padding:18px;z-index:9999}
+.modal.open{display:flex}
+.modal-card{width:100%;max-width:560px;background:rgba(15,23,42,.92);border:1px solid var(--card-border);border-radius:22px;padding:24px;box-shadow:var(--shadow)}
+.modal-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:18px}
+.modal-header h2{color:var(--primary-light);font-size:1.3rem}
+.icon-btn{background:transparent;border:none;color:#cbd5e1;font-size:1.1rem;cursor:pointer}
+.modal-actions{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:8px}
+@media (max-width: 560px){.modal-actions{grid-template-columns:1fr}.card,.modal-card{padding:22px}}
+  </style>
 </head>
 <body>
   <div class="page">
     <div class="card">
       <div class="brand"><div class="brand-icon"><i class="fas fa-user-gear"></i></div><h1>Kronos OS</h1></div>
-      <div class="badge-wrap"><div class="badge"><i class="fas fa-user-gear"></i> Acesso da Equipe Técnica</div></div>
+      <div class="badge-wrap"><div class="badge"><i class="fas fa-user"></i> Acesso Técnico</div></div>
       <p class="subtitle">Acesso separado e dedicado para este perfil.</p>
       <div id="alert" class="alert error"></div>
       <form id="loginForm">
@@ -67,7 +75,7 @@ input:focus{border-color:var(--primary);box-shadow:0 0 0 3px rgba(79,195,247,.15
           <input id="senha" type="password" autocomplete="current-password" required>
         </div>
         <button class="btn btn-primary" id="btnEntrar" type="submit">Entrar</button>
-        
+        <button type="button" class="btn btn-secondary" id="btnCadastro">Criar conta técnica</button>
       </form>
       <div class="links">
         <a href="/">← Voltar ao início</a>
@@ -76,6 +84,43 @@ input:focus{border-color:var(--primary);box-shadow:0 0 0 3px rgba(79,195,247,.15
       <p class="helper">Após o login, o sistema envia este perfil para a página correta automaticamente.</p>
     </div>
   </div>
+
+  <div class="modal" id="cadastroModal">
+    <div class="modal-card">
+      <div class="modal-header">
+        <h2><i class="fas fa-user-plus"></i> Criar conta técnica</h2>
+        <button class="icon-btn" type="button" id="fecharCadastro"><i class="fas fa-times"></i></button>
+      </div>
+      <div id="cadastroAlert" class="alert error"></div>
+      <form id="cadastroForm">
+        <div class="form-group">
+          <label for="cadNome">Nome completo</label>
+          <input id="cadNome" type="text" required>
+        </div>
+        <div class="form-group">
+          <label for="cadEmail">Email</label>
+          <input id="cadEmail" type="email" required>
+        </div>
+        <div class="form-group">
+          <label for="cadSenha">Senha</label>
+          <input id="cadSenha" type="password" minlength="6" required>
+        </div>
+        <div class="form-group">
+          <label for="cadSetor">Setor da equipe técnica</label>
+          <select id="cadSetor" required>
+            <option value="">Selecione o setor</option>
+            <option value="TI">TI</option>
+            <option value="Manutenção">Manutenção</option>
+          </select>
+        </div>
+        <div class="modal-actions">
+          <button type="button" class="btn btn-secondary" id="cancelarCadastro">Cancelar</button>
+          <button type="submit" class="btn btn-primary" id="btnSalvarCadastro">Criar conta</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
 <script>
 const API_BASE_URL = window.location.origin;
 const form = document.getElementById('loginForm');
@@ -83,11 +128,20 @@ const emailInput = document.getElementById('email');
 const senhaInput = document.getElementById('senha');
 const alertBox = document.getElementById('alert');
 const btnEntrar = document.getElementById('btnEntrar');
+const btnCadastro = document.getElementById('btnCadastro');
+const cadastroModal = document.getElementById('cadastroModal');
+const cadastroForm = document.getElementById('cadastroForm');
+const cadastroAlert = document.getElementById('cadastroAlert');
+const btnSalvarCadastro = document.getElementById('btnSalvarCadastro');
 
-function showAlert(message, type='error') {
-  alertBox.className = `alert ${type}`;
-  alertBox.textContent = message;
-  alertBox.style.display = 'block';
+function showAlert(message, type='error', target=alertBox) {
+  target.className = `alert ${type}`;
+  target.textContent = message;
+  target.style.display = 'block';
+}
+
+function hideAlert(target=alertBox) {
+  target.style.display = 'none';
 }
 
 function clearAuth() {
@@ -112,7 +166,7 @@ function isTech(user) {
 
 form.addEventListener('submit', async (e) => {
   e.preventDefault();
-  alertBox.style.display = 'none';
+  hideAlert(alertBox);
   btnEntrar.disabled = true;
   btnEntrar.textContent = 'Entrando...';
   try {
@@ -141,6 +195,56 @@ form.addEventListener('submit', async (e) => {
   }
 });
 
+function abrirCadastro() {
+  cadastroForm.reset();
+  hideAlert(cadastroAlert);
+  cadastroModal.classList.add('open');
+}
+
+function fecharCadastro() {
+  cadastroModal.classList.remove('open');
+}
+
+btnCadastro.addEventListener('click', abrirCadastro);
+document.getElementById('fecharCadastro').addEventListener('click', fecharCadastro);
+document.getElementById('cancelarCadastro').addEventListener('click', fecharCadastro);
+cadastroModal.addEventListener('click', (e) => {
+  if (e.target === cadastroModal) fecharCadastro();
+});
+
+cadastroForm.addEventListener('submit', async (e) => {
+  e.preventDefault();
+  hideAlert(cadastroAlert);
+  btnSalvarCadastro.disabled = true;
+  btnSalvarCadastro.textContent = 'Criando...';
+  try {
+    const payload = {
+      nome: document.getElementById('cadNome').value.trim(),
+      email: document.getElementById('cadEmail').value.trim(),
+      senha: document.getElementById('cadSenha').value,
+      setor: document.getElementById('cadSetor').value,
+      tipo: 'tecnico'
+    };
+
+    const response = await fetch(`${API_BASE_URL}/api/usuarios`, {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify(payload)
+    });
+    const data = await response.json();
+    if (!response.ok || !data.success) throw new Error(data.message || 'Erro ao criar conta');
+
+    showAlert('Conta técnica criada com sucesso. Agora faça login.', 'success');
+    emailInput.value = payload.email;
+    senhaInput.value = '';
+    fecharCadastro();
+  } catch (error) {
+    showAlert(error.message || 'Erro ao criar conta.', 'error', cadastroAlert);
+  } finally {
+    btnSalvarCadastro.disabled = false;
+    btnSalvarCadastro.textContent = 'Criar conta';
+  }
+});
 </script>
 </body>
 </html>
