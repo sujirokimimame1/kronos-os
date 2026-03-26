@@ -1,22 +1,23 @@
+require('./config/env');
 const { Pool } = require('pg');
+const { getEnv, isProduction } = require('./config/env');
 
-if (!process.env.DATABASE_URL) {
+const databaseUrl = getEnv('DATABASE_URL');
+if (!databaseUrl) {
   throw new Error('DATABASE_URL não definida no ambiente.');
 }
 
 const pool = new Pool({
-  connectionString: process.env.DATABASE_URL,
-  ssl: {
-    rejectUnauthorized: false
-  }
+  connectionString: databaseUrl,
+  ssl: isProduction ? { rejectUnauthorized: false } : false
 });
 
 pool.connect()
-  .then(client => {
+  .then((client) => {
     console.log('✅ PostgreSQL conectado');
     client.release();
   })
-  .catch(err => {
+  .catch((err) => {
     console.error('❌ Erro ao conectar no PostgreSQL:', err);
   });
 
@@ -60,18 +61,13 @@ const db = {
   run: async (query, params = [], callback) => {
     try {
       const result = await pool.query(query, params);
-
       const response = {
-        lastID:
-          result.rows &&
-          result.rows[0] &&
-          (result.rows[0].id || result.rows[0].lastID || null),
+        lastID: result.rows?.[0]?.id || result.rows?.[0]?.lastID || null,
         changes: result.rowCount || 0
       };
 
       if (callback) {
         callback.call(response, null);
-        return response;
       }
 
       return response;
@@ -87,10 +83,7 @@ const db = {
   exec: async (query, callback) => {
     try {
       const result = await pool.query(query);
-      if (callback) {
-        callback(null);
-        return result;
-      }
+      if (callback) callback(null);
       return result;
     } catch (err) {
       if (callback) {
@@ -101,9 +94,8 @@ const db = {
     }
   },
 
-  query: async (query, params = []) => {
-    return pool.query(query, params);
-  }
+  query: async (query, params = []) => pool.query(query, params),
+  pool
 };
 
 module.exports = db;
