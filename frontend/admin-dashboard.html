@@ -168,6 +168,30 @@
     .btn-sm { padding:.6rem .9rem; border-radius:12px; font-size:.9rem; }
     .btn-warning { background:rgba(245,158,11,.12); color:#fde68a; border:1px solid rgba(245,158,11,.28); }
     .btn-success { background:rgba(34,197,94,.12); color:#bbf7d0; border:1px solid rgba(34,197,94,.28); }
+
+    .toggle-section-header {
+      cursor:pointer;
+      user-select:none;
+    }
+    .toggle-section-header:hover h3,
+    .toggle-section-header:hover #iconeToggleUsuarios {
+      color: var(--primary-light);
+    }
+    .toggle-indicator {
+      color: var(--primary-light);
+      font-size: 1rem;
+      font-weight: 800;
+      min-width: 24px;
+      text-align: center;
+    }
+    .collapsible-content {
+      display: none;
+    }
+    .collapsible-content.open {
+      display: block;
+      animation: fadeIn .25s ease;
+    }
+
     .modal-overlay {
       position:fixed; inset:0; background:rgba(2,6,23,.75); display:none; align-items:center; justify-content:center;
       padding:1rem; z-index:9999;
@@ -316,17 +340,23 @@
 
 
         <div class="card">
-          <div class="section-title">
-            <h3>Gerenciar usuários</h3>
+          <div class="section-title toggle-section-header" onclick="toggleUsuarios()">
+            <h3><i class="fas fa-users"></i> Gerenciar usuários</h3>
             <div class="toolbar-inline">
-              <button class="btn btn-primary" type="button" id="btnNovoUsuarioLista"><i class="fas fa-user-plus"></i> Novo usuário</button>
+              <span class="filter-helper" id="resumoUsuariosFechado">Clique para abrir a lista de usuários</span>
+              <span id="iconeToggleUsuarios" class="toggle-indicator">▼</span>
             </div>
           </div>
-          <div class="users-toolbar">
-            <input type="text" id="filtroUsuarios" class="search-input" placeholder="Pesquisar por nome, email, setor ou tipo...">
-            <div class="filter-helper" id="resumoUsuarios">Carregando usuários...</div>
+          <div id="containerUsuarios" class="collapsible-content">
+            <div class="users-toolbar">
+              <input type="text" id="filtroUsuarios" class="search-input" placeholder="Pesquisar por nome, email, setor ou tipo...">
+              <div class="toolbar-inline">
+                <div class="filter-helper" id="resumoUsuarios">Carregando usuários...</div>
+                <button class="btn btn-primary" type="button" id="btnNovoUsuarioLista"><i class="fas fa-user-plus"></i> Novo usuário</button>
+              </div>
+            </div>
+            <div id="listaUsuarios" class="user-grid"></div>
           </div>
-          <div id="listaUsuarios" class="user-grid"></div>
         </div>
 
         <div class="card">
@@ -665,6 +695,24 @@ function preencherSetoresPorTipo() {
   select.innerHTML = setores.map(setor => `<option value="${escapeHtml(setor)}">${escapeHtml(setor)}</option>`).join('');
 }
 
+function toggleUsuarios(abrirForcado = null) {
+  const container = document.getElementById('containerUsuarios');
+  const icone = document.getElementById('iconeToggleUsuarios');
+  const resumoFechado = document.getElementById('resumoUsuariosFechado');
+  if (!container || !icone) return;
+
+  const vaiAbrir = abrirForcado !== null ? abrirForcado : !container.classList.contains('open');
+
+  container.classList.toggle('open', vaiAbrir);
+  icone.textContent = vaiAbrir ? '▲' : '▼';
+
+  if (resumoFechado) {
+    resumoFechado.textContent = vaiAbrir
+      ? 'Lista de usuários aberta'
+      : 'Clique para abrir a lista de usuários';
+  }
+}
+
 function renderizarUsuarios(lista) {
   const container = document.getElementById('listaUsuarios');
   const resumo = document.getElementById('resumoUsuarios');
@@ -831,8 +879,8 @@ function atualizarHorario() {
 async function iniciar() {
   if (!ensureAdmin()) return;
   document.getElementById('btnSair').addEventListener('click', logout);
-  document.getElementById('btnNovoUsuarioTopo').addEventListener('click', () => abrirModalUsuario());
-  document.getElementById('btnNovoUsuarioCard').addEventListener('click', () => abrirModalUsuario());
+  document.getElementById('btnNovoUsuarioTopo').addEventListener('click', () => { toggleUsuarios(true); abrirModalUsuario(); });
+  document.getElementById('btnNovoUsuarioCard').addEventListener('click', () => { toggleUsuarios(true); abrirModalUsuario(); });
   document.getElementById('btnNovoUsuarioLista').addEventListener('click', () => abrirModalUsuario());
   document.getElementById('btnFecharModalUsuario').addEventListener('click', fecharModalUsuario);
   document.getElementById('btnCancelarModalUsuario').addEventListener('click', fecharModalUsuario);
